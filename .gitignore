@@ -1,0 +1,11 @@
+﻿# Ignore the entire working tree by default
+**
+
+# Keep this file versioned
+!.gitignore
+
+# Track only these directories (and all files under them)
+!data/
+!data/**
+!src/
+!src/**
