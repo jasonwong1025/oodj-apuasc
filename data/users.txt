@@ -1,1 +1,4 @@
-C001|Ong Zi Ming|zimingong0211@gmail.com|0177896541|Apu123.|Customer
+M001|Manager1|manager@gmail.com|0177896541|Manager123.|Manager
+S001|CounterStaff1|counterstaff@gmail.com|0177896541|CounterStaff123.|CounterStaff
+T001|Technician1|technician@gmail.com|0177896541|Technician123.|Technician
+C001|Customer1|customer@gmail.com|0177896541|Customer123.|Customer
