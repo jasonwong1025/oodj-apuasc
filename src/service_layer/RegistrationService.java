@@ -29,12 +29,16 @@ public class RegistrationService {
 
         // 2. Validate email format
         if (!ValidationUtil.isValidEmail(email)) {
-            return "Please enter a valid email address.";
+            return ValidationUtil.invalidEmailMessage();
+        }
+
+        if (!ValidationUtil.isValidContact(contact)) {
+            return ValidationUtil.invalidContactMessage();
         }
 
         // 3. Validate password strength
         if (!ValidationUtil.isValidPassword(password)) {
-            return "Password must be at least 6 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character.\n(Example: Password1!)";
+            return ValidationUtil.passwordRequirementsMessage();
         }
 
         // 4. Validate password and confirm password match

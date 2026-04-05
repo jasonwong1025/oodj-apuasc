@@ -11,7 +11,7 @@ public class UserFileRepository {
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         File file = new File(FILE_PATH);
-        
+
         if (!file.exists()) {
             return users;
         }
@@ -20,33 +20,8 @@ public class UserFileRepository {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
-                String[] parts = line.split("\\|");
-                if (parts.length == 6) {
-                    String userId = parts[0];
-                    String fullName = parts[1];
-                    String email = parts[2];
-                    String contact = parts[3];
-                    String password = parts[4];
-                    String role = parts[5];
-
-                    User user;
-                    switch (role) {
-                        case "Customer":
-                            user = new Customer(userId, fullName, email, contact, password);
-                            break;
-                        case "Manager":
-                            user = new Manager(userId, fullName, email, contact, password);
-                            break;
-                        case "Technician":
-                            user = new Technician(userId, fullName, email, contact, password);
-                            break;
-                        case "CounterStaff":
-                            user = new CounterStaff(userId, fullName, email, contact, password);
-                            break;
-                        default:
-                            user = new User(userId, fullName, email, contact, password, role);
-                            break;
-                    }
+                User user = parseUserLine(line);
+                if (user != null) {
                     users.add(user);
                 }
             }
@@ -54,6 +29,45 @@ public class UserFileRepository {
             e.printStackTrace();
         }
         return users;
+    }
+
+    private User parseUserLine(String line) {
+        String[] parts = line.split("\\|", -1);
+        if (parts.length == 6) {
+            return buildUser(
+                    parts[0], parts[2], parts[1], parts[2], parts[3], parts[4], parts[5], true);
+        }
+        if (parts.length == 8) {
+            boolean active = "ACTIVE".equalsIgnoreCase(parts[7]);
+            return buildUser(
+                    parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], active);
+        }
+        return null;
+    }
+
+    private User buildUser(String userId, String username, String fullName, String email,
+                           String contact, String password, String role, boolean active) {
+        User user;
+        switch (role) {
+            case "Customer":
+                user = new Customer(userId, fullName, email, contact, password);
+                break;
+            case "Manager":
+                user = new Manager(userId, fullName, email, contact, password);
+                break;
+            case "Technician":
+                user = new Technician(userId, fullName, email, contact, password);
+                break;
+            case "CounterStaff":
+                user = new CounterStaff(userId, fullName, email, contact, password);
+                break;
+            default:
+                user = new User(userId, fullName, email, contact, password, role);
+                break;
+        }
+        user.setUsername(username);
+        user.setActive(active);
+        return user;
     }
 
     public abstracts.AbstractUser authenticateUser(String email, String password) {
@@ -64,25 +78,11 @@ public class UserFileRepository {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
-                String[] parts = line.split("\\|");
-                if (parts.length == 6) {
-                    String recordEmail = parts[2];
-                    String recordPassword = parts[4];
-                    
-                    if (recordEmail.equalsIgnoreCase(email) && recordPassword.equals(password)) {
-                        String userId = parts[0];
-                        String fullName = parts[1];
-                        String contact = parts[3];
-                        String role = parts[5];
+                User candidate = parseUserLine(line);
+                if (candidate == null || !candidate.isActive()) continue;
 
-                        switch (role) {
-                            case "Customer": return new Customer(userId, fullName, email, contact, password);
-                            case "Manager": return new Manager(userId, fullName, email, contact, password);
-                            case "Technician": return new Technician(userId, fullName, email, contact, password);
-                            case "CounterStaff": return new CounterStaff(userId, fullName, email, contact, password);
-                            default: return new User(userId, fullName, email, contact, password, role);
-                        }
-                    }
+                if (candidate.getEmail().equalsIgnoreCase(email) && candidate.getPassword().equals(password)) {
+                    return candidate;
                 }
             }
         } catch (IOException e) {
@@ -93,7 +93,6 @@ public class UserFileRepository {
 
     public void saveUser(User user) {
         File file = new File(FILE_PATH);
-        // Ensure data directory exists
         if (file.getParentFile() != null && !file.getParentFile().exists()) {
             file.getParentFile().mkdirs();
         }
@@ -103,6 +102,19 @@ public class UserFileRepository {
             bw.newLine();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void writeAllUsers(List<User> users) throws IOException {
+        File file = new File(FILE_PATH);
+        if (file.getParentFile() != null && !file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, false))) {
+            for (User u : users) {
+                bw.write(u.toString());
+                bw.newLine();
+            }
         }
     }
 }
