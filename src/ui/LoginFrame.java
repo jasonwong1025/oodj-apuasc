@@ -173,7 +173,7 @@ public class LoginFrame extends JFrame {
 
     private void togglePasswordVisibility() {
         if (isPasswordVisible) {
-            passwordField.setEchoChar('•');
+            passwordField.setEchoChar('*');
             togglePasswordButton.setText("\uD83D\uDC41"); // Eye
         } else {
             passwordField.setEchoChar((char) 0);
