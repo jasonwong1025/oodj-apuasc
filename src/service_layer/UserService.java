@@ -47,8 +47,8 @@ public class UserService {
     /**
      * @return null on success, otherwise error message.
      */
-    public String addUser(String role, String username, String fullName, String email, String contact, String password) {
-        if (!ValidationUtil.isNotEmpty(username) || !ValidationUtil.isNotEmpty(fullName)
+    public String addUser(String role, String fullName, String email, String contact, String password) {
+        if (!ValidationUtil.isNotEmpty(fullName)
                 || !ValidationUtil.isNotEmpty(email) || !ValidationUtil.isNotEmpty(contact)
                 || !ValidationUtil.isNotEmpty(password)) {
             return "All fields are required.";
@@ -70,13 +70,10 @@ public class UserService {
             if (u.getEmail().equalsIgnoreCase(email)) {
                 return "Email is already in use.";
             }
-            if (u.getUsername().equalsIgnoreCase(username)) {
-                return "Username is already in use.";
-            }
         }
 
         String newId = IdGenerator.generateNextIdForRole(role);
-        User created = instantiateUser(newId, username.trim(), fullName.trim(), email.trim(),
+        User created = instantiateUser(newId, fullName.trim(), email.trim(),
                 contact.trim(), password, role);
         created.setActive(true);
 
@@ -94,9 +91,9 @@ public class UserService {
      */
     public String updateUser(User updated, String managerUserId) {
         if (updated == null) return "No user to update.";
-        if (!ValidationUtil.isNotEmpty(updated.getUsername()) || !ValidationUtil.isNotEmpty(updated.getFullName())
+        if (!ValidationUtil.isNotEmpty(updated.getFullName())
                 || !ValidationUtil.isNotEmpty(updated.getEmail()) || !ValidationUtil.isNotEmpty(updated.getContact())) {
-            return "Username, full name, email, and contact are required.";
+            return "Full name, email, and contact are required.";
         }
         if (!ValidationUtil.isValidEmail(updated.getEmail())) {
             return ValidationUtil.invalidEmailMessage();
@@ -123,9 +120,6 @@ public class UserService {
             if (u.getEmail().equalsIgnoreCase(updated.getEmail())) {
                 return "Email is already in use.";
             }
-            if (u.getUsername().equalsIgnoreCase(updated.getUsername())) {
-                return "Username is already in use.";
-            }
         }
 
         User existing = all.get(idx);
@@ -133,7 +127,6 @@ public class UserService {
             return "You cannot deactivate your own account.";
         }
 
-        existing.setUsername(updated.getUsername().trim());
         existing.setFullName(updated.getFullName().trim());
         existing.setEmail(updated.getEmail().trim());
         existing.setContact(updated.getContact().trim());
@@ -203,7 +196,6 @@ public class UserService {
                 .filter(u -> roleFilter == null || "ALL".equals(roleFilter) || roleFilter.equals(u.getRole()))
                 .filter(u -> q.isEmpty()
                         || u.getUserId().toLowerCase().contains(q)
-                        || safeLower(u.getUsername()).contains(q)
                         || u.getFullName().toLowerCase().contains(q)
                         || u.getEmail().toLowerCase().contains(q))
                 .collect(Collectors.toList());
@@ -221,20 +213,34 @@ public class UserService {
                 continue;
             }
             String[] p = splitCsvLine(line);
-            if (p.length < 8) {
-                return "Invalid CSV at line " + (i + 1) + " (expected 8 columns).";
+            if (p.length < 7) {
+                return "Invalid CSV at line " + (i + 1) + " (expected 7 columns, or 8 with legacy username column).";
             }
             String userId = p[0].trim();
-            String username = p[1].trim();
-            String fullName = p[2].trim();
-            String email = p[3].trim();
-            String contact = p[4].trim();
-            String password = p[5].trim();
-            String role = p[6].trim();
-            boolean active = "ACTIVE".equalsIgnoreCase(p[7].trim());
-            if (!ValidationUtil.isNotEmpty(userId) || !ValidationUtil.isNotEmpty(username)
+            String fullName;
+            String email;
+            String contact;
+            String password;
+            String role;
+            boolean active;
+            if (p.length >= 8) {
+                fullName = p[2].trim();
+                email = p[3].trim();
+                contact = p[4].trim();
+                password = p[5].trim();
+                role = p[6].trim();
+                active = "ACTIVE".equalsIgnoreCase(p[7].trim());
+            } else {
+                fullName = p[1].trim();
+                email = p[2].trim();
+                contact = p[3].trim();
+                password = p[4].trim();
+                role = p[5].trim();
+                active = "ACTIVE".equalsIgnoreCase(p[6].trim());
+            }
+            if (!ValidationUtil.isNotEmpty(userId) || !ValidationUtil.isNotEmpty(fullName)
                     || !ValidationUtil.isNotEmpty(password)) {
-                return "Invalid row " + (i + 1) + ": id, username, and password required.";
+                return "Invalid row " + (i + 1) + ": user id, full name, and password required.";
             }
             if (!ValidationUtil.isValidPassword(password)) {
                 return "Invalid row " + (i + 1) + ":\n" + ValidationUtil.passwordRequirementsMessage();
@@ -248,7 +254,7 @@ public class UserService {
             if (!isAllowedManagedRole(role)) {
                 return "Invalid row " + (i + 1) + ": unknown role.";
             }
-            User u = instantiateUser(userId, username, fullName, email, contact, password, role);
+            User u = instantiateUser(userId, fullName, email, contact, password, role);
             u.setActive(active);
             imported.add(u);
         }
@@ -271,11 +277,10 @@ public class UserService {
 
     public List<String> exportUsersToCsvLines() {
         List<String> lines = new ArrayList<>();
-        lines.add("userId,username,fullName,email,contact,password,role,status");
+        lines.add("userId,fullName,email,contact,password,role,status");
         for (User u : listAllUsers()) {
             lines.add(String.join(",",
                     escapeCsv(u.getUserId()),
-                    escapeCsv(u.getUsername()),
                     escapeCsv(u.getFullName()),
                     escapeCsv(u.getEmail()),
                     escapeCsv(u.getContact()),
@@ -319,10 +324,6 @@ public class UserService {
         return out.toArray(new String[0]);
     }
 
-    private static String safeLower(String s) {
-        return s == null ? "" : s.toLowerCase();
-    }
-
     private static String escapeCsv(String s) {
         if (s == null) return "";
         if (s.contains(",") || s.contains("\"") || s.contains("\n")) {
@@ -336,7 +337,7 @@ public class UserService {
                 || "Customer".equals(role);
     }
 
-    private static User instantiateUser(String userId, String username, String fullName, String email,
+    private static User instantiateUser(String userId, String fullName, String email,
                                         String contact, String password, String role) {
         User user;
         switch (role) {
@@ -356,7 +357,6 @@ public class UserService {
                 user = new User(userId, fullName, email, contact, password, role);
                 break;
         }
-        user.setUsername(username);
         return user;
     }
 }

@@ -242,7 +242,7 @@ public class ManagerDashboard extends JFrame {
         top.add(row2);
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"ID", "Username", "Full Name", "Email", "Contact", "Role", "Status"};
+        String[] cols = {"ID", "Full Name", "Email", "Contact", "Role", "Status"};
         userTableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int r, int c) {
@@ -361,7 +361,6 @@ public class ManagerDashboard extends JFrame {
         for (User u : rows) {
             userTableModel.addRow(new Object[]{
                     u.getUserId(),
-                    u.getUsername(),
                     u.getFullName(),
                     u.getEmail(),
                     u.getContact(),
@@ -405,7 +404,7 @@ public class ManagerDashboard extends JFrame {
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
-        String who = u.getFullName() + " (" + u.getUsername() + ", " + u.getUserId() + ")";
+        String who = u.getFullName() + " (" + u.getEmail() + ", " + u.getUserId() + ")";
         int confirm = JOptionPane.showConfirmDialog(this,
                 "Permanently delete this user? This cannot be undone.\n\n" + who,
                 "Delete User",
@@ -434,7 +433,6 @@ public class ManagerDashboard extends JFrame {
         JComboBox<String> role = ManagerPortalStyles.createFilterCombo(new String[]{
                 "Manager", "Counter Staff", "Technician", "Customer"
         });
-        JTextField username = ManagerPortalStyles.createFilterField(22);
         JTextField fullName = ManagerPortalStyles.createFilterField(22);
         JTextField email = ManagerPortalStyles.createFilterField(22);
         JTextField contact = ManagerPortalStyles.createFilterField(22);
@@ -442,7 +440,6 @@ public class ManagerDashboard extends JFrame {
 
         int y = 0;
         addDialogRow(d, gbc, y++, "Role:", role);
-        addDialogRow(d, gbc, y++, "Username:", username);
         addDialogRow(d, gbc, y++, "Full Name:", fullName);
         addDialogRow(d, gbc, y++, "Email:", email);
         addDialogRow(d, gbc, y++, "Contact:", contact);
@@ -454,7 +451,7 @@ public class ManagerDashboard extends JFrame {
         gbc.anchor = GridBagConstraints.EAST;
         save.addActionListener(e -> {
             String rk = mapRoleFilter((String) role.getSelectedItem());
-            String err = userService.addUser(rk, username.getText(), fullName.getText(), email.getText(),
+            String err = userService.addUser(rk, fullName.getText(), email.getText(),
                     contact.getText(), new String(password.getPassword()));
             if (err != null) {
                 JOptionPane.showMessageDialog(d, err, "Add User", JOptionPane.ERROR_MESSAGE);
@@ -486,8 +483,6 @@ public class ManagerDashboard extends JFrame {
         JTextField idF = ManagerPortalStyles.createFilterField(22);
         idF.setText(u.getUserId());
         idF.setEditable(false);
-        JTextField username = ManagerPortalStyles.createFilterField(22);
-        username.setText(u.getUsername());
         JTextField fullName = ManagerPortalStyles.createFilterField(22);
         fullName.setText(u.getFullName());
         JTextField email = ManagerPortalStyles.createFilterField(22);
@@ -500,7 +495,6 @@ public class ManagerDashboard extends JFrame {
 
         int y = 0;
         addDialogRow(d, gbc, y++, "ID:", idF);
-        addDialogRow(d, gbc, y++, "Username:", username);
         addDialogRow(d, gbc, y++, "Full Name:", fullName);
         addDialogRow(d, gbc, y++, "Email:", email);
         addDialogRow(d, gbc, y++, "Contact:", contact);
@@ -514,7 +508,6 @@ public class ManagerDashboard extends JFrame {
         save.addActionListener(e -> {
             User copy = userService.findByUserId(u.getUserId());
             if (copy == null) return;
-            copy.setUsername(username.getText().trim());
             copy.setFullName(fullName.getText().trim());
             copy.setEmail(email.getText().trim());
             copy.setContact(contact.getText().trim());
