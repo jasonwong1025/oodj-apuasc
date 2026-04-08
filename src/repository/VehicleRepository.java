@@ -4,9 +4,16 @@ import model.vehicle.Vehicle;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class VehicleRepository {
     private static final String FILE_PATH = "data/vehicles.txt";
+
+    public Optional<Vehicle> getVehiclesByPlate(String plate) {
+        return getAllVehicles().stream()
+                .filter(v -> v.getPlateNumber().equalsIgnoreCase(plate.trim()))
+                .findFirst();
+    }
 
     public List<Vehicle> getAllVehicles() {
         List<Vehicle> vehicles = new ArrayList<>();
