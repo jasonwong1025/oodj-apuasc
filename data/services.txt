@@ -1,0 +1,10 @@
+SV001|Engine Oil Change|CAT001|120.00|YES
+SV002|Brake Fluid Top-Up|CAT001|60.00|YES
+SV003|Transmission Fluid Flush|CAT001|180.00|NO
+SV004|Brake Pad Replacement|CAT002|380.00|NO
+SV005|Wiper Blade Replacement|CAT002|45.00|YES
+SV006|Battery Replacement|CAT003|250.00|NO
+SV007|Alternator Check|CAT003|90.00|YES
+SV008|Full Vehicle Inspection|CAT004|150.00|NO
+SV009|Engine Diagnostics|CAT004|120.00|NO
+SV010|Full Detailing Package|CAT005|300.00|NO

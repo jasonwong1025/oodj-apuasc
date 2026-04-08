@@ -1,0 +1,5 @@
+CAT001|Fluid Services
+CAT002|Wear & Tear Replacements
+CAT003|Electrical & Battery
+CAT004|Inspection & Diagnostics
+CAT005|Cleaning & Detailing

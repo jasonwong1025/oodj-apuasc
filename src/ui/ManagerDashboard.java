@@ -1,7 +1,11 @@
 package ui;
 
 import abstracts.AbstractUser;
+import model.service.Category;
+import model.service.Service;
 import model.users.User;
+import service_layer.CategoryService;
+import service_layer.ServiceService;
 import service_layer.UserService;
 import utils.ValidationUtil;
 
@@ -10,6 +14,8 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -32,6 +38,8 @@ public class ManagerDashboard extends JFrame {
 
     private final AbstractUser currentUser;
     private final UserService userService;
+    private final ServiceService serviceService;
+    private final CategoryService categoryService;
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
@@ -40,10 +48,28 @@ public class ManagerDashboard extends JFrame {
     private JTable userTable;
     private JTextField userSearchField;
     private JComboBox<String> roleFilterCombo;
+    private DefaultTableModel serviceTableModel;
+    private JTable serviceTable;
+    private JTextField serviceSearchField;
+    private JComboBox<String> serviceCategoryFilter;
+    private DefaultTableModel categoryTableModel;
+    private JTable categoryTable;
+    private JTextField categorySearchField;
+    private DefaultListModel<String> navModel;
+    private JList<String> navList;
+    private boolean serviceExpanded = false;
+    private boolean updatingNav = false;
+
+    private static final String SVC_HEADER = "Service Management";
+    private static final String SVC_CATALOG = "Manage Service Catalog";
+    private static final String SVC_CATEGORIES = "Manage Categories";
+    private static final String SVC_CAPACITY = "Appointment Capacity";
 
     public ManagerDashboard(AbstractUser user) {
         this.currentUser = user;
         this.userService = new UserService();
+        this.serviceService = new ServiceService();
+        this.categoryService = new CategoryService();
 
         setTitle("APU Automotive Service Centre");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -91,11 +117,11 @@ public class ManagerDashboard extends JFrame {
         JPanel wrap = new JPanel(new BorderLayout());
         wrap.setOpaque(false);
 
-        DefaultListModel<String> navModel = new DefaultListModel<>();
+        navModel = new DefaultListModel<>();
         for (String s : NAV_ITEMS) {
             navModel.addElement(s);
         }
-        JList<String> navList = new JList<>(navModel);
+        navList = new JList<>(navModel);
         navList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         navList.setBackground(ManagerPortalStyles.SIDEBAR_BG);
         navList.setForeground(ManagerPortalStyles.TEXT_ON_DARK);
@@ -107,16 +133,29 @@ public class ManagerDashboard extends JFrame {
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                             boolean isSelected, boolean cellHasFocus) {
                 JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                l.setBorder(new EmptyBorder(12, 20, 12, 16));
+                String text = (String) value;
+                boolean isSub = isServiceSubItem(text);
                 l.setOpaque(true);
+
+                if (isSub) {
+                    l.setBorder(new EmptyBorder(12, 44, 12, 16));
+                    l.setText("\u2022  " + text);
+                    l.setFont(new Font("SansSerif", Font.PLAIN, 13));
+                } else {
+                    l.setBorder(new EmptyBorder(12, 20, 12, 16));
+                    l.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                    if (SVC_HEADER.equals(text)) {
+                        l.setText(text + (serviceExpanded ? "  \u25BE" : "  \u25B8"));
+                    }
+                }
+
                 if (isSelected) {
                     l.setBackground(ManagerPortalStyles.NAV_ACTIVE_TOP);
                     l.setForeground(Color.WHITE);
                     l.setFont(l.getFont().deriveFont(Font.BOLD));
                 } else {
-                    l.setBackground(ManagerPortalStyles.SIDEBAR_BG);
+                    l.setBackground(isSub ? new Color(48, 48, 54) : ManagerPortalStyles.SIDEBAR_BG);
                     l.setForeground(ManagerPortalStyles.TEXT_ON_DARK);
-                    l.setFont(l.getFont().deriveFont(Font.PLAIN));
                 }
                 return l;
             }
@@ -134,25 +173,44 @@ public class ManagerDashboard extends JFrame {
         cardPanel = new JPanel(cardLayout);
         cardPanel.setOpaque(false);
         cardPanel.add(buildUserManagementPanel(), "USER");
-        cardPanel.add(buildPlaceholderPanel("Service Management", "Configure normal and major service prices (link to data layer next)."), "PRICE");
+        cardPanel.add(buildServiceCatalogPanel(), "SVC_CATALOG");
+        cardPanel.add(buildCategoriesPanel(), "SVC_CATEGORIES");
+        cardPanel.add(buildPlaceholderPanel("Appointment Capacity",
+                "Set appointment capacity and scheduling limits."), "SVC_CAPACITY");
         cardPanel.add(buildPlaceholderPanel("All Feedback", "View customer and staff feedback (link to data layer next)."), "FEED");
         cardPanel.add(buildPlaceholderPanel("Audit Log", "System audit trail (optional text log under data/)."), "AUDIT");
         cardPanel.add(buildPlaceholderPanel("Reports", "Export analysis summaries (link to appointments/payments next)."), "REPORT");
         cardPanel.add(buildPlaceholderPanel("Settings", "Application preferences."), "SETTINGS");
         cardPanel.add(buildMyProfilePanel(), "PROFILE");
 
+        navList.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int idx = navList.locationToIndex(e.getPoint());
+                if (idx < 0) return;
+                if (SVC_HEADER.equals(navModel.get(idx))) {
+                    toggleServiceDropdown();
+                }
+            }
+        });
+
         navList.addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
+            if (e.getValueIsAdjusting() || updatingNav) return;
             int i = navList.getSelectedIndex();
             if (i < 0) return;
-            switch (i) {
-                case 0: cardLayout.show(cardPanel, "USER"); refreshUserTable(); break;
-                case 1: cardLayout.show(cardPanel, "PRICE"); break;
-                case 2: cardLayout.show(cardPanel, "FEED"); break;
-                case 3: cardLayout.show(cardPanel, "AUDIT"); break;
-                case 4: cardLayout.show(cardPanel, "REPORT"); break;
-                case 5: cardLayout.show(cardPanel, "SETTINGS"); break;
-                case 6: cardLayout.show(cardPanel, "PROFILE"); break;
+            String selected = navModel.get(i);
+            if (SVC_HEADER.equals(selected)) return;
+
+            switch (selected) {
+                case "User Management": cardLayout.show(cardPanel, "USER"); refreshUserTable(); break;
+                case SVC_CATALOG: cardLayout.show(cardPanel, "SVC_CATALOG"); break;
+                case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); break;
+                case SVC_CAPACITY: cardLayout.show(cardPanel, "SVC_CAPACITY"); break;
+                case "All Feedback": cardLayout.show(cardPanel, "FEED"); break;
+                case "Audit Log": cardLayout.show(cardPanel, "AUDIT"); break;
+                case "Reports": cardLayout.show(cardPanel, "REPORT"); break;
+                case "Settings": cardLayout.show(cardPanel, "SETTINGS"); break;
+                case "My Profile": cardLayout.show(cardPanel, "PROFILE"); break;
                 default: break;
             }
         });
@@ -161,6 +219,42 @@ public class ManagerDashboard extends JFrame {
         wrap.add(side, BorderLayout.WEST);
         wrap.add(cardPanel, BorderLayout.CENTER);
         return wrap;
+    }
+
+    private void toggleServiceDropdown() {
+        updatingNav = true;
+        int svcIdx = -1;
+        for (int i = 0; i < navModel.size(); i++) {
+            if (SVC_HEADER.equals(navModel.get(i))) {
+                svcIdx = i;
+                break;
+            }
+        }
+        if (svcIdx < 0) {
+            updatingNav = false;
+            return;
+        }
+
+        if (serviceExpanded) {
+            navModel.removeElement(SVC_CATALOG);
+            navModel.removeElement(SVC_CATEGORIES);
+            navModel.removeElement(SVC_CAPACITY);
+            serviceExpanded = false;
+            navList.repaint();
+            updatingNav = false;
+        } else {
+            navModel.insertElementAt(SVC_CATALOG, svcIdx + 1);
+            navModel.insertElementAt(SVC_CATEGORIES, svcIdx + 2);
+            navModel.insertElementAt(SVC_CAPACITY, svcIdx + 3);
+            serviceExpanded = true;
+            navList.repaint();
+            updatingNav = false;
+            navList.setSelectedIndex(svcIdx + 1);
+        }
+    }
+
+    private boolean isServiceSubItem(String text) {
+        return SVC_CATALOG.equals(text) || SVC_CATEGORIES.equals(text) || SVC_CAPACITY.equals(text);
     }
 
     private JPanel buildPlaceholderPanel(String title, String body) {
@@ -179,6 +273,159 @@ public class ManagerDashboard extends JFrame {
         t.setFont(new Font("SansSerif", Font.PLAIN, 14));
         p.add(t, gbc);
         return p;
+    }
+
+    private JPanel buildServiceCatalogPanel() {
+        JPanel root = new JPanel(new BorderLayout(0, 0));
+        root.setBackground(ManagerPortalStyles.MAIN_BG);
+        root.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
+
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
+        row1.setOpaque(false);
+        row1.add(new JLabel("Search:"));
+        serviceSearchField = ManagerPortalStyles.createFilterField(24);
+        row1.add(serviceSearchField);
+        row1.add(new JLabel("Category:"));
+        serviceCategoryFilter = ManagerPortalStyles.createFilterCombo(new String[]{"ALL"});
+        row1.add(serviceCategoryFilter);
+        JButton filterBtn = ManagerPortalStyles.createActionButton("Filter", ManagerPortalStyles.BTN_BLUE);
+        filterBtn.addActionListener(e -> refreshServiceTable());
+        row1.add(filterBtn);
+        top.add(row1);
+
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        row2.setOpaque(false);
+        JButton addBtn = ManagerPortalStyles.createActionButton("Add Service", ManagerPortalStyles.BTN_GREEN);
+        addBtn.addActionListener(e -> showAddServiceDialog());
+        row2.add(addBtn);
+
+        JButton editBtn = ManagerPortalStyles.createActionButton("Edit Selected", ManagerPortalStyles.BTN_BLUE);
+        editBtn.addActionListener(e -> showEditServiceDialog());
+        row2.add(editBtn);
+
+        JButton deleteBtn = ManagerPortalStyles.createActionButton("Delete Selected", ManagerPortalStyles.BTN_RED);
+        deleteBtn.addActionListener(e -> deleteSelectedService());
+        row2.add(deleteBtn);
+
+        JButton refreshBtn = ManagerPortalStyles.createActionButton("Refresh", ManagerPortalStyles.BTN_BLUE);
+        refreshBtn.addActionListener(e -> refreshServiceTable());
+        row2.add(refreshBtn);
+
+        top.add(row2);
+        root.add(top, BorderLayout.NORTH);
+
+        String[] cols = {"Service ID", "Service Name", "Category", "Price (RM)", "In Normal Service"};
+        serviceTableModel = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        };
+        serviceTable = new JTable(serviceTableModel);
+        serviceTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        serviceTable.setRowHeight(28);
+        serviceTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        serviceTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        serviceTable.getTableHeader().setBackground(ManagerPortalStyles.TABLE_HEADER_BG);
+        serviceTable.setGridColor(new Color(220, 220, 225));
+        serviceTable.setShowGrid(true);
+        serviceTable.setFillsViewportHeight(true);
+        serviceTable.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : ManagerPortalStyles.TABLE_ZEBRA);
+                }
+                return c;
+            }
+        });
+        JScrollPane sp = new JScrollPane(serviceTable);
+        sp.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 205)));
+        root.add(sp, BorderLayout.CENTER);
+
+        refreshServiceTable();
+        return root;
+    }
+
+    private JPanel buildCategoriesPanel() {
+        JPanel root = new JPanel(new BorderLayout(0, 0));
+        root.setBackground(ManagerPortalStyles.MAIN_BG);
+        root.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
+
+        JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
+        row1.setOpaque(false);
+        row1.add(new JLabel("Search:"));
+        categorySearchField = ManagerPortalStyles.createFilterField(24);
+        row1.add(categorySearchField);
+        JButton filterBtn = ManagerPortalStyles.createActionButton("Filter", ManagerPortalStyles.BTN_BLUE);
+        filterBtn.addActionListener(e -> refreshCategoryTable());
+        row1.add(filterBtn);
+        top.add(row1);
+
+        JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        row2.setOpaque(false);
+        JButton addBtn = ManagerPortalStyles.createActionButton("Add Category", ManagerPortalStyles.BTN_GREEN);
+        addBtn.addActionListener(e -> showAddCategoryDialog());
+        row2.add(addBtn);
+
+        JButton editBtn = ManagerPortalStyles.createActionButton("Edit Selected", ManagerPortalStyles.BTN_BLUE);
+        editBtn.addActionListener(e -> showEditCategoryDialog());
+        row2.add(editBtn);
+
+        JButton deleteBtn = ManagerPortalStyles.createActionButton("Delete Selected", ManagerPortalStyles.BTN_RED);
+        deleteBtn.addActionListener(e -> deleteSelectedCategory());
+        row2.add(deleteBtn);
+
+        JButton refreshBtn = ManagerPortalStyles.createActionButton("Refresh", ManagerPortalStyles.BTN_BLUE);
+        refreshBtn.addActionListener(e -> refreshCategoryTable());
+        row2.add(refreshBtn);
+
+        top.add(row2);
+        root.add(top, BorderLayout.NORTH);
+
+        String[] cols = {"Category ID", "Category Name"};
+        categoryTableModel = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        };
+        categoryTable = new JTable(categoryTableModel);
+        categoryTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        categoryTable.setRowHeight(28);
+        categoryTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        categoryTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        categoryTable.getTableHeader().setBackground(ManagerPortalStyles.TABLE_HEADER_BG);
+        categoryTable.setGridColor(new Color(220, 220, 225));
+        categoryTable.setShowGrid(true);
+        categoryTable.setFillsViewportHeight(true);
+        categoryTable.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : ManagerPortalStyles.TABLE_ZEBRA);
+                }
+                return c;
+            }
+        });
+        JScrollPane sp = new JScrollPane(categoryTable);
+        sp.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 205)));
+        root.add(sp, BorderLayout.CENTER);
+
+        refreshCategoryTable();
+        return root;
     }
 
     private JPanel buildUserManagementPanel() {
@@ -375,6 +622,316 @@ public class ManagerDashboard extends JFrame {
         if (r < 0) return null;
         String id = (String) userTableModel.getValueAt(r, 0);
         return userService.findByUserId(id);
+    }
+
+    private void refreshServiceCategoryFilter() {
+        if (serviceCategoryFilter == null) return;
+        String selected = (String) serviceCategoryFilter.getSelectedItem();
+        serviceCategoryFilter.removeAllItems();
+        serviceCategoryFilter.addItem("ALL");
+        for (Category c : categoryService.listAll()) {
+            serviceCategoryFilter.addItem(c.getCategoryId() + " - " + c.getCategoryName());
+        }
+        if (selected != null) {
+            serviceCategoryFilter.setSelectedItem(selected);
+        }
+    }
+
+    private void refreshServiceTable() {
+        if (serviceTableModel == null) return;
+        refreshServiceCategoryFilter();
+        String keyword = serviceSearchField == null ? "" : serviceSearchField.getText().trim();
+        String categoryDisplay = serviceCategoryFilter == null ? "ALL" : String.valueOf(serviceCategoryFilter.getSelectedItem());
+        String categoryId = "ALL".equals(categoryDisplay) ? "ALL" : extractCategoryId(categoryDisplay);
+        List<Service> rows = serviceService.filter(keyword, categoryId);
+        serviceTableModel.setRowCount(0);
+        for (Service s : rows) {
+            String categoryName = categoryService.getCategoryNameById(s.getCategoryId());
+            serviceTableModel.addRow(new Object[]{
+                    s.getServiceId(),
+                    s.getServiceName(),
+                    categoryName != null ? categoryName : s.getCategoryId(),
+                    String.format("%.2f", s.getPrice()),
+                    s.isIncludedInNormalService() ? "YES" : "NO"
+            });
+        }
+    }
+
+    private Service getSelectedServiceFromTable() {
+        if (serviceTable == null || serviceTableModel == null) return null;
+        int r = serviceTable.getSelectedRow();
+        if (r < 0) return null;
+        String id = String.valueOf(serviceTableModel.getValueAt(r, 0));
+        return serviceService.findById(id);
+    }
+
+    private void showAddServiceDialog() {
+        List<Category> categories = categoryService.listAll();
+        if (categories.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "No categories found. Please add categories first under Manage Categories.",
+                    "Add Service", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JDialog d = new JDialog(this, "Add Service", true);
+        d.setLayout(new GridBagLayout());
+        d.getContentPane().setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+        String[] categoryItems = categories.stream()
+                .map(c -> c.getCategoryId() + " - " + c.getCategoryName())
+                .toArray(String[]::new);
+        JComboBox<String> categoryField = ManagerPortalStyles.createFilterCombo(categoryItems);
+        JTextField priceField = ManagerPortalStyles.createFilterField(22);
+        JCheckBox includeInNormalService = new JCheckBox("Include in Normal Service");
+        includeInNormalService.setOpaque(false);
+
+        int y = 0;
+        addDialogRow(d, gbc, y++, "Service Name:", nameField);
+        addDialogRow(d, gbc, y++, "Category:", categoryField);
+        addDialogRow(d, gbc, y++, "Price (RM):", priceField);
+        addDialogRow(d, gbc, y++, "Normal Service:", includeInNormalService);
+
+        JButton save = ManagerPortalStyles.createActionButton("Save", ManagerPortalStyles.BTN_GREEN);
+        gbc.gridx = 1;
+        gbc.gridy = y;
+        gbc.anchor = GridBagConstraints.EAST;
+        save.addActionListener(e -> {
+            String err = serviceService.addService(
+                    nameField.getText().trim(),
+                    extractCategoryId(String.valueOf(categoryField.getSelectedItem())),
+                    priceField.getText().trim(),
+                    includeInNormalService.isSelected());
+            if (err != null) {
+                JOptionPane.showMessageDialog(d, err, "Add Service", JOptionPane.ERROR_MESSAGE);
+            } else {
+                d.dispose();
+                refreshServiceTable();
+            }
+        });
+        d.add(save, gbc);
+
+        d.pack();
+        d.setLocationRelativeTo(this);
+        d.setVisible(true);
+    }
+
+    private void showEditServiceDialog() {
+        Service target = getSelectedServiceFromTable();
+        if (target == null) {
+            JOptionPane.showMessageDialog(this, "Select a service to edit.", "Edit Service", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        List<Category> categories = categoryService.listAll();
+
+        JDialog d = new JDialog(this, "Edit Service", true);
+        d.setLayout(new GridBagLayout());
+        d.getContentPane().setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        JTextField idField = ManagerPortalStyles.createFilterField(22);
+        idField.setText(target.getServiceId());
+        idField.setEditable(false);
+        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+        nameField.setText(target.getServiceName());
+        String[] categoryItems = categories.stream()
+                .map(c -> c.getCategoryId() + " - " + c.getCategoryName())
+                .toArray(String[]::new);
+        JComboBox<String> categoryField = ManagerPortalStyles.createFilterCombo(categoryItems);
+        String selectedCategoryDisplay = target.getCategoryId() + " - " +
+                (categoryService.getCategoryNameById(target.getCategoryId()) != null
+                        ? categoryService.getCategoryNameById(target.getCategoryId())
+                        : target.getCategoryId());
+        categoryField.setSelectedItem(selectedCategoryDisplay);
+        JTextField priceField = ManagerPortalStyles.createFilterField(22);
+        priceField.setText(String.format("%.2f", target.getPrice()));
+        JCheckBox includeInNormalService = new JCheckBox("Include in Normal Service");
+        includeInNormalService.setOpaque(false);
+        includeInNormalService.setSelected(target.isIncludedInNormalService());
+
+        int y = 0;
+        addDialogRow(d, gbc, y++, "Service ID:", idField);
+        addDialogRow(d, gbc, y++, "Service Name:", nameField);
+        addDialogRow(d, gbc, y++, "Category:", categoryField);
+        addDialogRow(d, gbc, y++, "Price (RM):", priceField);
+        addDialogRow(d, gbc, y++, "Normal Service:", includeInNormalService);
+
+        JButton save = ManagerPortalStyles.createActionButton("Update", ManagerPortalStyles.BTN_BLUE);
+        gbc.gridx = 1;
+        gbc.gridy = y;
+        gbc.anchor = GridBagConstraints.EAST;
+        save.addActionListener(e -> {
+            String err = serviceService.updateService(
+                    target.getServiceId(),
+                    nameField.getText().trim(),
+                    extractCategoryId(String.valueOf(categoryField.getSelectedItem())),
+                    priceField.getText().trim(),
+                    includeInNormalService.isSelected());
+            if (err != null) {
+                JOptionPane.showMessageDialog(d, err, "Edit Service", JOptionPane.ERROR_MESSAGE);
+            } else {
+                d.dispose();
+                refreshServiceTable();
+            }
+        });
+        d.add(save, gbc);
+
+        d.pack();
+        d.setLocationRelativeTo(this);
+        d.setVisible(true);
+    }
+
+    private void deleteSelectedService() {
+        Service target = getSelectedServiceFromTable();
+        if (target == null) {
+            JOptionPane.showMessageDialog(this, "Select a service to delete.", "Delete Service", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Delete this service?\n\n" + target.getServiceName() + " (" + target.getServiceId() + ")",
+                "Delete Service",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        String err = serviceService.deleteService(target.getServiceId());
+        if (err != null) {
+            JOptionPane.showMessageDialog(this, err, "Delete Service", JOptionPane.ERROR_MESSAGE);
+        } else {
+            refreshServiceTable();
+        }
+    }
+
+    private String extractCategoryId(String categoryDisplay) {
+        if (categoryDisplay == null) return "";
+        int sep = categoryDisplay.indexOf(" - ");
+        if (sep < 0) return categoryDisplay.trim();
+        return categoryDisplay.substring(0, sep).trim();
+    }
+
+    private void refreshCategoryTable() {
+        if (categoryTableModel == null) return;
+        String keyword = categorySearchField == null ? "" : categorySearchField.getText().trim();
+        List<Category> rows = categoryService.filter(keyword);
+        categoryTableModel.setRowCount(0);
+        for (Category c : rows) {
+            categoryTableModel.addRow(new Object[]{c.getCategoryId(), c.getCategoryName()});
+        }
+    }
+
+    private Category getSelectedCategoryFromTable() {
+        if (categoryTable == null || categoryTableModel == null) return null;
+        int r = categoryTable.getSelectedRow();
+        if (r < 0) return null;
+        String id = String.valueOf(categoryTableModel.getValueAt(r, 0));
+        return categoryService.findById(id);
+    }
+
+    private void showAddCategoryDialog() {
+        JDialog d = new JDialog(this, "Add Category", true);
+        d.setLayout(new GridBagLayout());
+        d.getContentPane().setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+
+        int y = 0;
+        addDialogRow(d, gbc, y++, "Category Name:", nameField);
+
+        JButton save = ManagerPortalStyles.createActionButton("Save", ManagerPortalStyles.BTN_GREEN);
+        gbc.gridx = 1;
+        gbc.gridy = y;
+        gbc.anchor = GridBagConstraints.EAST;
+        save.addActionListener(e -> {
+            String err = categoryService.addCategory(nameField.getText().trim());
+            if (err != null) {
+                JOptionPane.showMessageDialog(d, err, "Add Category", JOptionPane.ERROR_MESSAGE);
+            } else {
+                d.dispose();
+                refreshCategoryTable();
+            }
+        });
+        d.add(save, gbc);
+
+        d.pack();
+        d.setLocationRelativeTo(this);
+        d.setVisible(true);
+    }
+
+    private void showEditCategoryDialog() {
+        Category target = getSelectedCategoryFromTable();
+        if (target == null) {
+            JOptionPane.showMessageDialog(this, "Select a category to edit.", "Edit Category", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JDialog d = new JDialog(this, "Edit Category", true);
+        d.setLayout(new GridBagLayout());
+        d.getContentPane().setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        JTextField idField = ManagerPortalStyles.createFilterField(22);
+        idField.setText(target.getCategoryId());
+        idField.setEditable(false);
+        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+        nameField.setText(target.getCategoryName());
+
+        int y = 0;
+        addDialogRow(d, gbc, y++, "Category ID:", idField);
+        addDialogRow(d, gbc, y++, "Category Name:", nameField);
+
+        JButton save = ManagerPortalStyles.createActionButton("Update", ManagerPortalStyles.BTN_BLUE);
+        gbc.gridx = 1;
+        gbc.gridy = y;
+        gbc.anchor = GridBagConstraints.EAST;
+        save.addActionListener(e -> {
+            String err = categoryService.updateCategory(target.getCategoryId(), nameField.getText().trim());
+            if (err != null) {
+                JOptionPane.showMessageDialog(d, err, "Edit Category", JOptionPane.ERROR_MESSAGE);
+            } else {
+                d.dispose();
+                refreshCategoryTable();
+            }
+        });
+        d.add(save, gbc);
+
+        d.pack();
+        d.setLocationRelativeTo(this);
+        d.setVisible(true);
+    }
+
+    private void deleteSelectedCategory() {
+        Category target = getSelectedCategoryFromTable();
+        if (target == null) {
+            JOptionPane.showMessageDialog(this, "Select a category to delete.", "Delete Category", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Delete this category?\n\n" + target.getCategoryName() + " (" + target.getCategoryId() + ")",
+                "Delete Category",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        if (confirm != JOptionPane.YES_OPTION) return;
+
+        String err = categoryService.deleteCategory(target.getCategoryId());
+        if (err != null) {
+            JOptionPane.showMessageDialog(this, err, "Delete Category", JOptionPane.ERROR_MESSAGE);
+        } else {
+            refreshCategoryTable();
+        }
     }
 
     private void setSelectedActive(boolean active) {
@@ -610,4 +1167,5 @@ public class ManagerDashboard extends JFrame {
         if ("CounterStaff".equals(role)) return "Counter Staff";
         return role;
     }
+
 }
