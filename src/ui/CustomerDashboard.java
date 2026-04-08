@@ -330,17 +330,10 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             }
         });
         
-        JButton pickerBtn = SharedStyles.createActionButton("Pick Date & Time", SharedStyles.BTN_BLUE);
-        pickerBtn.addActionListener(e -> {
-            String val = DateTimePicker.showPicker(this);
-            if (val != null) dateTimeField.setText(val);
-        });
-
         int y = 0;
         SharedStyles.addFormRow(card, gbc, y++, "Select Vehicle:", vehicleCombo);
         SharedStyles.addFormRow(card, gbc, y++, "Select Service:", serviceCombo);
         SharedStyles.addFormRow(card, gbc, y++, "Schedule:", dateTimeField);
-        gbc.gridx = 1; gbc.gridy = y++; card.add(pickerBtn, gbc);
 
         JButton bookBtn = SharedStyles.createActionButton("Confirm Booking", SharedStyles.BTN_BLUE);
         bookBtn.addActionListener(e -> {
