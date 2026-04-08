@@ -134,6 +134,38 @@ public class UserFileRepository {
             e.printStackTrace();
         }
     }
+    //Sang Yew Changes - Edit Profile
+    public void updateUser(User updatedUser) {
+    List<User> users = getAllUsers();
+
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
+        for (User user : users) {
+            if (user.getUserId().equals(updatedUser.getUserId())) {
+                bw.write(updatedUser.toString());
+            } else {
+                bw.write(user.toString());
+            }
+            bw.newLine();
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+    //Sang Yew Changes - Manage Customer
+    public void deleteUser(String userId) {
+    List<User> users = getAllUsers();
+
+    try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
+        for (User user : users) {
+            if (!user.getUserId().equals(userId)) {
+                bw.write(user.toString());
+                bw.newLine();
+            }
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
 
     public void writeAllUsers(List<User> users) throws IOException {
         File file = new File(FILE_PATH);

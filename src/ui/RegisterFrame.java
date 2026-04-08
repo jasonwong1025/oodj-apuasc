@@ -206,7 +206,7 @@ public class RegisterFrame extends JFrame {
             field.setEchoChar((char) 0);
             button.setText("\uD83D\uDD76"); // Sunglasses
         } else {
-            field.setEchoChar('•');
+            field.setEchoChar('*');
             button.setText("\uD83D\uDC41"); // Eye
         }
         field.requestFocus();
