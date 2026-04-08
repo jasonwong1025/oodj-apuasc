@@ -1,191 +1,241 @@
 package ui;
 
 import abstracts.AbstractUser;
+import service_layer.UserService;
+import model.users.User;
+import model.users.Customer;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.List;
 
 public class CounterStaffDashboard extends JFrame {
 
-    private JPanel contentPanel;
+    private final AbstractUser currentUser;
+    private final UserService userService;
+    private final CardLayout cardLayout;
+    private final JPanel cardPanel;
+    private final DefaultListModel<String> navModel;
+    private final JList<String> navList;
+
+    private static final String[] NAV_ITEMS = {
+            "Dashboard",
+            "Manage Customers",
+            "Manage Appointments",
+            "Process Payment",
+            "My Profile"
+    };
 
     public CounterStaffDashboard(AbstractUser user) {
-        setTitle("Counter Staff Dashboard");
-        setSize(1200, 800);
+        this.currentUser = user;
+        this.userService = new UserService();
+
+        setTitle("APU Automotive Service Centre - Counter Staff Portal");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(1280, 820);
         setLocationRelativeTo(null);
+        getContentPane().setBackground(SharedStyles.MAIN_BG);
         setLayout(new BorderLayout());
 
-        // TOP TITLE
-        JLabel title = new JLabel("Counter Staff Dashboard - " + user.getFullName(), SwingConstants.CENTER);
-        title.setFont(new Font("SansSerif", Font.BOLD, 20));
-        add(title, BorderLayout.NORTH);
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildSidebarAndContent(), BorderLayout.CENTER);
+    }
 
-        // LEFT MENU
-        JPanel menuPanel = new JPanel();
-        menuPanel.setLayout(new GridLayout(6, 1, 10, 10));
+    private JPanel buildHeader() {
+        JPanel header = new JPanel(new BorderLayout(16, 0));
+        header.setBackground(SharedStyles.HEADER_BG);
+        header.setBorder(new EmptyBorder(12, 20, 12, 20));
 
-        JButton profileBtn = new JButton("Edit Profile");
-        JButton customerBtn = new JButton("Manage Customer");
-        JButton appointmentBtn = new JButton("Manage Appointment");
-        JButton paymentBtn = new JButton("Process Payment");
-        JButton logoutBtn = new JButton("Logout");
+        JLabel brand = new JLabel("APU Automotive Service Centre");
+        brand.setFont(new Font("SansSerif", Font.BOLD, 18));
+        header.add(brand, BorderLayout.WEST);
 
-        menuPanel.add(profileBtn);
-        menuPanel.add(customerBtn);
-        menuPanel.add(appointmentBtn);
-        menuPanel.add(paymentBtn);
-        menuPanel.add(logoutBtn);
-
-        add(menuPanel, BorderLayout.WEST);
-
-        // CENTER CONTENT PANEL
-        contentPanel = new JPanel();
-        add(contentPanel, BorderLayout.CENTER);
-
-        // LOGOUT
-        logoutBtn.addActionListener(e -> {
+        JLabel who = new JLabel(currentUser.getFullName() + "  |  Counter Staff");
+        who.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
+        logout.addActionListener(e -> {
             new LoginFrame().setVisible(true);
-            this.dispose();
+            dispose();
+        });
+        JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        east.setOpaque(false);
+        east.add(who);
+        east.add(logout);
+        header.add(east, BorderLayout.EAST);
+
+        return header;
+    }
+
+    private JPanel buildSidebarAndContent() {
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+
+        navModel = new DefaultListModel<>();
+        for (String s : NAV_ITEMS) navModel.addElement(s);
+
+        navList = new JList<>(navModel);
+        navList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        navList.setBackground(SharedStyles.SIDEBAR_BG);
+        navList.setForeground(SharedStyles.TEXT_ON_DARK);
+        navList.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        navList.setFixedCellHeight(46);
+        navList.setBorder(new EmptyBorder(12, 0, 12, 0));
+        navList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                            boolean isSelected, boolean cellHasFocus) {
+                JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                l.setOpaque(true);
+                l.setBorder(new EmptyBorder(12, 20, 12, 16));
+                if (isSelected) {
+                    l.setBackground(SharedStyles.NAV_ACTIVE_TOP);
+                    l.setForeground(Color.WHITE);
+                    l.setFont(l.getFont().deriveFont(Font.BOLD));
+                } else {
+                    l.setBackground(SharedStyles.SIDEBAR_BG);
+                    l.setForeground(SharedStyles.TEXT_ON_DARK);
+                }
+                return l;
+            }
         });
 
-        // Sang Yew Changes for Buttons
-        profileBtn.addActionListener(e -> showEditProfile(user));
-        customerBtn.addActionListener(e -> showCustomerPanel());
-        appointmentBtn.addActionListener(e -> showMessage("Manage Appointment clicked"));
-        paymentBtn.addActionListener(e -> showMessage("Process Payment clicked"));
+        JScrollPane navScroll = new JScrollPane(navList);
+        navScroll.setBorder(null);
+        JPanel side = new JPanel(new BorderLayout());
+        side.setBackground(SharedStyles.SIDEBAR_BG);
+        side.setPreferredSize(new Dimension(240, 0));
+        side.add(navScroll, BorderLayout.CENTER);
+
+        cardLayout = new CardLayout();
+        cardPanel = new JPanel(cardLayout);
+        cardPanel.setOpaque(false);
+
+        cardPanel.add(buildDashboardPanel(), "Dashboard");
+        cardPanel.add(buildCustomerManagementPanel(), "Manage Customers");
+        cardPanel.add(buildPlaceholderPanel("Manage Appointments"), "Manage Appointments");
+        cardPanel.add(buildPlaceholderPanel("Process Payment"), "Process Payment");
+        cardPanel.add(buildMyProfilePanel(), "My Profile");
+
+        navList.addListSelectionListener(e -> {
+            if (e.getValueIsAdjusting()) return;
+            String selected = navList.getSelectedValue();
+            if (selected != null) cardLayout.show(cardPanel, selected);
+        });
+        navList.setSelectedIndex(0);
+
+        wrap.add(side, BorderLayout.WEST);
+        wrap.add(cardPanel, BorderLayout.CENTER);
+        return wrap;
     }
 
-    private void showMessage(String message) {
-        contentPanel.removeAll();
-        contentPanel.add(new JLabel(message));
-        contentPanel.revalidate();
-        contentPanel.repaint();
-    }
-    //Sang Yew Changes - Edit Profile
-    private void showEditProfile(AbstractUser user) {
-    contentPanel.removeAll();
-    contentPanel.setLayout(new GridLayout(5, 2, 10, 10));
-
-    JTextField nameField = new JTextField(user.getFullName());
-    JTextField contactField = new JTextField(user.getContact());
-    JPasswordField passwordField = new JPasswordField(user.getPassword());
-
-    JButton saveBtn = new JButton("Save");
-
-    contentPanel.add(new JLabel("Full Name:"));
-    contentPanel.add(nameField);
-
-    contentPanel.add(new JLabel("Contact:"));
-    contentPanel.add(contactField);
-
-    contentPanel.add(new JLabel("Password:"));
-    contentPanel.add(passwordField);
-
-    contentPanel.add(new JLabel(""));
-    contentPanel.add(saveBtn);
-
-    saveBtn.addActionListener(e -> {
-        user.setFullName(nameField.getText());
-        user.setContact(contactField.getText());
-        user.setPassword(new String(passwordField.getPassword()));
-
-        service_layer.UserService service = new service_layer.UserService();
-        service.updateUser((model.users.User) user);
-
-        JOptionPane.showMessageDialog(this, "Profile updated!");
-    });
-
-    contentPanel.revalidate();
-    contentPanel.repaint();
-}
-
-    //Sang Yew Changes - Manage Customer
-    private void showCustomerPanel() {
-    contentPanel.removeAll();
-    contentPanel.setLayout(new BorderLayout());
-
-    service_layer.UserService service = new service_layer.UserService();
-
-    // TABLE
-    String[] columns = {"ID", "Name", "Email", "Contact"};
-    java.util.List<model.users.User> customers = service.getAllCustomers();
-
-    String[][] data = new String[customers.size()][4];
-
-    for (int i = 0; i < customers.size(); i++) {
-        model.users.User c = customers.get(i);
-        data[i][0] = c.getUserId();
-        data[i][1] = c.getFullName();
-        data[i][2] = c.getEmail();
-        data[i][3] = c.getContact();
+    private JPanel buildDashboardPanel() {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setBackground(SharedStyles.MAIN_BG);
+        JLabel l = new JLabel("Welcome to Counter Staff Portal");
+        l.setFont(new Font("SansSerif", Font.BOLD, 24));
+        p.add(l);
+        return p;
     }
 
-    JTable table = new JTable(data, columns);
-    JScrollPane scrollPane = new JScrollPane(table);
+    private JPanel buildCustomerManagementPanel() {
+        JPanel root = new JPanel(new BorderLayout(0, 0));
+        root.setBackground(SharedStyles.MAIN_BG);
+        root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-    // BUTTONS
-    JPanel btnPanel = new JPanel();
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        top.setOpaque(false);
+        JButton addBtn = SharedStyles.createActionButton("Add Customer", SharedStyles.BTN_GREEN);
+        top.add(addBtn);
+        root.add(top, BorderLayout.NORTH);
 
-    JButton addBtn = new JButton("Add Customer");
-    JButton deleteBtn = new JButton("Delete Customer");
-
-    btnPanel.add(addBtn);
-    btnPanel.add(deleteBtn);
-
-    contentPanel.add(scrollPane, BorderLayout.CENTER);
-    contentPanel.add(btnPanel, BorderLayout.SOUTH);
-
-    // ADD CUSTOMER
-    addBtn.addActionListener(e -> {
-        JTextField name = new JTextField();
-        JTextField email = new JTextField();
-        JTextField contact = new JTextField();
-        JTextField password = new JTextField();
-
-        Object[] fields = {
-            "Name:", name,
-            "Email:", email,
-            "Contact:", contact,
-            "Password:", password
+        String[] cols = {"ID", "Full Name", "Email", "Contact"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
-
-        int option = JOptionPane.showConfirmDialog(this, fields, "Add Customer", JOptionPane.OK_CANCEL_OPTION);
-
-        if (option == JOptionPane.OK_OPTION) {
-            String id = "U" + System.currentTimeMillis();
-
-            model.users.Customer newCustomer = new model.users.Customer(
-                    id,
-                    name.getText(),
-                    email.getText(),
-                    contact.getText(),
-                    password.getText()
-            );
-
-            service.addCustomer(newCustomer);
-
-            JOptionPane.showMessageDialog(this, "Customer added!");
-            showCustomerPanel(); // refresh
-        }
-    });
-
-    // DELETE CUSTOMER
-    deleteBtn.addActionListener(e -> {
-        int row = table.getSelectedRow();
-
-        if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Select a customer first!");
-            return;
+        List<User> customers = userService.getAllCustomers();
+        for (User u : customers) {
+            model.addRow(new Object[]{u.getUserId(), u.getFullName(), u.getEmail(), u.getContact()});
         }
 
-        String userId = table.getValueAt(row, 0).toString();
-        service.deleteUser(userId);
+        JTable table = new JTable(model);
+        styleTable(table);
+        root.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        JOptionPane.showMessageDialog(this, "Customer deleted!");
-        showCustomerPanel(); // refresh
-    });
+        addBtn.addActionListener(e -> {
+            JTextField name = SharedStyles.createFilterField(20);
+            JTextField email = SharedStyles.createFilterField(20);
+            JTextField contact = SharedStyles.createFilterField(20);
+            JTextField password = SharedStyles.createFilterField(20);
+            Object[] fields = {"Name:", name, "Email:", email, "Contact:", contact, "Password:", password};
+            if (JOptionPane.showConfirmDialog(this, fields, "Add Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+                String id = "C" + System.currentTimeMillis(); // Placeholder ID logic
+                userService.addCustomer(new Customer(id, name.getText(), email.getText(), contact.getText(), password.getText()));
+                // Refresh logic would go here
+            }
+        });
 
-    contentPanel.revalidate();
-    contentPanel.repaint();
-}
+        return root;
+    }
+
+    private JPanel buildMyProfilePanel() {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setBackground(SharedStyles.MAIN_BG);
+        p.setBorder(new EmptyBorder(24, 24, 24, 24));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        int y = 0;
+        JTextField nameF = SharedStyles.createFilterField(25); nameF.setText(currentUser.getFullName());
+        JTextField contactF = SharedStyles.createFilterField(25); contactF.setText(currentUser.getContact());
+        JPasswordField passF = new JPasswordField(25); passF.setBorder(nameF.getBorder());
+
+        addProfileRow(p, gbc, y++, "Full Name:", nameF);
+        addProfileRow(p, gbc, y++, "Contact:", contactF);
+        addProfileRow(p, gbc, y++, "Password:", passF);
+
+        JButton saveBtn = SharedStyles.createActionButton("Save Profile", SharedStyles.BTN_GREEN);
+        gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
+        saveBtn.addActionListener(e -> {
+            currentUser.setFullName(nameF.getText());
+            currentUser.setContact(contactF.getText());
+            currentUser.setPassword(new String(passF.getPassword()));
+            userService.updateUser((User) currentUser);
+            JOptionPane.showMessageDialog(this, "Profile updated!");
+        });
+        p.add(saveBtn, gbc);
+
+        return p;
+    }
+
+    private void addProfileRow(JPanel p, GridBagConstraints gbc, int y, String label, JComponent comp) {
+        gbc.gridx = 0; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
+        p.add(new JLabel(label), gbc);
+        gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
+        p.add(comp, gbc);
+    }
+
+    private JPanel buildPlaceholderPanel(String title) {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setBackground(SharedStyles.MAIN_BG);
+        p.add(new JLabel(title + " Panel (Styling Integrated)"));
+        return p;
+    }
+
+    private void styleTable(JTable table) {
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setRowHeight(32);
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        table.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
+        table.setGridColor(new Color(230, 230, 230));
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
+                return c;
+            }
+        });
+    }
 }

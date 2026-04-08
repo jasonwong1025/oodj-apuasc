@@ -75,7 +75,7 @@ public class ManagerDashboard extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 820);
         setLocationRelativeTo(null);
-        getContentPane().setBackground(ManagerPortalStyles.MAIN_BG);
+        getContentPane().setBackground(SharedStyles.MAIN_BG);
         setLayout(new BorderLayout());
 
         add(buildHeader(), BorderLayout.NORTH);
@@ -84,14 +84,14 @@ public class ManagerDashboard extends JFrame {
 
     private JPanel buildHeader() {
         JPanel header = new JPanel(new BorderLayout(16, 0));
-        header.setBackground(ManagerPortalStyles.HEADER_BG);
+        header.setBackground(SharedStyles.HEADER_BG);
         header.setBorder(new EmptyBorder(12, 20, 12, 20));
 
         JLabel brand = new JLabel("APU Automotive Service Centre");
         brand.setFont(new Font("SansSerif", Font.BOLD, 18));
         header.add(brand, BorderLayout.WEST);
 
-        JComboBox<String> lang = ManagerPortalStyles.createFilterCombo(new String[]{"English", "Bahasa Melayu"});
+        JComboBox<String> lang = SharedStyles.createFilterCombo(new String[]{"English", "Bahasa Melayu"});
         JPanel center = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         center.setOpaque(false);
         center.add(lang);
@@ -99,7 +99,7 @@ public class ManagerDashboard extends JFrame {
 
         JLabel who = new JLabel(currentUser.getFullName() + "  |  " + roleDisplay(currentUser.getRole()));
         who.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        JButton logout = ManagerPortalStyles.createActionButton("Logout", ManagerPortalStyles.BTN_LOGOUT);
+        JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
         logout.addActionListener(e -> {
             new LoginFrame().setVisible(true);
             dispose();
@@ -123,8 +123,8 @@ public class ManagerDashboard extends JFrame {
         }
         navList = new JList<>(navModel);
         navList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        navList.setBackground(ManagerPortalStyles.SIDEBAR_BG);
-        navList.setForeground(ManagerPortalStyles.TEXT_ON_DARK);
+        navList.setBackground(SharedStyles.SIDEBAR_BG);
+        navList.setForeground(SharedStyles.TEXT_ON_DARK);
         navList.setFont(new Font("SansSerif", Font.PLAIN, 14));
         navList.setFixedCellHeight(46);
         navList.setBorder(new EmptyBorder(12, 0, 12, 0));
@@ -150,12 +150,12 @@ public class ManagerDashboard extends JFrame {
                 }
 
                 if (isSelected) {
-                    l.setBackground(ManagerPortalStyles.NAV_ACTIVE_TOP);
+                    l.setBackground(SharedStyles.NAV_ACTIVE_TOP);
                     l.setForeground(Color.WHITE);
                     l.setFont(l.getFont().deriveFont(Font.BOLD));
                 } else {
-                    l.setBackground(isSub ? new Color(48, 48, 54) : ManagerPortalStyles.SIDEBAR_BG);
-                    l.setForeground(ManagerPortalStyles.TEXT_ON_DARK);
+                    l.setBackground(isSub ? new Color(48, 48, 54) : SharedStyles.SIDEBAR_BG);
+                    l.setForeground(SharedStyles.TEXT_ON_DARK);
                 }
                 return l;
             }
@@ -165,7 +165,7 @@ public class ManagerDashboard extends JFrame {
         navScroll.setBorder(null);
         navScroll.getVerticalScrollBar().setUnitIncrement(16);
         JPanel side = new JPanel(new BorderLayout());
-        side.setBackground(ManagerPortalStyles.SIDEBAR_BG);
+        side.setBackground(SharedStyles.SIDEBAR_BG);
         side.setPreferredSize(new Dimension(240, 0));
         side.add(navScroll, BorderLayout.CENTER);
 
@@ -259,7 +259,7 @@ public class ManagerDashboard extends JFrame {
 
     private JPanel buildPlaceholderPanel(String title, String body) {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(ManagerPortalStyles.MAIN_BG);
+        p.setBackground(SharedStyles.MAIN_BG);
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -277,7 +277,7 @@ public class ManagerDashboard extends JFrame {
 
     private JPanel buildServiceCatalogPanel() {
         JPanel root = new JPanel(new BorderLayout(0, 0));
-        root.setBackground(ManagerPortalStyles.MAIN_BG);
+        root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         JPanel top = new JPanel();
@@ -287,31 +287,31 @@ public class ManagerDashboard extends JFrame {
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
         row1.setOpaque(false);
         row1.add(new JLabel("Search:"));
-        serviceSearchField = ManagerPortalStyles.createFilterField(24);
+        serviceSearchField = SharedStyles.createFilterField(24);
         row1.add(serviceSearchField);
         row1.add(new JLabel("Category:"));
-        serviceCategoryFilter = ManagerPortalStyles.createFilterCombo(new String[]{"ALL"});
+        serviceCategoryFilter = SharedStyles.createFilterCombo(new String[]{"ALL"});
         row1.add(serviceCategoryFilter);
-        JButton filterBtn = ManagerPortalStyles.createActionButton("Filter", ManagerPortalStyles.BTN_BLUE);
+        JButton filterBtn = SharedStyles.createActionButton("Filter", SharedStyles.BTN_BLUE);
         filterBtn.addActionListener(e -> refreshServiceTable());
         row1.add(filterBtn);
         top.add(row1);
 
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         row2.setOpaque(false);
-        JButton addBtn = ManagerPortalStyles.createActionButton("Add Service", ManagerPortalStyles.BTN_GREEN);
+        JButton addBtn = SharedStyles.createActionButton("Add Service", SharedStyles.BTN_GREEN);
         addBtn.addActionListener(e -> showAddServiceDialog());
         row2.add(addBtn);
 
-        JButton editBtn = ManagerPortalStyles.createActionButton("Edit Selected", ManagerPortalStyles.BTN_BLUE);
+        JButton editBtn = SharedStyles.createActionButton("Edit Selected", SharedStyles.BTN_BLUE);
         editBtn.addActionListener(e -> showEditServiceDialog());
         row2.add(editBtn);
 
-        JButton deleteBtn = ManagerPortalStyles.createActionButton("Delete Selected", ManagerPortalStyles.BTN_RED);
+        JButton deleteBtn = SharedStyles.createActionButton("Delete Selected", SharedStyles.BTN_RED);
         deleteBtn.addActionListener(e -> deleteSelectedService());
         row2.add(deleteBtn);
 
-        JButton refreshBtn = ManagerPortalStyles.createActionButton("Refresh", ManagerPortalStyles.BTN_BLUE);
+        JButton refreshBtn = SharedStyles.createActionButton("Refresh", SharedStyles.BTN_BLUE);
         refreshBtn.addActionListener(e -> refreshServiceTable());
         row2.add(refreshBtn);
 
@@ -330,7 +330,7 @@ public class ManagerDashboard extends JFrame {
         serviceTable.setRowHeight(28);
         serviceTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         serviceTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        serviceTable.getTableHeader().setBackground(ManagerPortalStyles.TABLE_HEADER_BG);
+        serviceTable.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
         serviceTable.setGridColor(new Color(220, 220, 225));
         serviceTable.setShowGrid(true);
         serviceTable.setFillsViewportHeight(true);
@@ -340,7 +340,7 @@ public class ManagerDashboard extends JFrame {
                                                            boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : ManagerPortalStyles.TABLE_ZEBRA);
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
                 }
                 return c;
             }
@@ -355,7 +355,7 @@ public class ManagerDashboard extends JFrame {
 
     private JPanel buildCategoriesPanel() {
         JPanel root = new JPanel(new BorderLayout(0, 0));
-        root.setBackground(ManagerPortalStyles.MAIN_BG);
+        root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         JPanel top = new JPanel();
@@ -365,28 +365,28 @@ public class ManagerDashboard extends JFrame {
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
         row1.setOpaque(false);
         row1.add(new JLabel("Search:"));
-        categorySearchField = ManagerPortalStyles.createFilterField(24);
+        categorySearchField = SharedStyles.createFilterField(24);
         row1.add(categorySearchField);
-        JButton filterBtn = ManagerPortalStyles.createActionButton("Filter", ManagerPortalStyles.BTN_BLUE);
+        JButton filterBtn = SharedStyles.createActionButton("Filter", SharedStyles.BTN_BLUE);
         filterBtn.addActionListener(e -> refreshCategoryTable());
         row1.add(filterBtn);
         top.add(row1);
 
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         row2.setOpaque(false);
-        JButton addBtn = ManagerPortalStyles.createActionButton("Add Category", ManagerPortalStyles.BTN_GREEN);
+        JButton addBtn = SharedStyles.createActionButton("Add Category", SharedStyles.BTN_GREEN);
         addBtn.addActionListener(e -> showAddCategoryDialog());
         row2.add(addBtn);
 
-        JButton editBtn = ManagerPortalStyles.createActionButton("Edit Selected", ManagerPortalStyles.BTN_BLUE);
+        JButton editBtn = SharedStyles.createActionButton("Edit Selected", SharedStyles.BTN_BLUE);
         editBtn.addActionListener(e -> showEditCategoryDialog());
         row2.add(editBtn);
 
-        JButton deleteBtn = ManagerPortalStyles.createActionButton("Delete Selected", ManagerPortalStyles.BTN_RED);
+        JButton deleteBtn = SharedStyles.createActionButton("Delete Selected", SharedStyles.BTN_RED);
         deleteBtn.addActionListener(e -> deleteSelectedCategory());
         row2.add(deleteBtn);
 
-        JButton refreshBtn = ManagerPortalStyles.createActionButton("Refresh", ManagerPortalStyles.BTN_BLUE);
+        JButton refreshBtn = SharedStyles.createActionButton("Refresh", SharedStyles.BTN_BLUE);
         refreshBtn.addActionListener(e -> refreshCategoryTable());
         row2.add(refreshBtn);
 
@@ -405,7 +405,7 @@ public class ManagerDashboard extends JFrame {
         categoryTable.setRowHeight(28);
         categoryTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         categoryTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        categoryTable.getTableHeader().setBackground(ManagerPortalStyles.TABLE_HEADER_BG);
+        categoryTable.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
         categoryTable.setGridColor(new Color(220, 220, 225));
         categoryTable.setShowGrid(true);
         categoryTable.setFillsViewportHeight(true);
@@ -415,7 +415,7 @@ public class ManagerDashboard extends JFrame {
                                                            boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : ManagerPortalStyles.TABLE_ZEBRA);
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
                 }
                 return c;
             }
@@ -430,7 +430,7 @@ public class ManagerDashboard extends JFrame {
 
     private JPanel buildUserManagementPanel() {
         JPanel root = new JPanel(new BorderLayout(0, 0));
-        root.setBackground(ManagerPortalStyles.MAIN_BG);
+        root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         JPanel top = new JPanel();
@@ -440,49 +440,49 @@ public class ManagerDashboard extends JFrame {
         JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
         row1.setOpaque(false);
         row1.add(new JLabel("Search:"));
-        userSearchField = ManagerPortalStyles.createFilterField(24);
+        userSearchField = SharedStyles.createFilterField(24);
         row1.add(userSearchField);
         row1.add(new JLabel("Role:"));
-        roleFilterCombo = ManagerPortalStyles.createFilterCombo(new String[]{
+        roleFilterCombo = SharedStyles.createFilterCombo(new String[]{
                 "ALL", "Manager", "Counter Staff", "Technician", "Customer"
         });
         row1.add(roleFilterCombo);
-        JButton filterBtn = ManagerPortalStyles.createActionButton("Filter", ManagerPortalStyles.BTN_BLUE);
+        JButton filterBtn = SharedStyles.createActionButton("Filter", SharedStyles.BTN_BLUE);
         filterBtn.addActionListener(e -> refreshUserTable());
         row1.add(filterBtn);
         top.add(row1);
 
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         row2.setOpaque(false);
-        JButton addBtn = ManagerPortalStyles.createActionButton("Add User", ManagerPortalStyles.BTN_GREEN);
+        JButton addBtn = SharedStyles.createActionButton("Add User", SharedStyles.BTN_GREEN);
         addBtn.addActionListener(e -> showAddUserDialog());
         row2.add(addBtn);
 
-        JButton editBtn = ManagerPortalStyles.createActionButton("Edit Selected", ManagerPortalStyles.BTN_BLUE);
+        JButton editBtn = SharedStyles.createActionButton("Edit Selected", SharedStyles.BTN_BLUE);
         editBtn.addActionListener(e -> showEditUserDialog());
         row2.add(editBtn);
 
-        JButton deleteBtn = ManagerPortalStyles.createActionButton("Delete Selected", ManagerPortalStyles.BTN_RED);
+        JButton deleteBtn = SharedStyles.createActionButton("Delete Selected", SharedStyles.BTN_RED);
         deleteBtn.addActionListener(e -> deleteSelectedUser());
         row2.add(deleteBtn);
 
-        JButton deactBtn = ManagerPortalStyles.createActionButton("Deactivate", ManagerPortalStyles.BTN_ORANGE);
+        JButton deactBtn = SharedStyles.createActionButton("Deactivate", SharedStyles.BTN_ORANGE);
         deactBtn.addActionListener(e -> setSelectedActive(false));
         row2.add(deactBtn);
 
-        JButton reactBtn = ManagerPortalStyles.createActionButton("Reactivate", ManagerPortalStyles.BTN_GREEN);
+        JButton reactBtn = SharedStyles.createActionButton("Reactivate", SharedStyles.BTN_GREEN);
         reactBtn.addActionListener(e -> setSelectedActive(true));
         row2.add(reactBtn);
 
-        JButton refreshBtn = ManagerPortalStyles.createActionButton("Refresh", ManagerPortalStyles.BTN_BLUE);
+        JButton refreshBtn = SharedStyles.createActionButton("Refresh", SharedStyles.BTN_BLUE);
         refreshBtn.addActionListener(e -> refreshUserTable());
         row2.add(refreshBtn);
 
-        JButton exportBtn = ManagerPortalStyles.createActionButton("Export CSV", ManagerPortalStyles.BTN_BLUE);
+        JButton exportBtn = SharedStyles.createActionButton("Export CSV", SharedStyles.BTN_BLUE);
         exportBtn.addActionListener(e -> exportCsv());
         row2.add(exportBtn);
 
-        JButton importBtn = ManagerPortalStyles.createActionButton("Import CSV", ManagerPortalStyles.BTN_GREEN);
+        JButton importBtn = SharedStyles.createActionButton("Import CSV", SharedStyles.BTN_GREEN);
         importBtn.addActionListener(e -> importCsv());
         row2.add(importBtn);
 
@@ -501,7 +501,7 @@ public class ManagerDashboard extends JFrame {
         userTable.setRowHeight(28);
         userTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         userTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        userTable.getTableHeader().setBackground(ManagerPortalStyles.TABLE_HEADER_BG);
+        userTable.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
         userTable.setGridColor(new Color(220, 220, 225));
         userTable.setShowGrid(true);
         userTable.setFillsViewportHeight(true);
@@ -511,7 +511,7 @@ public class ManagerDashboard extends JFrame {
                                                            boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : ManagerPortalStyles.TABLE_ZEBRA);
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
                 }
                 return c;
             }
@@ -526,7 +526,7 @@ public class ManagerDashboard extends JFrame {
 
     private JPanel buildMyProfilePanel() {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(ManagerPortalStyles.MAIN_BG);
+        p.setBackground(SharedStyles.MAIN_BG);
         p.setBorder(new EmptyBorder(24, 24, 24, 24));
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -548,11 +548,11 @@ public class ManagerDashboard extends JFrame {
             return p;
         }
 
-        JTextField fullName = ManagerPortalStyles.createFilterField(28);
+        JTextField fullName = SharedStyles.createFilterField(28);
         fullName.setText(self.getFullName());
-        JTextField email = ManagerPortalStyles.createFilterField(28);
+        JTextField email = SharedStyles.createFilterField(28);
         email.setText(self.getEmail());
-        JTextField contact = ManagerPortalStyles.createFilterField(28);
+        JTextField contact = SharedStyles.createFilterField(28);
         contact.setText(self.getContact());
         JPasswordField pass = new JPasswordField(28);
         pass.setBorder(userSearchField.getBorder());
@@ -563,7 +563,7 @@ public class ManagerDashboard extends JFrame {
         addProfileRow(p, gbc, y++, "Contact:", contact);
         addProfileRow(p, gbc, y++, "New Password (optional):", pass);
 
-        JButton save = ManagerPortalStyles.createActionButton("Save Profile", ManagerPortalStyles.BTN_GREEN);
+        JButton save = SharedStyles.createActionButton("Save Profile", SharedStyles.BTN_GREEN);
         gbc.gridx = 1;
         gbc.gridy = y;
         gbc.anchor = GridBagConstraints.EAST;
@@ -681,12 +681,12 @@ public class ManagerDashboard extends JFrame {
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+        JTextField nameField = SharedStyles.createFilterField(22);
         String[] categoryItems = categories.stream()
                 .map(c -> c.getCategoryId() + " - " + c.getCategoryName())
                 .toArray(String[]::new);
-        JComboBox<String> categoryField = ManagerPortalStyles.createFilterCombo(categoryItems);
-        JTextField priceField = ManagerPortalStyles.createFilterField(22);
+        JComboBox<String> categoryField = SharedStyles.createFilterCombo(categoryItems);
+        JTextField priceField = SharedStyles.createFilterField(22);
         JCheckBox includeInNormalService = new JCheckBox("Include in Normal Service");
         includeInNormalService.setOpaque(false);
 
@@ -696,7 +696,7 @@ public class ManagerDashboard extends JFrame {
         addDialogRow(d, gbc, y++, "Price (RM):", priceField);
         addDialogRow(d, gbc, y++, "Normal Service:", includeInNormalService);
 
-        JButton save = ManagerPortalStyles.createActionButton("Save", ManagerPortalStyles.BTN_GREEN);
+        JButton save = SharedStyles.createActionButton("Save", SharedStyles.BTN_GREEN);
         gbc.gridx = 1;
         gbc.gridy = y;
         gbc.anchor = GridBagConstraints.EAST;
@@ -736,21 +736,21 @@ public class ManagerDashboard extends JFrame {
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JTextField idField = ManagerPortalStyles.createFilterField(22);
+        JTextField idField = SharedStyles.createFilterField(22);
         idField.setText(target.getServiceId());
         idField.setEditable(false);
-        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+        JTextField nameField = SharedStyles.createFilterField(22);
         nameField.setText(target.getServiceName());
         String[] categoryItems = categories.stream()
                 .map(c -> c.getCategoryId() + " - " + c.getCategoryName())
                 .toArray(String[]::new);
-        JComboBox<String> categoryField = ManagerPortalStyles.createFilterCombo(categoryItems);
+        JComboBox<String> categoryField = SharedStyles.createFilterCombo(categoryItems);
         String selectedCategoryDisplay = target.getCategoryId() + " - " +
                 (categoryService.getCategoryNameById(target.getCategoryId()) != null
                         ? categoryService.getCategoryNameById(target.getCategoryId())
                         : target.getCategoryId());
         categoryField.setSelectedItem(selectedCategoryDisplay);
-        JTextField priceField = ManagerPortalStyles.createFilterField(22);
+        JTextField priceField = SharedStyles.createFilterField(22);
         priceField.setText(String.format("%.2f", target.getPrice()));
         JCheckBox includeInNormalService = new JCheckBox("Include in Normal Service");
         includeInNormalService.setOpaque(false);
@@ -763,7 +763,7 @@ public class ManagerDashboard extends JFrame {
         addDialogRow(d, gbc, y++, "Price (RM):", priceField);
         addDialogRow(d, gbc, y++, "Normal Service:", includeInNormalService);
 
-        JButton save = ManagerPortalStyles.createActionButton("Update", ManagerPortalStyles.BTN_BLUE);
+        JButton save = SharedStyles.createActionButton("Update", SharedStyles.BTN_BLUE);
         gbc.gridx = 1;
         gbc.gridy = y;
         gbc.anchor = GridBagConstraints.EAST;
@@ -843,12 +843,12 @@ public class ManagerDashboard extends JFrame {
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+        JTextField nameField = SharedStyles.createFilterField(22);
 
         int y = 0;
         addDialogRow(d, gbc, y++, "Category Name:", nameField);
 
-        JButton save = ManagerPortalStyles.createActionButton("Save", ManagerPortalStyles.BTN_GREEN);
+        JButton save = SharedStyles.createActionButton("Save", SharedStyles.BTN_GREEN);
         gbc.gridx = 1;
         gbc.gridy = y;
         gbc.anchor = GridBagConstraints.EAST;
@@ -882,17 +882,17 @@ public class ManagerDashboard extends JFrame {
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JTextField idField = ManagerPortalStyles.createFilterField(22);
+        JTextField idField = SharedStyles.createFilterField(22);
         idField.setText(target.getCategoryId());
         idField.setEditable(false);
-        JTextField nameField = ManagerPortalStyles.createFilterField(22);
+        JTextField nameField = SharedStyles.createFilterField(22);
         nameField.setText(target.getCategoryName());
 
         int y = 0;
         addDialogRow(d, gbc, y++, "Category ID:", idField);
         addDialogRow(d, gbc, y++, "Category Name:", nameField);
 
-        JButton save = ManagerPortalStyles.createActionButton("Update", ManagerPortalStyles.BTN_BLUE);
+        JButton save = SharedStyles.createActionButton("Update", SharedStyles.BTN_BLUE);
         gbc.gridx = 1;
         gbc.gridy = y;
         gbc.anchor = GridBagConstraints.EAST;
@@ -987,12 +987,12 @@ public class ManagerDashboard extends JFrame {
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JComboBox<String> role = ManagerPortalStyles.createFilterCombo(new String[]{
+        JComboBox<String> role = SharedStyles.createFilterCombo(new String[]{
                 "Manager", "Counter Staff", "Technician", "Customer"
         });
-        JTextField fullName = ManagerPortalStyles.createFilterField(22);
-        JTextField email = ManagerPortalStyles.createFilterField(22);
-        JTextField contact = ManagerPortalStyles.createFilterField(22);
+        JTextField fullName = SharedStyles.createFilterField(22);
+        JTextField email = SharedStyles.createFilterField(22);
+        JTextField contact = SharedStyles.createFilterField(22);
         JPasswordField password = new JPasswordField(22);
 
         int y = 0;
@@ -1002,7 +1002,7 @@ public class ManagerDashboard extends JFrame {
         addDialogRow(d, gbc, y++, "Contact:", contact);
         addDialogRow(d, gbc, y++, "Password:", password);
 
-        JButton save = ManagerPortalStyles.createActionButton("Save", ManagerPortalStyles.BTN_GREEN);
+        JButton save = SharedStyles.createActionButton("Save", SharedStyles.BTN_GREEN);
         gbc.gridx = 1;
         gbc.gridy = y;
         gbc.anchor = GridBagConstraints.EAST;
@@ -1037,16 +1037,16 @@ public class ManagerDashboard extends JFrame {
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.anchor = GridBagConstraints.WEST;
 
-        JTextField idF = ManagerPortalStyles.createFilterField(22);
+        JTextField idF = SharedStyles.createFilterField(22);
         idF.setText(u.getUserId());
         idF.setEditable(false);
-        JTextField fullName = ManagerPortalStyles.createFilterField(22);
+        JTextField fullName = SharedStyles.createFilterField(22);
         fullName.setText(u.getFullName());
-        JTextField email = ManagerPortalStyles.createFilterField(22);
+        JTextField email = SharedStyles.createFilterField(22);
         email.setText(u.getEmail());
-        JTextField contact = ManagerPortalStyles.createFilterField(22);
+        JTextField contact = SharedStyles.createFilterField(22);
         contact.setText(u.getContact());
-        JComboBox<String> status = ManagerPortalStyles.createFilterCombo(new String[]{"ACTIVE", "INACTIVE"});
+        JComboBox<String> status = SharedStyles.createFilterCombo(new String[]{"ACTIVE", "INACTIVE"});
         status.setSelectedItem(u.isActive() ? "ACTIVE" : "INACTIVE");
         JPasswordField password = new JPasswordField(22);
 
@@ -1058,7 +1058,7 @@ public class ManagerDashboard extends JFrame {
         addDialogRow(d, gbc, y++, "Status:", status);
         addDialogRow(d, gbc, y++, "New Password (optional):", password);
 
-        JButton save = ManagerPortalStyles.createActionButton("Update", ManagerPortalStyles.BTN_BLUE);
+        JButton save = SharedStyles.createActionButton("Update", SharedStyles.BTN_BLUE);
         gbc.gridx = 1;
         gbc.gridy = y;
         gbc.anchor = GridBagConstraints.EAST;
