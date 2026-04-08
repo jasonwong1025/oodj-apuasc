@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ManagerDashboard extends JFrame {
+public class ManagerDashboard extends JFrame implements Refreshable {
 
     private static final String[] NAV_ITEMS = {
             "User Management",
@@ -196,29 +196,39 @@ public class ManagerDashboard extends JFrame {
 
         navList.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting() || updatingNav) return;
-            int i = navList.getSelectedIndex();
-            if (i < 0) return;
-            String selected = navModel.get(i);
-            if (SVC_HEADER.equals(selected)) return;
-
-            switch (selected) {
-                case "User Management": cardLayout.show(cardPanel, "USER"); refreshUserTable(); break;
-                case SVC_CATALOG: cardLayout.show(cardPanel, "SVC_CATALOG"); break;
-                case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); break;
-                case SVC_CAPACITY: cardLayout.show(cardPanel, "SVC_CAPACITY"); break;
-                case "All Feedback": cardLayout.show(cardPanel, "FEED"); break;
-                case "Audit Log": cardLayout.show(cardPanel, "AUDIT"); break;
-                case "Reports": cardLayout.show(cardPanel, "REPORT"); break;
-                case "Settings": cardLayout.show(cardPanel, "SETTINGS"); break;
-                case "My Profile": cardLayout.show(cardPanel, "PROFILE"); break;
-                default: break;
-            }
+            refresh();
         });
         navList.setSelectedIndex(0);
 
         wrap.add(side, BorderLayout.WEST);
         wrap.add(cardPanel, BorderLayout.CENTER);
         return wrap;
+    }
+
+    @Override
+    public void refresh() {
+        int i = navList.getSelectedIndex();
+        if (i < 0) return;
+        String selected = navModel.get(i);
+        if (SVC_HEADER.equals(selected)) return;
+
+        switch (selected) {
+            case "User Management": cardLayout.show(cardPanel, "USER"); refreshUserTable(); break;
+            case SVC_CATALOG: cardLayout.show(cardPanel, "SVC_CATALOG"); refreshServiceTable(); break;
+            case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); refreshCategoryTable(); break;
+            case SVC_CAPACITY: cardLayout.show(cardPanel, "SVC_CAPACITY"); break;
+            case "All Feedback": cardLayout.show(cardPanel, "FEED"); break;
+            case "Audit Log": cardLayout.show(cardPanel, "AUDIT"); break;
+            case "Reports": cardLayout.show(cardPanel, "REPORT"); break;
+            case "Settings": cardLayout.show(cardPanel, "SETTINGS"); break;
+            case "My Profile": cardLayout.show(cardPanel, "PROFILE"); break;
+        }
+        
+        // Consistent title sync
+        User self = userService.findByUserId(currentUser.getUserId());
+        if (self != null) {
+            setTitle("APU-ASC | Manager - " + self.getFullName());
+        }
     }
 
     private void toggleServiceDropdown() {

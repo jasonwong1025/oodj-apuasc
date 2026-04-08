@@ -1,13 +1,16 @@
 package ui;
 
 import abstracts.AbstractUser;
+import service_layer.UserService;
+import model.users.User;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
-public class TechnicianDashboard extends JFrame {
+public class TechnicianDashboard extends JFrame implements Refreshable {
 
     private AbstractUser currentUser;
+    private UserService userService;
     private CardLayout cardLayout;
     private JPanel cardPanel;
     private DefaultListModel<String> navModel;
@@ -15,13 +18,14 @@ public class TechnicianDashboard extends JFrame {
 
     private static final String[] NAV_ITEMS = {
             "Dashboard",
-            "Assign Tasks",
+            "My Tasks",
             "Manage Jobs",
             "My Profile"
     };
 
     public TechnicianDashboard(AbstractUser user) {
         this.currentUser = user;
+        this.userService = new UserService();
 
         setTitle("APU-ASC | Technician - " + currentUser.getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -68,11 +72,11 @@ public class TechnicianDashboard extends JFrame {
 
         navList = new JList<>(navModel);
         navList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        navList.setFixedCellHeight(46);
+        navList.setBorder(new EmptyBorder(12, 0, 12, 0));
         navList.setBackground(SharedStyles.SIDEBAR_BG);
         navList.setForeground(SharedStyles.TEXT_ON_DARK);
         navList.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        navList.setFixedCellHeight(46);
-        navList.setBorder(new EmptyBorder(12, 0, 12, 0));
         navList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
@@ -103,15 +107,9 @@ public class TechnicianDashboard extends JFrame {
         cardPanel = new JPanel(cardLayout);
         cardPanel.setOpaque(false);
 
-        cardPanel.add(buildPlaceholderPanel("Dashboard Overview"), "Dashboard");
-        cardPanel.add(buildPlaceholderPanel("Assign Tasks"), "Assign Tasks");
-        cardPanel.add(buildPlaceholderPanel("Manage Jobs"), "Manage Jobs");
-        cardPanel.add(buildProfilePanel(), "My Profile");
-
         navList.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
-            String selected = navList.getSelectedValue();
-            if (selected != null) cardLayout.show(cardPanel, selected);
+            refresh();
         });
         navList.setSelectedIndex(0);
 
@@ -120,19 +118,83 @@ public class TechnicianDashboard extends JFrame {
         return wrap;
     }
 
-    private JPanel buildProfilePanel() {
+    @Override
+    public void refresh() {
+        String selected = navList.getSelectedValue();
+        if (selected == null) return;
+
+        JPanel panel;
+        switch (selected) {
+            case "Dashboard": panel = buildDashboardPanel(); break;
+            case "My Profile": panel = buildMyProfilePanel(); break;
+            default: panel = buildPlaceholderPanel(selected);
+        }
+
+        Component existing = null;
+        for (Component c : cardPanel.getComponents()) {
+            if (selected.equals(c.getName())) {
+                existing = c;
+                break;
+            }
+        }
+        if (existing != null) cardPanel.remove(existing);
+        
+        panel.setName(selected);
+        cardPanel.add(panel, selected);
+        cardLayout.show(cardPanel, selected);
+        cardPanel.revalidate();
+        cardPanel.repaint();
+    }
+
+    private JPanel buildDashboardPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(SharedStyles.MAIN_BG);
-        p.add(new JLabel("Technician Profile (Standard Layout Integrated)"));
+        JLabel l = new JLabel("Technician Dashboard Overview");
+        l.setFont(new Font("SansSerif", Font.BOLD, 22));
+        p.add(l);
         return p;
+    }
+
+    private JPanel buildMyProfilePanel() {
+        JPanel root = new JPanel(new GridBagLayout());
+        root.setBackground(SharedStyles.MAIN_BG);
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        User self = userService.findByUserId(currentUser.getUserId());
+        int y = 0;
+        JTextField nameF = SharedStyles.createFilterField(25); nameF.setText(self.getFullName());
+        JTextField contactF = SharedStyles.createFilterField(25); contactF.setText(self.getContact());
+        JPasswordField passF = new JPasswordField(25); passF.setBorder(nameF.getBorder());
+
+        SharedStyles.addFormRow(card, gbc, y++, "Full Name:", nameF);
+        SharedStyles.addFormRow(card, gbc, y++, "Contact:", contactF);
+        SharedStyles.addFormRow(card, gbc, y++, "Password:", passF);
+
+        JButton saveBtn = SharedStyles.createActionButton("Save Profile", SharedStyles.BTN_GREEN);
+        gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
+        saveBtn.addActionListener(e -> {
+            self.setFullName(nameF.getText());
+            self.setContact(contactF.getText());
+            String newPass = new String(passF.getPassword());
+            if (newPass.length() > 0) self.setPassword(newPass);
+            userService.updateUser(self, currentUser.getUserId());
+            JOptionPane.showMessageDialog(this, "Profile updated!");
+            refresh();
+        });
+        card.add(saveBtn, gbc);
+
+        root.add(card);
+        return root;
     }
 
     private JPanel buildPlaceholderPanel(String title) {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(SharedStyles.MAIN_BG);
-        JLabel l = new JLabel(title);
-        l.setFont(new Font("SansSerif", Font.BOLD, 22));
-        p.add(l);
+        p.add(new JLabel(title + " Panel (Styling Integrated)"));
         return p;
     }
 }

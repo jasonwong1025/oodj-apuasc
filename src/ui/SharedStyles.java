@@ -28,69 +28,6 @@ public final class SharedStyles {
 
     private SharedStyles() {}
 
-    public static JPanel createSidebarButtonPanel(String text, Runnable onClick) {
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        JButton b = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isPressed()) {
-                    g2.setColor(SIDEBAR_BUTTON_HOVER);
-                } else if (getModel().isRollover()) {
-                    g2.setColor(SIDEBAR_BUTTON_HOVER);
-                } else {
-                    g2.setColor(SIDEBAR_BUTTON);
-                }
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        b.setForeground(TEXT_ON_DARK);
-        b.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        b.setBorder(new EmptyBorder(12, 16, 12, 16));
-        b.setContentAreaFilled(false);
-        b.setBorderPainted(false);
-        b.setFocusPainted(false);
-        b.setHorizontalAlignment(SwingConstants.LEFT);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.addActionListener(e -> onClick.run());
-        wrap.add(b, BorderLayout.CENTER);
-        wrap.setBorder(new EmptyBorder(4, 10, 4, 10));
-        return wrap;
-    }
-
-    public static void styleNavButtonActive(JButton b) {
-        b.setForeground(TEXT_ON_DARK);
-        b.setFont(new Font("SansSerif", Font.BOLD, 14));
-        b.setBorder(new EmptyBorder(12, 16, 12, 16));
-        b.setContentAreaFilled(false);
-        b.setBorderPainted(false);
-        b.setFocusPainted(false);
-        b.setHorizontalAlignment(SwingConstants.LEFT);
-        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-    }
-
-    public static JButton createNavButtonActive(String text, Runnable onClick) {
-        JButton b = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, NAV_ACTIVE_TOP, 0, getHeight(), NAV_ACTIVE_BOTTOM);
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        styleNavButtonActive(b);
-        b.addActionListener(e -> onClick.run());
-        return b;
-    }
-
     public static JButton createActionButton(String text, Color bg) {
         JButton b = new JButton(text);
         b.setBackground(bg);
@@ -116,6 +53,45 @@ public final class SharedStyles {
     public static JComboBox<String> createFilterCombo(String[] items) {
         JComboBox<String> c = new JComboBox<>(items);
         c.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        c.setBackground(Color.WHITE);
         return c;
+    }
+
+    public static JPanel createCardPanel() {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setBackground(Color.WHITE);
+        p.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(230, 230, 230)),
+                new EmptyBorder(20, 20, 20, 20)));
+        return p;
+    }
+
+    public static void applyTableStyle(JTable table) {
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setRowHeight(32);
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        table.getTableHeader().setBackground(TABLE_HEADER_BG);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.setGridColor(new Color(230, 230, 230));
+        table.setSelectionBackground(new Color(200, 230, 250));
+        table.setSelectionForeground(Color.BLACK);
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(row % 2 == 0 ? Color.WHITE : TABLE_ZEBRA);
+                }
+                return c;
+            }
+        });
+    }
+
+    public static void addFormRow(JPanel p, GridBagConstraints gbc, int y, String label, JComponent comp) {
+        gbc.gridx = 0; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
+        gbc.gridwidth = 1;
+        p.add(new JLabel(label), gbc);
+        gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
+        p.add(comp, gbc);
     }
 }

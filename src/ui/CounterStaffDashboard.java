@@ -4,13 +4,14 @@ import abstracts.AbstractUser;
 import service_layer.UserService;
 import model.users.User;
 import model.users.Customer;
+import utils.IdGenerator;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
 
-public class CounterStaffDashboard extends JFrame {
+public class CounterStaffDashboard extends JFrame implements Refreshable {
 
     private AbstractUser currentUser;
     private UserService userService;
@@ -111,16 +112,9 @@ public class CounterStaffDashboard extends JFrame {
         cardPanel = new JPanel(cardLayout);
         cardPanel.setOpaque(false);
 
-        cardPanel.add(buildDashboardPanel(), "Dashboard");
-        cardPanel.add(buildCustomerManagementPanel(), "Manage Customers");
-        cardPanel.add(buildPlaceholderPanel("Manage Appointments"), "Manage Appointments");
-        cardPanel.add(buildPlaceholderPanel("Process Payment"), "Process Payment");
-        cardPanel.add(buildMyProfilePanel(), "My Profile");
-
         navList.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
-            String selected = navList.getSelectedValue();
-            if (selected != null) cardLayout.show(cardPanel, selected);
+            refresh();
         });
         navList.setSelectedIndex(0);
 
@@ -129,17 +123,48 @@ public class CounterStaffDashboard extends JFrame {
         return wrap;
     }
 
+    @Override
+    public void refresh() {
+        String selected = navList.getSelectedValue();
+        if (selected == null) return;
+
+        JPanel panel;
+        switch (selected) {
+            case "Dashboard": panel = buildDashboardPanel(); break;
+            case "Manage Customers": panel = buildCustomerManagementPanel(); break;
+            case "Manage Appointments": panel = buildPlaceholderPanel("Manage Appointments"); break;
+            case "Process Payment": panel = buildPlaceholderPanel("Process Payment"); break;
+            case "My Profile": panel = buildMyProfilePanel(); break;
+            default: panel = new JPanel();
+        }
+
+        Component existing = null;
+        for (Component c : cardPanel.getComponents()) {
+            if (selected.equals(c.getName())) {
+                existing = c;
+                break;
+            }
+        }
+        if (existing != null) cardPanel.remove(existing);
+        
+        panel.setName(selected);
+        cardPanel.add(panel, selected);
+        cardLayout.show(cardPanel, selected);
+        cardPanel.revalidate();
+        cardPanel.repaint();
+    }
+
     private JPanel buildDashboardPanel() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(SharedStyles.MAIN_BG);
-        JLabel l = new JLabel("Welcome to Counter Staff Portal");
+        JLabel l = new JLabel("Counter Staff Dashboard");
         l.setFont(new Font("SansSerif", Font.BOLD, 24));
         p.add(l);
         return p;
     }
 
     private JPanel buildCustomerManagementPanel() {
-        JPanel root = new JPanel(new BorderLayout(0, 0));
+        JPanel root = new JPanel(new BorderLayout(0, 15));
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
@@ -154,12 +179,10 @@ public class CounterStaffDashboard extends JFrame {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         List<User> customers = userService.getAllCustomers();
-        for (User u : customers) {
-            model.addRow(new Object[]{u.getUserId(), u.getFullName(), u.getEmail(), u.getContact()});
-        }
+        for (User u : customers) model.addRow(new Object[]{u.getUserId(), u.getFullName(), u.getEmail(), u.getContact()});
 
         JTable table = new JTable(model);
-        styleTable(table);
+        SharedStyles.applyTableStyle(table);
         root.add(new JScrollPane(table), BorderLayout.CENTER);
 
         addBtn.addActionListener(e -> {
@@ -169,9 +192,9 @@ public class CounterStaffDashboard extends JFrame {
             JTextField password = SharedStyles.createFilterField(20);
             Object[] fields = {"Name:", name, "Email:", email, "Contact:", contact, "Password:", password};
             if (JOptionPane.showConfirmDialog(this, fields, "Add Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-                String id = "C" + System.currentTimeMillis(); // Placeholder ID logic
+                String id = IdGenerator.generateId("CUS", "data/users.txt");
                 userService.addCustomer(new Customer(id, name.getText(), email.getText(), contact.getText(), password.getText()));
-                // Refresh logic would go here
+                refresh();
             }
         });
 
@@ -179,63 +202,45 @@ public class CounterStaffDashboard extends JFrame {
     }
 
     private JPanel buildMyProfilePanel() {
-        JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(SharedStyles.MAIN_BG);
-        p.setBorder(new EmptyBorder(24, 24, 24, 24));
+        JPanel root = new JPanel(new GridBagLayout());
+        root.setBackground(SharedStyles.MAIN_BG);
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.anchor = GridBagConstraints.WEST;
 
+        User self = userService.findByUserId(currentUser.getUserId());
         int y = 0;
-        JTextField nameF = SharedStyles.createFilterField(25); nameF.setText(currentUser.getFullName());
-        JTextField contactF = SharedStyles.createFilterField(25); contactF.setText(currentUser.getContact());
+        JTextField nameF = SharedStyles.createFilterField(25); nameF.setText(self.getFullName());
+        JTextField contactF = SharedStyles.createFilterField(25); contactF.setText(self.getContact());
         JPasswordField passF = new JPasswordField(25); passF.setBorder(nameF.getBorder());
 
-        addProfileRow(p, gbc, y++, "Full Name:", nameF);
-        addProfileRow(p, gbc, y++, "Contact:", contactF);
-        addProfileRow(p, gbc, y++, "Password:", passF);
+        SharedStyles.addFormRow(card, gbc, y++, "Full Name:", nameF);
+        SharedStyles.addFormRow(card, gbc, y++, "Contact:", contactF);
+        SharedStyles.addFormRow(card, gbc, y++, "Password:", passF);
 
         JButton saveBtn = SharedStyles.createActionButton("Save Profile", SharedStyles.BTN_GREEN);
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
         saveBtn.addActionListener(e -> {
-            currentUser.setFullName(nameF.getText());
-            currentUser.setContact(contactF.getText());
-            currentUser.setPassword(new String(passF.getPassword()));
-            userService.updateUser((User) currentUser);
+            self.setFullName(nameF.getText());
+            self.setContact(contactF.getText());
+            String newPass = new String(passF.getPassword());
+            if (newPass.length() > 0) self.setPassword(newPass);
+            userService.updateUser(self, currentUser.getUserId());
             JOptionPane.showMessageDialog(this, "Profile updated!");
+            refresh();
         });
-        p.add(saveBtn, gbc);
+        card.add(saveBtn, gbc);
 
-        return p;
-    }
-
-    private void addProfileRow(JPanel p, GridBagConstraints gbc, int y, String label, JComponent comp) {
-        gbc.gridx = 0; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
-        p.add(new JLabel(label), gbc);
-        gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
-        p.add(comp, gbc);
+        root.add(card);
+        return root;
     }
 
     private JPanel buildPlaceholderPanel(String title) {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(SharedStyles.MAIN_BG);
-        p.add(new JLabel(title + " Panel (Styling Integrated)"));
+        p.add(new JLabel(title + " Panel"));
         return p;
-    }
-
-    private void styleTable(JTable table) {
-        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        table.setRowHeight(32);
-        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        table.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
-        table.setGridColor(new Color(230, 230, 230));
-        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
-                return c;
-            }
-        });
     }
 }

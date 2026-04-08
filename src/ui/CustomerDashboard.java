@@ -5,14 +5,18 @@ import model.appointment.Appointment;
 import model.review.Review;
 import model.vehicle.Vehicle;
 import model.service.Service;
+import model.users.User;
 import service_layer.*;
+import utils.ValidationUtil;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class CustomerDashboard extends JFrame {
+public class CustomerDashboard extends JFrame implements Refreshable {
 
     private static final String[] NAV_ITEMS = {
             "Dashboard",
@@ -30,11 +34,13 @@ public class CustomerDashboard extends JFrame {
     private final PaymentService paymentService;
     private final ReviewService reviewService;
     private final ServiceService serviceLookup;
+    private final UserService userService;
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
     private DefaultListModel<String> navModel;
     private JList<String> navList;
+    private JLabel headerWho;
 
     public CustomerDashboard(AbstractUser user) {
         this.currentUser = user;
@@ -43,6 +49,7 @@ public class CustomerDashboard extends JFrame {
         this.paymentService = new PaymentService();
         this.reviewService = new ReviewService();
         this.serviceLookup = new ServiceService();
+        this.userService = new UserService();
 
         setTitle("APU-ASC | Customer - " + currentUser.getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -64,8 +71,8 @@ public class CustomerDashboard extends JFrame {
         brand.setFont(new Font("SansSerif", Font.BOLD, 18));
         header.add(brand, BorderLayout.WEST);
 
-        JLabel who = new JLabel(currentUser.getFullName() + "  |  Customer");
-        who.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        headerWho = new JLabel(currentUser.getFullName() + "  |  Customer");
+        headerWho.setFont(new Font("SansSerif", Font.PLAIN, 14));
         JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
         logout.addActionListener(e -> {
             new LoginFrame().setVisible(true);
@@ -73,7 +80,7 @@ public class CustomerDashboard extends JFrame {
         });
         JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         east.setOpaque(false);
-        east.add(who);
+        east.add(headerWho);
         east.add(logout);
         header.add(east, BorderLayout.EAST);
 
@@ -124,21 +131,10 @@ public class CustomerDashboard extends JFrame {
         cardPanel = new JPanel(cardLayout);
         cardPanel.setOpaque(false);
 
-        // Panels will be built on demand or refresh
-        cardPanel.add(buildDashboardPanel(), "Dashboard");
-        cardPanel.add(buildVehiclesPanel(), "Manage Vehicles");
-        cardPanel.add(buildBookingPanel(), "Book Appointment");
-        cardPanel.add(buildAppointmentsPanel(), "My Appointments");
-        cardPanel.add(buildHistoryPanel(), "Service History");
-        cardPanel.add(buildReviewsPanel(), "Reviews");
-        cardPanel.add(buildMyProfilePanel(), "My Profile");
-
+        // Pre-initialization will be handled by selection listener
         navList.addListSelectionListener(e -> {
             if (e.getValueIsAdjusting()) return;
-            String selected = navList.getSelectedValue();
-            if (selected == null) return;
-            refreshSelectedPanel(selected);
-            cardLayout.show(cardPanel, selected);
+            refresh();
         });
         navList.setSelectedIndex(0);
 
@@ -147,53 +143,105 @@ public class CustomerDashboard extends JFrame {
         return wrap;
     }
 
-    private void refreshSelectedPanel(String name) {
-        switch (name) {
-            case "Dashboard": cardPanel.add(buildDashboardPanel(), "Dashboard"); break;
-            case "Manage Vehicles": cardPanel.add(buildVehiclesPanel(), "Manage Vehicles"); break;
-            case "Book Appointment": cardPanel.add(buildBookingPanel(), "Book Appointment"); break;
-            case "My Appointments": cardPanel.add(buildAppointmentsPanel(), "My Appointments"); break;
-            case "Service History": cardPanel.add(buildHistoryPanel(), "Service History"); break;
-            case "Reviews": cardPanel.add(buildReviewsPanel(), "Reviews"); break;
-            case "My Profile": cardPanel.add(buildMyProfilePanel(), "My Profile"); break;
+    @Override
+    public void refresh() {
+        String selected = navList.getSelectedValue();
+        if (selected == null) return;
+
+        JPanel panel;
+        switch (selected) {
+            case "Dashboard": panel = buildDashboardPanel(); break;
+            case "Manage Vehicles": panel = buildVehiclesPanel(); break;
+            case "Book Appointment": panel = buildBookingPanel(); break;
+            case "My Appointments": panel = buildAppointmentsPanel(); break;
+            case "Service History": panel = buildHistoryPanel(); break;
+            case "Reviews": panel = buildReviewsPanel(); break;
+            case "My Profile": panel = buildMyProfilePanel(); break;
+            default: panel = new JPanel();
+        }
+
+        // Standard logic to replace panel in CardLayout
+        Component existing = null;
+        for (Component c : cardPanel.getComponents()) {
+            if (selected.equals(c.getName())) {
+                existing = c;
+                break;
+            }
+        }
+        if (existing != null) cardPanel.remove(existing);
+        
+        panel.setName(selected);
+        cardPanel.add(panel, selected);
+        cardLayout.show(cardPanel, selected);
+        cardPanel.revalidate();
+        cardPanel.repaint();
+
+        // Update header just in case name changed
+        User current = userService.findByUserId(currentUser.getUserId());
+        if (current != null) {
+            headerWho.setText(current.getFullName() + "  |  Customer");
+            setTitle("APU-ASC | Customer - " + current.getFullName());
         }
     }
 
     private JPanel buildDashboardPanel() {
-        JPanel p = new JPanel(new BorderLayout());
+        JPanel p = new JPanel(new BorderLayout(0, 30));
         p.setBackground(SharedStyles.MAIN_BG);
-        p.setBorder(new EmptyBorder(40, 40, 40, 40));
+        p.setBorder(new EmptyBorder(30, 40, 40, 40));
 
-        JLabel welcome = new JLabel("Welcome back, " + currentUser.getFullName());
+        JPanel topRow = new JPanel(new BorderLayout());
+        topRow.setOpaque(false);
+        JLabel welcome = new JLabel("Hello, " + currentUser.getFullName());
         welcome.setFont(new Font("SansSerif", Font.BOLD, 28));
-        p.add(welcome, BorderLayout.NORTH);
+        topRow.add(welcome, BorderLayout.WEST);
+        p.add(topRow, BorderLayout.NORTH);
 
+        // Stats Row
         JPanel statsGrid = new JPanel(new GridLayout(1, 3, 20, 0));
         statsGrid.setOpaque(false);
-        statsGrid.setBorder(new EmptyBorder(30, 0, 30, 0));
-
         List<Vehicle> vehicles = vehicleService.getCustomerVehicles(currentUser.getUserId());
         List<Appointment> appointments = appointmentService.getCustomerAppointments(currentUser.getUserId());
-        int pending = 0;
-        for (Appointment a : appointments) if (a.getStatus().equals("PENDING")) pending++;
-
+        long pending = appointments.stream().filter(a -> a.getStatus().equals("PENDING")).count();
         statsGrid.add(createStatCard("Registered Vehicles", String.valueOf(vehicles.size())));
         statsGrid.add(createStatCard("Active Appointments", String.valueOf(pending)));
         statsGrid.add(createStatCard("Total Services", String.valueOf(appointments.size())));
 
-        p.add(statsGrid, BorderLayout.CENTER);
+        // Content Row (Recent Activities)
+        JPanel contentRow = new JPanel(new GridLayout(1, 1, 20, 0));
+        contentRow.setOpaque(false);
+        
+        JPanel recentCard = SharedStyles.createCardPanel();
+        recentCard.setLayout(new BorderLayout(0, 15));
+        JLabel recentTitle = new JLabel("Upcoming Appointments");
+        recentTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
+        recentCard.add(recentTitle, BorderLayout.NORTH);
+
+        String[] cols = {"Apt ID", "Service", "Date & Time", "Status"};
+        DefaultTableModel model = new DefaultTableModel(cols, 0);
+        List<Appointment> upcoming = appointments.stream()
+                .filter(a -> a.getStatus().equals("PENDING"))
+                .limit(5).collect(Collectors.toList());
+        for (Appointment a : upcoming) model.addRow(new Object[]{a.getAppointmentId(), a.getServiceId(), a.getDate() + " " + a.getTime(), a.getStatus()});
+        
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
+        recentCard.add(new JScrollPane(table), BorderLayout.CENTER);
+        contentRow.add(recentCard);
+
+        JPanel mainCenter = new JPanel(new BorderLayout(0, 20));
+        mainCenter.setOpaque(false);
+        mainCenter.add(statsGrid, BorderLayout.NORTH);
+        mainCenter.add(contentRow, BorderLayout.CENTER);
+
+        p.add(mainCenter, BorderLayout.CENTER);
         return p;
     }
 
     private JPanel createStatCard(String title, String value) {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(230, 230, 230)),
-            new EmptyBorder(20, 20, 20, 20)
-        ));
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new BorderLayout());
         JLabel t = new JLabel(title);
-        t.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        t.setFont(new Font("SansSerif", Font.PLAIN, 15));
         JLabel v = new JLabel(value);
         v.setFont(new Font("SansSerif", Font.BOLD, 36));
         v.setForeground(SharedStyles.NAV_ACTIVE_TOP);
@@ -203,15 +251,24 @@ public class CustomerDashboard extends JFrame {
     }
 
     private JPanel buildVehiclesPanel() {
-        JPanel root = new JPanel(new BorderLayout(0, 0));
+        JPanel root = new JPanel(new BorderLayout(0, 15));
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        JButton addBtn = SharedStyles.createActionButton("Add New Vehicle", SharedStyles.BTN_GREEN);
+        
+        JButton addBtn = SharedStyles.createActionButton("Register New Vehicle", SharedStyles.BTN_GREEN);
         addBtn.addActionListener(e -> showAddVehicleDialog());
-        top.add(addBtn);
+        top.add(addBtn, BorderLayout.WEST);
+
+        JPanel searchBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        searchBar.setOpaque(false);
+        searchBar.add(new JLabel("Search Plate: "));
+        JTextField searchField = SharedStyles.createFilterField(15);
+        searchBar.add(searchField);
+        top.add(searchBar, BorderLayout.EAST);
+
         root.add(top, BorderLayout.NORTH);
 
         String[] cols = {"Vehicle ID", "Plate Number", "Brand", "Model"};
@@ -221,7 +278,16 @@ public class CustomerDashboard extends JFrame {
         List<Vehicle> list = vehicleService.getCustomerVehicles(currentUser.getUserId());
         for (Vehicle v : list) model.addRow(new Object[]{v.getVehicleId(), v.getPlateNumber(), v.getBrand(), v.getModel()});
 
-        JTable table = createStyledTable(model);
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+        searchField.addCaretListener(e -> {
+            String text = searchField.getText();
+            if (text.trim().length() == 0) sorter.setRowFilter(null);
+            else sorter.setRowFilter(RowFilter.regexFilter("(?i)" + text, 1));
+        });
+
         root.add(new JScrollPane(table), BorderLayout.CENTER);
         return root;
     }
@@ -230,9 +296,8 @@ public class CustomerDashboard extends JFrame {
         JPanel center = new JPanel(new GridBagLayout());
         center.setBackground(SharedStyles.MAIN_BG);
         
-        JPanel card = new JPanel(new GridBagLayout());
-        card.setBackground(Color.WHITE);
-        card.setBorder(new EmptyBorder(30, 40, 30, 40));
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new GridBagLayout());
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -253,24 +318,33 @@ public class CustomerDashboard extends JFrame {
             services.stream().map(s -> s.getServiceId() + " - " + s.getServiceName()).toArray(String[]::new)
         );
 
-        JTextField dateField = SharedStyles.createFilterField(20);
-        dateField.setText("2026-05-01");
-        JTextField timeField = SharedStyles.createFilterField(20);
-        timeField.setText("10:00");
+        JTextField dateTimeField = SharedStyles.createFilterField(20);
+        dateTimeField.setEditable(false);
+        dateTimeField.setText("Click to select ->");
+        JButton pickerBtn = SharedStyles.createActionButton("Pick Date & Time", SharedStyles.BTN_BLUE);
+        pickerBtn.addActionListener(e -> {
+            String val = DateTimePicker.showPicker(this);
+            if (val != null) dateTimeField.setText(val);
+        });
 
         int y = 0;
-        addFormRow(card, gbc, y++, "Select Vehicle:", vehicleCombo);
-        addFormRow(card, gbc, y++, "Select Service:", serviceCombo);
-        addFormRow(card, gbc, y++, "Preferred Date:", dateField);
-        addFormRow(card, gbc, y++, "Preferred Time:", timeField);
+        SharedStyles.addFormRow(card, gbc, y++, "Select Vehicle:", vehicleCombo);
+        SharedStyles.addFormRow(card, gbc, y++, "Select Service:", serviceCombo);
+        SharedStyles.addFormRow(card, gbc, y++, "Schedule:", dateTimeField);
+        gbc.gridx = 1; gbc.gridy = y++; card.add(pickerBtn, gbc);
 
-        JButton bookBtn = SharedStyles.createActionButton("Book Appointment", SharedStyles.BTN_BLUE);
+        JButton bookBtn = SharedStyles.createActionButton("Confirm Booking", SharedStyles.BTN_BLUE);
         bookBtn.addActionListener(e -> {
+            if (dateTimeField.getText().contains("Click to select")) {
+                JOptionPane.showMessageDialog(this, "Please select a date and time.");
+                return;
+            }
             String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
             String sId = serviceCombo.getSelectedItem().toString().split(" - ")[0];
-            String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sId, dateField.getText(), timeField.getText());
+            String[] dt = dateTimeField.getText().split(" ");
+            String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sId, dt[0], dt[1]);
             JOptionPane.showMessageDialog(this, res);
-            navList.setSelectedIndex(3); // Switch to My Appointments
+            navList.setSelectedIndex(3);
         });
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
         card.add(bookBtn, gbc);
@@ -280,13 +354,13 @@ public class CustomerDashboard extends JFrame {
     }
 
     private JPanel buildAppointmentsPanel() {
-        JPanel root = new JPanel(new BorderLayout(0, 0));
+        JPanel root = new JPanel(new BorderLayout(0, 15));
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
         top.setOpaque(false);
-        JButton cancelBtn = SharedStyles.createActionButton("Cancel Selected", SharedStyles.BTN_RED);
+        JButton cancelBtn = SharedStyles.createActionButton("Cancel Appointment", SharedStyles.BTN_RED);
         top.add(cancelBtn);
         root.add(top, BorderLayout.NORTH);
 
@@ -301,21 +375,26 @@ public class CustomerDashboard extends JFrame {
             }
         }
 
-        JTable table = createStyledTable(model);
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
         root.add(new JScrollPane(table), BorderLayout.CENTER);
 
         cancelBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row != -1) {
-                appointmentService.cancelAppointment(table.getValueAt(row, 0).toString());
-                refreshSelectedPanel("My Appointments");
+                if (JOptionPane.showConfirmDialog(this, "Cancel this appointment?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                    appointmentService.cancelAppointment(table.getValueAt(row, 0).toString());
+                    refresh();
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Select an appointment first.");
             }
         });
         return root;
     }
 
     private JPanel buildHistoryPanel() {
-        JPanel root = new JPanel(new BorderLayout(0, 0));
+        JPanel root = new JPanel(new BorderLayout(0, 15));
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
@@ -331,13 +410,14 @@ public class CustomerDashboard extends JFrame {
             }
         }
 
-        JTable table = createStyledTable(model);
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
         root.add(new JScrollPane(table), BorderLayout.CENTER);
         return root;
     }
 
     private JPanel buildReviewsPanel() {
-        JPanel root = new JPanel(new BorderLayout(0, 0));
+        JPanel root = new JPanel(new BorderLayout(0, 15));
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
@@ -347,7 +427,7 @@ public class CustomerDashboard extends JFrame {
         top.add(reviewBtn);
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"Apt ID", "Service", "Date", "Action State"};
+        String[] cols = {"Apt ID", "Service", "Date", "Status"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -358,74 +438,76 @@ public class CustomerDashboard extends JFrame {
             if (a.getStatus().equals("COMPLETED")) {
                 boolean reviewed = reviews.stream().anyMatch(r -> r.getAppointmentId().equals(a.getAppointmentId()));
                 boolean paid = paymentService.isPaid(a.getAppointmentId());
-                String status = reviewed ? "Reviewed" : (paid ? "Available" : "Payment Required");
+                String status = reviewed ? "Reviewed" : (paid ? "Available" : "Payment Pending");
                 model.addRow(new Object[]{a.getAppointmentId(), a.getServiceId(), a.getDate(), status});
             }
         }
 
-        JTable table = createStyledTable(model);
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
         root.add(new JScrollPane(table), BorderLayout.CENTER);
 
         reviewBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row != -1 && table.getValueAt(row, 3).equals("Available")) {
-                showReviewDialog(table.getValueAt(row, 0).toString());
-            } else if (row != -1) {
-                JOptionPane.showMessageDialog(this, "Status: " + table.getValueAt(row, 3));
+            if (row != -1) {
+                String status = table.getValueAt(row, 3).toString();
+                if (status.equals("Available")) showReviewDialog(table.getValueAt(row, 0).toString());
+                else JOptionPane.showMessageDialog(this, "System: " + status);
+            } else {
+                JOptionPane.showMessageDialog(this, "Select a completed service.");
             }
         });
         return root;
     }
 
     private JPanel buildMyProfilePanel() {
-        JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(SharedStyles.MAIN_BG);
-        p.setBorder(new EmptyBorder(24, 24, 24, 24));
+        JPanel root = new JPanel(new GridBagLayout());
+        root.setBackground(SharedStyles.MAIN_BG);
+        
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.anchor = GridBagConstraints.WEST;
 
+        User self = userService.findByUserId(currentUser.getUserId());
         int y = 0;
-        JTextField nameF = SharedStyles.createFilterField(25); nameF.setText(currentUser.getFullName());
-        JTextField emailF = SharedStyles.createFilterField(25); emailF.setText(currentUser.getEmail());
-        JTextField contactF = SharedStyles.createFilterField(25); contactF.setText(currentUser.getContact());
+        JTextField nameF = SharedStyles.createFilterField(25); nameF.setText(self.getFullName());
+        JTextField emailF = SharedStyles.createFilterField(25); emailF.setText(self.getEmail());
+        JTextField contactF = SharedStyles.createFilterField(25); contactF.setText(self.getContact());
         JPasswordField passF = new JPasswordField(25); passF.setBorder(nameF.getBorder());
 
-        addFormRow(p, gbc, y++, "Full Name:", nameF);
-        addFormRow(p, gbc, y++, "Email:", emailF);
-        addFormRow(p, gbc, y++, "Contact:", contactF);
-        addFormRow(p, gbc, y++, "New Password:", passF);
+        SharedStyles.addFormRow(card, gbc, y++, "Full Name:", nameF);
+        SharedStyles.addFormRow(card, gbc, y++, "Email:", emailF);
+        SharedStyles.addFormRow(card, gbc, y++, "Contact:", contactF);
+        SharedStyles.addFormRow(card, gbc, y++, "Password:", passF);
 
         JButton saveBtn = SharedStyles.createActionButton("Update Profile", SharedStyles.BTN_GREEN);
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
-        p.add(saveBtn, gbc);
-
-        return p;
-    }
-
-    private JTable createStyledTable(DefaultTableModel model) {
-        JTable table = new JTable(model);
-        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        table.setRowHeight(32);
-        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
-        table.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
-        table.setGridColor(new Color(230, 230, 230));
-        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
-                return c;
+        saveBtn.addActionListener(e -> {
+            if (!ValidationUtil.isNotEmpty(nameF.getText()) || !ValidationUtil.isValidEmail(emailF.getText())) {
+                JOptionPane.showMessageDialog(this, "Please enter valid details.");
+                return;
             }
+            self.setFullName(nameF.getText().trim());
+            self.setEmail(emailF.getText().trim());
+            self.setContact(contactF.getText().trim());
+            String newPass = new String(passF.getPassword());
+            if (newPass.length() > 0) {
+                if (!ValidationUtil.isValidPassword(newPass)) {
+                    JOptionPane.showMessageDialog(this, ValidationUtil.passwordRequirementsMessage());
+                    return;
+                }
+                self.setPassword(newPass);
+            }
+            userService.updateUser(self, currentUser.getUserId());
+            JOptionPane.showMessageDialog(this, "Profile updated successfully!");
+            refresh();
         });
-        return table;
-    }
+        card.add(saveBtn, gbc);
 
-    private void addFormRow(JPanel p, GridBagConstraints gbc, int y, String label, JComponent comp) {
-        gbc.gridx = 0; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
-        p.add(new JLabel(label), gbc);
-        gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
-        p.add(comp, gbc);
+        root.add(card);
+        return root;
     }
 
     private void showAddVehicleDialog() {
@@ -433,9 +515,14 @@ public class CustomerDashboard extends JFrame {
         JTextField brand = SharedStyles.createFilterField(20);
         JTextField modelF = SharedStyles.createFilterField(20);
         Object[] msg = {"Plate:", plate, "Brand:", brand, "Model:", modelF};
-        if (JOptionPane.showConfirmDialog(this, msg, "Add Vehicle", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            vehicleService.addVehicle(currentUser.getUserId(), plate.getText(), brand.getText(), modelF.getText());
-            refreshSelectedPanel("Manage Vehicles");
+        if (JOptionPane.showConfirmDialog(this, msg, "Register Vehicle", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+            String err = vehicleService.addVehicle(currentUser.getUserId(), plate.getText().trim().toUpperCase(), brand.getText().trim(), modelF.getText().trim());
+            if (err != null) {
+                JOptionPane.showMessageDialog(this, err, "Validation Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "Vehicle registered successfully.");
+                refresh();
+            }
         }
     }
 
@@ -444,9 +531,9 @@ public class CustomerDashboard extends JFrame {
         JTextArea comment = new JTextArea(5, 20);
         Object[] msg = {"Rating:", rating, "Comment:", new JScrollPane(comment)};
         if (JOptionPane.showConfirmDialog(this, msg, "Submit Review", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            int ratingValue = Integer.parseInt((String) rating.getSelectedItem());
-            reviewService.submitReview(currentUser.getUserId(), aptId, ratingValue, comment.getText());
-            refreshSelectedPanel("Reviews");
+            int score = Integer.parseInt(rating.getSelectedItem().toString());
+            reviewService.submitReview(currentUser.getUserId(), aptId, score, comment.getText().trim());
+            refresh();
         }
     }
 }
