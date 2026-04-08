@@ -1,5 +1,6 @@
 package utils;
 
+import java.io.File;
 import model.users.User;
 import repository.UserFileRepository;
 
@@ -49,5 +50,29 @@ public class IdGenerator {
             default:
                 return "U";
         }
+    }
+
+    public static String generateId(String prefix, String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) return prefix + "001";
+
+        int maxId = 0;
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(file))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue;
+                String[] parts = line.split("\\|", -1);
+                String id = parts[0].trim();
+                if (id.startsWith(prefix)) {
+                    try {
+                        int currentId = Integer.parseInt(id.substring(prefix.length()));
+                        if (currentId > maxId) maxId = currentId;
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+        return String.format("%s%03d", prefix, maxId + 1);
     }
 }
