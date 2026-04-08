@@ -3,6 +3,8 @@ package service_layer;
 import model.vehicle.Vehicle;
 import repository.VehicleRepository;
 import utils.IdGenerator;
+import utils.Result;
+import utils.ValidationUtil;
 import java.util.List;
 
 public class VehicleService {
@@ -16,14 +18,20 @@ public class VehicleService {
         return vehicleRepository.getVehiclesByOwner(customerId);
     }
 
-    public String addVehicle(String ownerId, String plateNumber, String brand, String model) {
+    public Result<Vehicle> addVehicle(String ownerId, String plateNumber, String brand, String model) {
         if (vehicleRepository.getVehiclesByPlate(plateNumber).isPresent()) {
-            return "Plate number " + plateNumber + " is already registered.";
+            return Result.failure("Plate number " + plateNumber + " is already registered.");
         }
-        String vehicleId = IdGenerator.generateId("VEH", "data/vehicles.txt");
-        Vehicle vehicle = new Vehicle(vehicleId, ownerId, plateNumber, brand, model);
+        
+        Vehicle vehicle = new Vehicle(null, ownerId, plateNumber, brand, model);
+        String violations = ValidationUtil.getViolations(vehicle);
+        if (violations != null) {
+            return Result.failure(violations);
+        }
+
+        vehicle.setVehicleId(IdGenerator.generateId("VEH", "data/vehicles.txt"));
         vehicleRepository.save(vehicle);
-        return null; // Success
+        return Result.success(vehicle);
     }
 
     public void updateVehicle(Vehicle vehicle) {

@@ -1,10 +1,21 @@
 package model.vehicle;
 
-public class Vehicle {
+import java.io.Serializable;
+import utils.validation.NotBlank;
+import utils.validation.Pattern;
+
+public class Vehicle implements Serializable {
     private String vehicleId;
     private String ownerId;
+
+    @NotBlank(message = "is required")
+    @Pattern(regexp = "^[A-Z0-9 ]{3,10}$", message = "must be valid (3-10 chars, uppercase and numbers)")
     private String plateNumber;
+
+    @NotBlank(message = "is required")
     private String brand;
+
+    @NotBlank(message = "is required")
     private String model;
 
     public Vehicle() {}

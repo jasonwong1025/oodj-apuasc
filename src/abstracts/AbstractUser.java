@@ -1,89 +1,102 @@
-package abstracts;
-
-public abstract class AbstractUser {
-    private String userId;
-    private String fullName;
-    private String email;
-    private String contact;
-    private String password;
-    private String role;
-    private boolean active = true;
-
-    public AbstractUser() {
-    }
-
-    public AbstractUser(String userId, String fullName, String email, String contact, String password, String role) {
-        this.userId = userId;
-        this.fullName = fullName;
-        this.email = email;
-        this.contact = contact;
-        this.password = password;
-        this.role = role;
-        this.active = true;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getFullName() {
-        return fullName;
-    }
-
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getContact() {
-        return contact;
-    }
-
-    public void setContact(String contact) {
-        this.contact = contact;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
-    }
-
-    /**
-     * Pipe-delimited line for {@code data/users.txt} (7 fields).
-     */
-    @Override
-    public String toString() {
-        return String.join("|", userId, fullName, email, contact, password, role,
-                active ? "ACTIVE" : "INACTIVE");
-    }
-}
+package abstracts;
+
+import utils.validation.Email;
+import utils.validation.NotBlank;
+import utils.validation.Size;
+
+public abstract class AbstractUser {
+    private String userId;
+
+    @NotBlank(message = "is required")
+    private String fullName;
+
+    @NotBlank(message = "is required")
+    @Email(message = "must be a valid email address")
+    private String email;
+
+    @NotBlank(message = "is required")
+    @Size(min = 10, max = 11, message = "must be 10-11 digits")
+    private String contact;
+
+    @NotBlank(message = "is required")
+    @Size(min = 6, message = "must be at least 6 characters")
+    private String password;
+
+    private String role;
+    private boolean active = true;
+
+    public AbstractUser() {
+    }
+
+    public AbstractUser(String userId, String fullName, String email, String contact, String password, String role) {
+        this.userId = userId;
+        this.fullName = fullName;
+        this.email = email;
+        this.contact = contact;
+        this.password = password;
+        this.role = role;
+        this.active = true;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getContact() {
+        return contact;
+    }
+
+    public void setContact(String contact) {
+        this.contact = contact;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    @Override
+    public String toString() {
+        return String.join("|", userId, fullName, email, contact, password, role,
+                active ? "ACTIVE" : "INACTIVE");
+    }
+}
