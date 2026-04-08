@@ -314,11 +314,17 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         row2.add(addBtn);
 
         JButton editBtn = SharedStyles.createActionButton("Edit Selected", SharedStyles.BTN_BLUE);
-        editBtn.addActionListener(e -> showEditServiceDialog());
+        editBtn.addActionListener(e -> {
+            if (serviceTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            showEditServiceDialog();
+        });
         row2.add(editBtn);
 
         JButton deleteBtn = SharedStyles.createActionButton("Delete Selected", SharedStyles.BTN_RED);
-        deleteBtn.addActionListener(e -> deleteSelectedService());
+        deleteBtn.addActionListener(e -> {
+            if (serviceTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            deleteSelectedService();
+        });
         row2.add(deleteBtn);
 
         JButton refreshBtn = SharedStyles.createActionButton("Refresh", SharedStyles.BTN_BLUE);
@@ -389,11 +395,17 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         row2.add(addBtn);
 
         JButton editBtn = SharedStyles.createActionButton("Edit Selected", SharedStyles.BTN_BLUE);
-        editBtn.addActionListener(e -> showEditCategoryDialog());
+        editBtn.addActionListener(e -> {
+            if (categoryTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            showEditCategoryDialog();
+        });
         row2.add(editBtn);
 
         JButton deleteBtn = SharedStyles.createActionButton("Delete Selected", SharedStyles.BTN_RED);
-        deleteBtn.addActionListener(e -> deleteSelectedCategory());
+        deleteBtn.addActionListener(e -> {
+            if (categoryTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            deleteSelectedCategory();
+        });
         row2.add(deleteBtn);
 
         JButton refreshBtn = SharedStyles.createActionButton("Refresh", SharedStyles.BTN_BLUE);
@@ -469,19 +481,31 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         row2.add(addBtn);
 
         JButton editBtn = SharedStyles.createActionButton("Edit Selected", SharedStyles.BTN_BLUE);
-        editBtn.addActionListener(e -> showEditUserDialog());
+        editBtn.addActionListener(e -> {
+            if (userTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            showEditUserDialog();
+        });
         row2.add(editBtn);
 
         JButton deleteBtn = SharedStyles.createActionButton("Delete Selected", SharedStyles.BTN_RED);
-        deleteBtn.addActionListener(e -> deleteSelectedUser());
+        deleteBtn.addActionListener(e -> {
+            if (userTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            deleteSelectedUser();
+        });
         row2.add(deleteBtn);
 
         JButton deactBtn = SharedStyles.createActionButton("Deactivate", SharedStyles.BTN_ORANGE);
-        deactBtn.addActionListener(e -> setSelectedActive(false));
+        deactBtn.addActionListener(e -> {
+            if (userTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            setSelectedActive(false);
+        });
         row2.add(deactBtn);
 
         JButton reactBtn = SharedStyles.createActionButton("Reactivate", SharedStyles.BTN_GREEN);
-        reactBtn.addActionListener(e -> setSelectedActive(true));
+        reactBtn.addActionListener(e -> {
+            if (userTable.getSelectedRow() == -1) { SharedStyles.showSelectionError(this); return; }
+            setSelectedActive(true);
+        });
         row2.add(reactBtn);
 
         JButton refreshBtn = SharedStyles.createActionButton("Refresh", SharedStyles.BTN_BLUE);

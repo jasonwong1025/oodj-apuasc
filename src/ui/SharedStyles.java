@@ -94,4 +94,14 @@ public final class SharedStyles {
         gbc.gridx = 1; gbc.anchor = GridBagConstraints.WEST;
         p.add(comp, gbc);
     }
+
+    public static void showSelectionError(Component parent) {
+        JOptionPane.showMessageDialog(parent, 
+            "Please select a row from the table first to proceed.", 
+            "Selection Required", JOptionPane.WARNING_MESSAGE);
+    }
+
+    public static void showValidationError(Component parent, String message) {
+        JOptionPane.showMessageDialog(parent, message, "Validation Error", JOptionPane.ERROR_MESSAGE);
+    }
 }

@@ -321,6 +321,15 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         JTextField dateTimeField = SharedStyles.createFilterField(20);
         dateTimeField.setEditable(false);
         dateTimeField.setText("Click to select ->");
+        dateTimeField.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        dateTimeField.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                String val = DateTimePicker.showPicker(CustomerDashboard.this);
+                if (val != null) dateTimeField.setText(val);
+            }
+        });
+        
         JButton pickerBtn = SharedStyles.createActionButton("Pick Date & Time", SharedStyles.BTN_BLUE);
         pickerBtn.addActionListener(e -> {
             String val = DateTimePicker.showPicker(this);
@@ -381,13 +390,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
 
         cancelBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row != -1) {
-                if (JOptionPane.showConfirmDialog(this, "Cancel this appointment?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-                    appointmentService.cancelAppointment(table.getValueAt(row, 0).toString());
-                    refresh();
-                }
-            } else {
-                JOptionPane.showMessageDialog(this, "Select an appointment first.");
+            if (row == -1) {
+                SharedStyles.showSelectionError(this);
+                return;
+            }
+            if (JOptionPane.showConfirmDialog(this, "Cancel this appointment?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                appointmentService.cancelAppointment(table.getValueAt(row, 0).toString());
+                refresh();
             }
         });
         return root;
@@ -449,13 +458,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
 
         reviewBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
-            if (row != -1) {
-                String status = table.getValueAt(row, 3).toString();
-                if (status.equals("Available")) showReviewDialog(table.getValueAt(row, 0).toString());
-                else JOptionPane.showMessageDialog(this, "System: " + status);
-            } else {
-                JOptionPane.showMessageDialog(this, "Select a completed service.");
+            if (row == -1) {
+                SharedStyles.showSelectionError(this);
+                return;
             }
+            String status = table.getValueAt(row, 3).toString();
+            if (status.equals("Available")) showReviewDialog(table.getValueAt(row, 0).toString());
+            else JOptionPane.showMessageDialog(this, "System: " + status);
         });
         return root;
     }
@@ -516,9 +525,9 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         JTextField modelF = SharedStyles.createFilterField(20);
         Object[] msg = {"Plate:", plate, "Brand:", brand, "Model:", modelF};
         if (JOptionPane.showConfirmDialog(this, msg, "Register Vehicle", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            String err = vehicleService.addVehicle(currentUser.getUserId(), plate.getText().trim().toUpperCase(), brand.getText().trim(), modelF.getText().trim());
-            if (err != null) {
-                JOptionPane.showMessageDialog(this, err, "Validation Error", JOptionPane.ERROR_MESSAGE);
+            utils.Result<Vehicle> res = vehicleService.addVehicle(currentUser.getUserId(), plate.getText(), brand.getText(), modelF.getText());
+            if (!res.isSuccess()) {
+                SharedStyles.showValidationError(this, res.getError());
             } else {
                 JOptionPane.showMessageDialog(this, "Vehicle registered successfully.");
                 refresh();
