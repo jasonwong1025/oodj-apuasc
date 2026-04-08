@@ -7,11 +7,11 @@ import java.awt.*;
 
 public class TechnicianDashboard extends JFrame {
 
-    private final AbstractUser currentUser;
-    private final CardLayout cardLayout;
-    private final JPanel cardPanel;
-    private final DefaultListModel<String> navModel;
-    private final JList<String> navList;
+    private AbstractUser currentUser;
+    private CardLayout cardLayout;
+    private JPanel cardPanel;
+    private DefaultListModel<String> navModel;
+    private JList<String> navList;
 
     private static final String[] NAV_ITEMS = {
             "Dashboard",
@@ -23,7 +23,7 @@ public class TechnicianDashboard extends JFrame {
     public TechnicianDashboard(AbstractUser user) {
         this.currentUser = user;
 
-        setTitle("APU Automotive Service Centre - Technician Portal");
+        setTitle("APU-ASC | Technician - " + currentUser.getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 820);
         setLocationRelativeTo(null);

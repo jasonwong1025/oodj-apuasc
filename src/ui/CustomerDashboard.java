@@ -10,8 +10,6 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class CustomerDashboard extends JFrame {
@@ -46,7 +44,7 @@ public class CustomerDashboard extends JFrame {
         this.reviewService = new ReviewService();
         this.serviceLookup = new ServiceService();
 
-        setTitle("APU Automotive Service Centre - Customer Portal");
+        setTitle("APU-ASC | Customer - " + currentUser.getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 820);
         setLocationRelativeTo(null);
@@ -442,11 +440,12 @@ public class CustomerDashboard extends JFrame {
     }
 
     private void showReviewDialog(String aptId) {
-        JComboBox<Integer> rating = SharedStyles.createFilterCombo(new Integer[]{1, 2, 3, 4, 5});
+        JComboBox<String> rating = SharedStyles.createFilterCombo(new String[]{"1", "2", "3", "4", "5"});
         JTextArea comment = new JTextArea(5, 20);
         Object[] msg = {"Rating:", rating, "Comment:", new JScrollPane(comment)};
         if (JOptionPane.showConfirmDialog(this, msg, "Submit Review", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            reviewService.submitReview(currentUser.getUserId(), aptId, (Integer)rating.getSelectedItem(), comment.getText());
+            int ratingValue = Integer.parseInt((String) rating.getSelectedItem());
+            reviewService.submitReview(currentUser.getUserId(), aptId, ratingValue, comment.getText());
             refreshSelectedPanel("Reviews");
         }
     }

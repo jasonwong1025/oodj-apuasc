@@ -12,12 +12,12 @@ import java.util.List;
 
 public class CounterStaffDashboard extends JFrame {
 
-    private final AbstractUser currentUser;
-    private final UserService userService;
-    private final CardLayout cardLayout;
-    private final JPanel cardPanel;
-    private final DefaultListModel<String> navModel;
-    private final JList<String> navList;
+    private AbstractUser currentUser;
+    private UserService userService;
+    private CardLayout cardLayout;
+    private JPanel cardPanel;
+    private DefaultListModel<String> navModel;
+    private JList<String> navList;
 
     private static final String[] NAV_ITEMS = {
             "Dashboard",
@@ -31,7 +31,7 @@ public class CounterStaffDashboard extends JFrame {
         this.currentUser = user;
         this.userService = new UserService();
 
-        setTitle("APU Automotive Service Centre - Counter Staff Portal");
+        setTitle("APU-ASC | Counter Staff - " + currentUser.getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 820);
         setLocationRelativeTo(null);

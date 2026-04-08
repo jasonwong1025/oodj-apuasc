@@ -71,7 +71,7 @@ public class ManagerDashboard extends JFrame {
         this.serviceService = new ServiceService();
         this.categoryService = new CategoryService();
 
-        setTitle("APU Automotive Service Centre");
+        setTitle("APU-ASC | Manager - " + currentUser.getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1280, 820);
         setLocationRelativeTo(null);
