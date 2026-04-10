@@ -41,4 +41,11 @@ public class VehicleService {
     public void deleteVehicle(String vehicleId) {
         vehicleRepository.delete(vehicleId);
     }
+
+    public Vehicle findById(String vehicleId) {
+        return vehicleRepository.getAllVehicles().stream()
+                .filter(v -> v.getVehicleId().equals(vehicleId))
+                .findFirst()
+                .orElse(null);
+    }
 }

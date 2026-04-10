@@ -217,12 +217,20 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         recentTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
         recentCard.add(recentTitle, BorderLayout.NORTH);
 
-        String[] cols = {"Apt ID", "Service", "Date & Time", "Status"};
+        String[] cols = {"Apt ID", "Vehicle", "Service(s)", "Date & Time", "Status"};
         DefaultTableModel model = new DefaultTableModel(cols, 0);
         List<Appointment> upcoming = appointments.stream()
                 .filter(a -> a.getStatus().equals("PENDING"))
                 .limit(5).collect(Collectors.toList());
-        for (Appointment a : upcoming) model.addRow(new Object[]{a.getAppointmentId(), a.getServiceId(), a.getDate() + " " + a.getTime(), a.getStatus()});
+        for (Appointment a : upcoming) {
+            model.addRow(new Object[]{
+                a.getAppointmentId(),
+                resolveVehicleInfo(a.getVehicleId()),
+                resolveServiceNames(a.getServiceId()),
+                a.getDate() + " " + a.getTime(),
+                a.getStatus()
+            });
+        }
         
         JTable table = new JTable(model);
         SharedStyles.applyTableStyle(table);
@@ -429,14 +437,21 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         top.add(cancelBtn);
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"ID", "Vehicle", "Service", "Date", "Time", "Status"};
+        String[] cols = {"ID", "Vehicle", "Service Name(s)", "Date", "Time", "Status"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         List<Appointment> list = appointmentService.getCustomerAppointments(currentUser.getUserId());
         for (Appointment a : list) {
             if (a.getStatus().equals("PENDING")) {
-                model.addRow(new Object[]{a.getAppointmentId(), a.getVehicleId(), a.getServiceId(), a.getDate(), a.getTime(), a.getStatus()});
+                model.addRow(new Object[]{
+                    a.getAppointmentId(),
+                    resolveVehicleInfo(a.getVehicleId()),
+                    resolveServiceNames(a.getServiceId()),
+                    a.getDate(),
+                    a.getTime(),
+                    a.getStatus()
+                });
             }
         }
 
@@ -463,7 +478,7 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        String[] cols = {"Apt ID", "Service", "Date", "Status", "Payment", "Tech Feedback"};
+        String[] cols = {"Apt ID", "Vehicle", "Service Name(s)", "Date", "Status", "Payment", "Tech Feedback"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -471,7 +486,15 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         for (Appointment a : list) {
             if (!a.getStatus().equals("PENDING")) {
                 boolean isPaid = paymentService.isPaid(a.getAppointmentId());
-                model.addRow(new Object[]{a.getAppointmentId(), a.getServiceId(), a.getDate(), a.getStatus(), isPaid ? "PAID" : "UNPAID", a.getTechnicianFeedback()});
+                model.addRow(new Object[]{
+                    a.getAppointmentId(),
+                    resolveVehicleInfo(a.getVehicleId()),
+                    resolveServiceNames(a.getServiceId()),
+                    a.getDate(),
+                    a.getStatus(),
+                    isPaid ? "PAID" : "UNPAID",
+                    a.getTechnicianFeedback()
+                });
             }
         }
 
@@ -492,7 +515,7 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         top.add(reviewBtn);
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"Apt ID", "Service", "Date", "Status"};
+        String[] cols = {"Apt ID", "Vehicle", "Service Name(s)", "Date", "Status"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -504,7 +527,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 boolean reviewed = reviews.stream().anyMatch(r -> r.getAppointmentId().equals(a.getAppointmentId()));
                 boolean paid = paymentService.isPaid(a.getAppointmentId());
                 String status = reviewed ? "Reviewed" : (paid ? "Available" : "Payment Pending");
-                model.addRow(new Object[]{a.getAppointmentId(), a.getServiceId(), a.getDate(), status});
+                model.addRow(new Object[]{
+                    a.getAppointmentId(),
+                    resolveVehicleInfo(a.getVehicleId()),
+                    resolveServiceNames(a.getServiceId()),
+                    a.getDate(),
+                    status
+                });
             }
         }
 
@@ -600,5 +629,26 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             reviewService.submitReview(currentUser.getUserId(), aptId, score, comment.getText().trim());
             refresh();
         }
+    }
+
+    private String resolveServiceNames(String serviceIds) {
+        if (serviceIds == null || serviceIds.isEmpty() || serviceIds.equals("NONE")) return "N/A";
+        String[] ids = serviceIds.split(",");
+        List<String> names = new java.util.ArrayList<>();
+        for (String id : ids) {
+            Service s = serviceLookup.findById(id.trim());
+            if (s != null) names.add(s.getServiceName());
+            else names.add("Unknown Service (" + id + ")");
+        }
+        return String.join(", ", names);
+    }
+
+    private String resolveVehicleInfo(String vehicleId) {
+        if (vehicleId == null || vehicleId.isEmpty()) return "N/A";
+        Vehicle v = vehicleService.findById(vehicleId);
+        if (v != null) {
+            return v.getPlateNumber() + " (" + v.getBrand() + " " + v.getModel() + ")";
+        }
+        return "Unknown Vehicle (" + vehicleId + ")";
     }
 }
