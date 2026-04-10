@@ -2,6 +2,7 @@ package ui;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
 /**
@@ -68,23 +69,69 @@ public final class SharedStyles {
 
     public static void applyTableStyle(JTable table) {
         table.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        table.setRowHeight(32);
+        table.setRowHeight(32); // Baseline height
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setBackground(TABLE_HEADER_BG);
         table.getTableHeader().setReorderingAllowed(false);
         table.setGridColor(new Color(230, 230, 230));
         table.setSelectionBackground(new Color(200, 230, 250));
         table.setSelectionForeground(Color.BLACK);
-        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+        
+        TableCellRenderer multiLineRenderer = new TableCellRenderer() {
+            private final JTextArea area = new JTextArea();
+            {
+                area.setLineWrap(true);
+                area.setWrapStyleWord(true);
+                area.setFont(new Font("SansSerif", Font.PLAIN, 13));
+                area.setBorder(new EmptyBorder(8, 12, 8, 12));
+            }
+
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : TABLE_ZEBRA);
+                area.setText(value == null ? "" : value.toString());
+                if (isSelected) {
+                    area.setBackground(table.getSelectionBackground());
+                    area.setForeground(table.getSelectionForeground());
+                } else {
+                    area.setBackground(row % 2 == 0 ? Color.WHITE : TABLE_ZEBRA);
+                    area.setForeground(table.getForeground());
                 }
-                return c;
+                return area;
+            }
+        };
+
+        table.setDefaultRenderer(Object.class, multiLineRenderer);
+
+        // Dynamic Sizing: Recalculate heights on resize or data change
+        table.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                updateRowHeights(table);
             }
         });
+
+        // Trigger on initial visibility
+        table.addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & java.awt.event.HierarchyEvent.SHOWING_CHANGED) != 0 && table.isShowing()) {
+                updateRowHeights(table);
+            }
+        });
+    }
+
+    public static void updateRowHeights(JTable table) {
+        for (int row = 0; row < table.getRowCount(); row++) {
+            int maxH = 32; // Minimum baseline
+            for (int col = 0; col < table.getColumnCount(); col++) {
+                TableCellRenderer renderer = table.getCellRenderer(row, col);
+                Component comp = table.prepareRenderer(renderer, row, col);
+                int width = table.getColumnModel().getColumn(col).getWidth();
+                comp.setSize(width, 1000); // Fixed width, arbitrary large height
+                maxH = Math.max(maxH, comp.getPreferredSize().height);
+            }
+            if (table.getRowHeight(row) != maxH) {
+                table.setRowHeight(row, maxH);
+            }
+        }
     }
 
     public static void addFormRow(JPanel p, GridBagConstraints gbc, int y, String label, JComponent comp) {
