@@ -20,7 +20,11 @@ public class AppointmentService {
         return appointmentRepository.getAppointmentsByCustomer(customerId);
     }
 
-    public String bookAppointment(String customerId, String vehicleId, String serviceId, String date, String time) {
+    public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time) {
+        if (serviceIds == null || serviceIds.isEmpty()) {
+            return "Error: You must select at least one service.";
+        }
+        
         // Check if vehicle exists and belongs to customer
         List<Vehicle> customerVehicles = vehicleRepository.getVehiclesByOwner(customerId);
         boolean ownsVehicle = false;
@@ -36,7 +40,10 @@ public class AppointmentService {
         }
 
         String appointmentId = IdGenerator.generateId("APT", "data/appointments.txt");
-        Appointment appointment = new Appointment(appointmentId, customerId, vehicleId, serviceId, date, time, "PENDING", "NONE");
+        // Join multiple service IDs with commas
+        String serviceIdStr = String.join(",", serviceIds);
+        
+        Appointment appointment = new Appointment(appointmentId, customerId, vehicleId, serviceIdStr, date, time, "PENDING", "NONE");
         appointmentRepository.save(appointment);
         return "Success: Appointment booked.";
     }

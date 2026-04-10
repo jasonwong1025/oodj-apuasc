@@ -95,13 +95,51 @@ public final class SharedStyles {
         p.add(comp, gbc);
     }
 
+    // --- DIALOG & MESSAGE WRAPPERS ---
+
+    public static void showMessage(Component parent, String msg) {
+        JOptionPane.showMessageDialog(getWrapperWindow(parent), msg, "Information", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public static void showWarning(Component parent, String msg) {
+        JOptionPane.showMessageDialog(getWrapperWindow(parent), msg, "Warning", JOptionPane.WARNING_MESSAGE);
+    }
+
+    public static void showError(Component parent, String msg) {
+        JOptionPane.showMessageDialog(getWrapperWindow(parent), msg, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    public static boolean showConfirm(Component parent, String msg) {
+        int res = JOptionPane.showConfirmDialog(getWrapperWindow(parent), msg, "Confirm Action", JOptionPane.YES_NO_OPTION);
+        return res == JOptionPane.YES_OPTION;
+    }
+
     public static void showSelectionError(Component parent) {
-        JOptionPane.showMessageDialog(parent, 
-            "Please select a row from the table first to proceed.", 
-            "Selection Required", JOptionPane.WARNING_MESSAGE);
+        showWarning(parent, "Please select a row from the table first to proceed.");
     }
 
     public static void showValidationError(Component parent, String message) {
-        JOptionPane.showMessageDialog(parent, message, "Validation Error", JOptionPane.ERROR_MESSAGE);
+        showError(parent, message);
+    }
+
+    public static Window getWrapperWindow(Component c) {
+        if (c == null) return findShowingFrame();
+        if (c instanceof Window && c.isShowing()) return (Window) c;
+        Window w = SwingUtilities.getWindowAncestor(c);
+        return (w != null && w.isShowing()) ? w : findShowingFrame();
+    }
+
+    private static Window findShowingFrame() {
+        for (Window w : Window.getWindows()) {
+            if (w.isShowing() && w instanceof Frame) return w;
+        }
+        return null;
+    }
+
+    public static void showDialogCentered(JDialog dialog, Component parent) {
+        dialog.pack();
+        Window owner = getWrapperWindow(parent);
+        dialog.setLocationRelativeTo(owner);
+        dialog.setVisible(true);
     }
 }

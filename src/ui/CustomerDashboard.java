@@ -13,6 +13,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -313,10 +314,33 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         JComboBox<String> vehicleCombo = SharedStyles.createFilterCombo(
             vehicles.stream().map(v -> v.getVehicleId() + " - " + v.getPlateNumber()).toArray(String[]::new)
         );
-        List<Service> services = serviceLookup.listAll();
-        JComboBox<String> serviceCombo = SharedStyles.createFilterCombo(
-            services.stream().map(s -> s.getServiceId() + " - " + s.getServiceName()).toArray(String[]::new)
-        );
+
+        List<Service> allServices = serviceLookup.listAll();
+        List<Service> majorServices = allServices.stream().filter(s -> !s.isIncludedInNormalService()).collect(Collectors.toList());
+        List<Service> normalServices = allServices.stream().filter(s -> s.isIncludedInNormalService()).collect(Collectors.toList());
+
+        double majorTotal = majorServices.stream().mapToDouble(Service::getPrice).sum();
+        JCheckBox majorPkgCheck = new JCheckBox("Include Major Service Package (RM " + String.format("%.2f", majorTotal) + ")");
+        majorPkgCheck.setSelected(true);
+        majorPkgCheck.setFont(new Font("SansSerif", Font.BOLD, 14));
+        majorPkgCheck.setOpaque(false);
+
+        JPanel addonPanel = new JPanel();
+        addonPanel.setLayout(new BoxLayout(addonPanel, BoxLayout.Y_AXIS));
+        addonPanel.setOpaque(false);
+        List<JCheckBox> addonChecks = new ArrayList<>();
+        for (Service s : normalServices) {
+            JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
+            cb.setOpaque(false);
+            cb.putClientProperty("service", s);
+            addonChecks.add(cb);
+            addonPanel.add(cb);
+        }
+        JScrollPane addonScroll = new JScrollPane(addonPanel);
+        addonScroll.setPreferredSize(new Dimension(350, 150));
+        addonScroll.setBorder(BorderFactory.createTitledBorder("Normal Service / Add-ons"));
+        addonScroll.setOpaque(false);
+        addonScroll.getViewport().setOpaque(false);
 
         JTextField dateTimeField = SharedStyles.createFilterField(20);
         dateTimeField.setEditable(false);
@@ -332,21 +356,60 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         
         int y = 0;
         SharedStyles.addFormRow(card, gbc, y++, "Select Vehicle:", vehicleCombo);
-        SharedStyles.addFormRow(card, gbc, y++, "Select Service:", serviceCombo);
+        
+        gbc.gridx = 0; gbc.gridy = y++; gbc.gridwidth = 2;
+        card.add(majorPkgCheck, gbc);
+        
+        gbc.gridy = y++;
+        card.add(addonScroll, gbc);
+        gbc.gridwidth = 1; // reset
+
         SharedStyles.addFormRow(card, gbc, y++, "Schedule:", dateTimeField);
 
-        JButton bookBtn = SharedStyles.createActionButton("Confirm Booking", SharedStyles.BTN_BLUE);
+        JButton bookBtn = SharedStyles.createActionButton("Book Appointment", SharedStyles.BTN_BLUE);
         bookBtn.addActionListener(e -> {
             if (dateTimeField.getText().contains("Click to select")) {
-                JOptionPane.showMessageDialog(this, "Please select a date and time.");
+                SharedStyles.showWarning(this, "Please select a date and time.");
                 return;
             }
-            String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
-            String sId = serviceCombo.getSelectedItem().toString().split(" - ")[0];
-            String[] dt = dateTimeField.getText().split(" ");
-            String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sId, dt[0], dt[1]);
-            JOptionPane.showMessageDialog(this, res);
-            navList.setSelectedIndex(3);
+            
+            List<Service> selected = new ArrayList<>();
+            if (majorPkgCheck.isSelected()) selected.addAll(majorServices);
+            for (JCheckBox cb : addonChecks) {
+                if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
+            }
+            
+            if (selected.isEmpty()) {
+                SharedStyles.showWarning(this, "Please select at least one service.");
+                return;
+            }
+
+            double total = selected.stream().mapToDouble(Service::getPrice).sum();
+            StringBuilder summary = new StringBuilder("<html><body style='width: 300px;'>");
+            summary.append("<h2>Booking Summary</h2>");
+            summary.append("<hr>");
+            if (majorPkgCheck.isSelected()) {
+                summary.append("<b>Major Service Package</b>: RM ").append(String.format("%.2f", majorTotal)).append("<br>");
+                summary.append("<small>Includes: Vehicle Inspection, Diagnostics, etc.</small><br><br>");
+            }
+            for (JCheckBox cb : addonChecks) {
+                if (cb.isSelected()) {
+                    Service s = (Service) cb.getClientProperty("service");
+                    summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
+                }
+            }
+            summary.append("<hr>");
+            summary.append("<h3 style='color: #2e7d32;'>Total Amount: RM ").append(String.format("%.2f", total)).append("</h3>");
+            summary.append("<br>Proceed with this booking?</body></html>");
+
+            if (SharedStyles.showConfirm(this, summary.toString())) {
+                String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
+                List<String> sIds = selected.stream().map(Service::getServiceId).collect(Collectors.toList());
+                String[] dt = dateTimeField.getText().split(" ");
+                String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sIds, dt[0], dt[1]);
+                SharedStyles.showMessage(this, res);
+                navList.setSelectedIndex(3);
+            }
         });
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
         card.add(bookBtn, gbc);
