@@ -2,3 +2,5 @@ M001|Manager1|manager@gmail.com|0177896541|Manager123.|Manager
 S001|CounterStaff1|1|0177896541|1|CounterStaff
 T001|Technician1|technician@gmail.com|0177896541|Technician123.|Technician
 C001|Customer1|customer@gmail.com|0177896541|Customer123.|Customer
+C002|Lee Zii Jia|leezj@gmail.com|01238238913|Leezj@123|Customer
+C003|Ong Zi Qing|ongzq@gmail.com|0128948239|Ongzq@123|Customer
