@@ -104,12 +104,7 @@ public class LoginFrame extends JFrame {
 
         // Login Button
         loginButton = new JButton("Login");
-        loginButton.setBackground(new Color(0, 123, 255));
-        loginButton.setForeground(Color.WHITE);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 16));
-        loginButton.setFocusPainted(false);
-        loginButton.setOpaque(true);
-        loginButton.setBorderPainted(false);
         loginButton.setPreferredSize(new Dimension(300, 45)); // Match the text fields width
         loginButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         loginButton.addActionListener(e -> {

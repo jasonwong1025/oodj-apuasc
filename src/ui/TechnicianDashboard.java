@@ -1,11 +1,11 @@
 package ui;
 
 import abstracts.AbstractUser;
-import service_layer.UserService;
-import model.users.User;
+import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import model.users.User;
+import service_layer.UserService;
 
 public class TechnicianDashboard extends JFrame implements Refreshable {
 

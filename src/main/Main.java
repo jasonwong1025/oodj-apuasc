@@ -7,7 +7,7 @@ public class Main {
     public static void main(String[] args) {
         // set Look and Feel to system for better appearance
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
         } catch (Exception e) {
             e.printStackTrace();
         }
