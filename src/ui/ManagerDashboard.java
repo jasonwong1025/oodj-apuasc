@@ -27,9 +27,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             "User Management",
             "Service Management",
             "All Feedback",
-            "Audit Log",
             "Reports",
-            "Settings",
             "My Profile"
     };
 
@@ -175,9 +173,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         cardPanel.add(buildPlaceholderPanel("Appointment Capacity",
                 "Set appointment capacity and scheduling limits."), "SVC_CAPACITY");
         cardPanel.add(buildPlaceholderPanel("All Feedback", "View customer and staff feedback (link to data layer next)."), "FEED");
-        cardPanel.add(buildPlaceholderPanel("Audit Log", "System audit trail (optional text log under data/)."), "AUDIT");
         cardPanel.add(buildPlaceholderPanel("Reports", "Export analysis summaries (link to appointments/payments next)."), "REPORT");
-        cardPanel.add(buildPlaceholderPanel("Settings", "Application preferences."), "SETTINGS");
         cardPanel.add(buildMyProfilePanel(), "PROFILE");
 
         navList.addMouseListener(new MouseAdapter() {
@@ -215,9 +211,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); refreshCategoryTable(); break;
             case SVC_CAPACITY: cardLayout.show(cardPanel, "SVC_CAPACITY"); break;
             case "All Feedback": cardLayout.show(cardPanel, "FEED"); break;
-            case "Audit Log": cardLayout.show(cardPanel, "AUDIT"); break;
             case "Reports": cardLayout.show(cardPanel, "REPORT"); break;
-            case "Settings": cardLayout.show(cardPanel, "SETTINGS"); break;
             case "My Profile": cardLayout.show(cardPanel, "PROFILE"); break;
         }
         
