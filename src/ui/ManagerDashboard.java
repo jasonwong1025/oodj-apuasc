@@ -16,12 +16,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ManagerDashboard extends JFrame implements Refreshable {
@@ -515,10 +512,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         JButton exportBtn = SharedStyles.createActionButton("Export CSV", SharedStyles.BTN_BLUE);
         exportBtn.addActionListener(e -> exportCsv());
         row2.add(exportBtn);
-
-        JButton importBtn = SharedStyles.createActionButton("Import CSV", SharedStyles.BTN_GREEN);
-        importBtn.addActionListener(e -> importCsv());
-        row2.add(importBtn);
 
         top.add(row2);
         root.add(top, BorderLayout.NORTH);
@@ -1150,40 +1143,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             JOptionPane.showMessageDialog(this, "Exported to " + f.getName(), "Export CSV", JOptionPane.INFORMATION_MESSAGE);
         } catch (IOException ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Export CSV", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void importCsv() {
-        JFileChooser fc = new JFileChooser();
-        fc.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
-        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
-        File f = fc.getSelectedFile();
-        List<String> lines = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(f))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                lines.add(line);
-            }
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, ex.getMessage(), "Import CSV", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        int opt = JOptionPane.showOptionDialog(this,
-                "Replace all users with file contents, or merge by user ID?",
-                "Import CSV",
-                JOptionPane.YES_NO_CANCEL_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                new Object[]{"Replace all", "Merge by ID", "Cancel"},
-                "Merge by ID");
-        if (opt == 2 || opt == JOptionPane.CLOSED_OPTION) return;
-        boolean replaceAll = (opt == 0);
-        String err = userService.importUsersFromCsvLines(lines, replaceAll);
-        if (err != null) {
-            JOptionPane.showMessageDialog(this, err, "Import CSV", JOptionPane.ERROR_MESSAGE);
-        } else {
-            JOptionPane.showMessageDialog(this, "Import completed.", "Import CSV", JOptionPane.INFORMATION_MESSAGE);
-            refreshUserTable();
         }
     }
 
