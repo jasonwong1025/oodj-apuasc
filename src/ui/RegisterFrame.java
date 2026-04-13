@@ -62,12 +62,7 @@ public class RegisterFrame extends JFrame {
 
         // Register Button
         registerButton = new JButton("Register");
-        registerButton.setBackground(new Color(0, 123, 255));
-        registerButton.setForeground(Color.WHITE);
         registerButton.setFont(new Font("SansSerif", Font.BOLD, 16));
-        registerButton.setFocusPainted(false);
-        registerButton.setOpaque(true);
-        registerButton.setBorderPainted(false);
         registerButton.setPreferredSize(new Dimension(300, 45));
         registerButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         registerButton.addActionListener(e -> {
