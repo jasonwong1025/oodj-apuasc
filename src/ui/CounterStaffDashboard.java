@@ -59,6 +59,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             new LoginFrame().setVisible(true);
             dispose();
         });
+
         JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         east.setOpaque(false);
         east.add(who);
@@ -85,7 +86,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         navList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                            boolean isSelected, boolean cellHasFocus) {
+                                                          boolean isSelected, boolean cellHasFocus) {
                 JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 l.setOpaque(true);
                 l.setBorder(new EmptyBorder(12, 20, 12, 16));
@@ -103,6 +104,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         JScrollPane navScroll = new JScrollPane(navList);
         navScroll.setBorder(null);
+
         JPanel side = new JPanel(new BorderLayout());
         side.setBackground(SharedStyles.SIDEBAR_BG);
         side.setPreferredSize(new Dimension(240, 0));
@@ -116,6 +118,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             if (e.getValueIsAdjusting()) return;
             refresh();
         });
+
         navList.setSelectedIndex(0);
 
         wrap.add(side, BorderLayout.WEST);
@@ -132,7 +135,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         switch (selected) {
             case "Dashboard": panel = buildDashboardPanel(); break;
             case "Manage Customers": panel = buildCustomerManagementPanel(); break;
-            case "Manage Appointments": panel = buildPlaceholderPanel("Manage Appointments"); break;
+            case "Manage Appointments": panel = buildAppointmentPanel(); break;
             case "Process Payment": panel = buildPlaceholderPanel("Process Payment"); break;
             case "My Profile": panel = buildMyProfilePanel(); break;
             default: panel = new JPanel();
@@ -146,7 +149,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             }
         }
         if (existing != null) cardPanel.remove(existing);
-        
+
         panel.setName(selected);
         cardPanel.add(panel, selected);
         cardLayout.show(cardPanel, selected);
@@ -155,13 +158,47 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
     }
 
     private JPanel buildDashboardPanel() {
-        JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(SharedStyles.MAIN_BG);
-        JLabel l = new JLabel("Counter Staff Dashboard");
-        l.setFont(new Font("SansSerif", Font.BOLD, 24));
-        p.add(l);
-        return p;
+    JPanel root = new JPanel(new BorderLayout());
+    root.setBackground(SharedStyles.MAIN_BG);
+    root.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+    JPanel card = SharedStyles.createCardPanel();
+    card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+
+    service_layer.UserService userService = new service_layer.UserService();
+    service_layer.AppointmentService appointmentService = new service_layer.AppointmentService();
+
+    int totalCustomers = userService.getAllCustomers().size();
+    java.util.List<model.appointment.Appointment> appointments = appointmentService.getAllAppointments();
+
+    int pending = 0;
+    for (model.appointment.Appointment a : appointments) {
+        if ("PENDING".equals(a.getStatus())) {
+            pending++;
+        }
     }
+
+    JLabel title = new JLabel("Welcome, " + currentUser.getFullName());
+    title.setFont(new Font("SansSerif", Font.BOLD, 20));
+
+    JLabel c1 = new JLabel("Total Customers: " + totalCustomers);
+    JLabel c2 = new JLabel("Total Appointments: " + appointments.size());
+    JLabel c3 = new JLabel("Pending Appointments: " + pending);
+
+    title.setBorder(new EmptyBorder(0, 0, 10, 0));
+    c1.setBorder(new EmptyBorder(5, 0, 5, 0));
+    c2.setBorder(new EmptyBorder(5, 0, 5, 0));
+    c3.setBorder(new EmptyBorder(5, 0, 5, 0));
+
+    card.add(title);
+    card.add(c1);
+    card.add(c2);
+    card.add(c3);
+
+    root.add(card, BorderLayout.NORTH);
+
+    return root;
+}
 
     private JPanel buildCustomerManagementPanel() {
         JPanel root = new JPanel(new BorderLayout(0, 15));
@@ -170,16 +207,21 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         top.setOpaque(false);
+
         JButton addBtn = SharedStyles.createActionButton("Add Customer", SharedStyles.BTN_GREEN);
         top.add(addBtn);
+
         root.add(top, BorderLayout.NORTH);
 
         String[] cols = {"ID", "Full Name", "Email", "Contact"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
+
         List<User> customers = userService.getAllCustomers();
-        for (User u : customers) model.addRow(new Object[]{u.getUserId(), u.getFullName(), u.getEmail(), u.getContact()});
+        for (User u : customers) {
+            model.addRow(new Object[]{u.getUserId(), u.getFullName(), u.getEmail(), u.getContact()});
+        }
 
         JTable table = new JTable(model);
         SharedStyles.applyTableStyle(table);
@@ -190,10 +232,103 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             JTextField email = SharedStyles.createFilterField(20);
             JTextField contact = SharedStyles.createFilterField(20);
             JTextField password = SharedStyles.createFilterField(20);
+
             Object[] fields = {"Name:", name, "Email:", email, "Contact:", contact, "Password:", password};
+
             if (JOptionPane.showConfirmDialog(this, fields, "Add Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
                 String id = IdGenerator.generateId("CUS", "data/users.txt");
                 userService.addCustomer(new Customer(id, name.getText(), email.getText(), contact.getText(), password.getText()));
+                refresh();
+            }
+        });
+
+        return root;
+    }
+
+    private JPanel buildAppointmentPanel() {
+        JPanel root = new JPanel(new BorderLayout(0, 15));
+        root.setBackground(SharedStyles.MAIN_BG);
+        root.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        service_layer.AppointmentService service = new service_layer.AppointmentService();
+        List<model.appointment.Appointment> list = service.getAllAppointments();
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        top.setOpaque(false);
+
+        JButton addBtn = SharedStyles.createActionButton("Add Appointment", SharedStyles.BTN_GREEN);
+        JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_BLUE);
+
+        top.add(addBtn);
+        top.add(updateBtn);
+        root.add(top, BorderLayout.NORTH);
+
+        String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status"};
+
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        for (model.appointment.Appointment a : list) {
+            model.addRow(new Object[]{
+                    a.getAppointmentId(),
+                    a.getCustomerId(),
+                    a.getVehicleId(),
+                    a.getServiceId(),
+                    a.getDate(),
+                    a.getTime(),
+                    a.getStatus()
+            });
+        }
+
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
+        root.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        addBtn.addActionListener(e -> {
+            JTextField c = SharedStyles.createFilterField(20);
+            JTextField v = SharedStyles.createFilterField(20);
+            JTextField s = SharedStyles.createFilterField(20);
+            JTextField d = SharedStyles.createFilterField(20);
+            JTextField t = SharedStyles.createFilterField(20);
+
+            Object[] fields = {"Customer ID:", c, "Vehicle ID:", v, "Service ID:", s, "Date:", d, "Time:", t};
+
+            if (JOptionPane.showConfirmDialog(this, fields, "Add Appointment", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+                String result = service.bookAppointment(c.getText(), v.getText(), java.util.Arrays.asList(s.getText()), d.getText(), t.getText());
+                JOptionPane.showMessageDialog(this, result);
+                refresh();
+            }
+        });
+
+        updateBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this, "Select row");
+                return;
+            }
+
+            String id = table.getValueAt(row, 0).toString();
+
+            String status = (String) JOptionPane.showInputDialog(
+                    this,
+                    "Status",
+                    "Update",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    new String[]{"PENDING", "COMPLETED", "CANCELLED"},
+                    "PENDING"
+            );
+
+            if (status != null) {
+                for (model.appointment.Appointment a : list) {
+                    if (a.getAppointmentId().equals(id)) {
+                        a.setStatus(status);
+                        new repository.AppointmentRepository().update(a);
+                        break;
+                    }
+                }
+                JOptionPane.showMessageDialog(this, "Status updated");
                 refresh();
             }
         });
@@ -205,34 +340,6 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         JPanel root = new JPanel(new GridBagLayout());
         root.setBackground(SharedStyles.MAIN_BG);
         JPanel card = SharedStyles.createCardPanel();
-        card.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 8, 8, 8);
-        gbc.anchor = GridBagConstraints.WEST;
-
-        User self = userService.findByUserId(currentUser.getUserId());
-        int y = 0;
-        JTextField nameF = SharedStyles.createFilterField(25); nameF.setText(self.getFullName());
-        JTextField contactF = SharedStyles.createFilterField(25); contactF.setText(self.getContact());
-        JPasswordField passF = new JPasswordField(25); passF.setBorder(nameF.getBorder());
-
-        SharedStyles.addFormRow(card, gbc, y++, "Full Name:", nameF);
-        SharedStyles.addFormRow(card, gbc, y++, "Contact:", contactF);
-        SharedStyles.addFormRow(card, gbc, y++, "Password:", passF);
-
-        JButton saveBtn = SharedStyles.createActionButton("Save Profile", SharedStyles.BTN_GREEN);
-        gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
-        saveBtn.addActionListener(e -> {
-            self.setFullName(nameF.getText());
-            self.setContact(contactF.getText());
-            String newPass = new String(passF.getPassword());
-            if (newPass.length() > 0) self.setPassword(newPass);
-            userService.updateUser(self, currentUser.getUserId());
-            JOptionPane.showMessageDialog(this, "Profile updated!");
-            refresh();
-        });
-        card.add(saveBtn, gbc);
-
         root.add(card);
         return root;
     }

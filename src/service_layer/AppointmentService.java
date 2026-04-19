@@ -58,4 +58,7 @@ public class AppointmentService {
             }
         }
     }
+    public java.util.List<model.appointment.Appointment> getAllAppointments() {
+    return appointmentRepository.getAllAppointments();
+}
 }
