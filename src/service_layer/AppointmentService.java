@@ -43,7 +43,7 @@ public class AppointmentService {
         // Join multiple service IDs with commas
         String serviceIdStr = String.join(",", serviceIds);
         
-        Appointment appointment = new Appointment(appointmentId, customerId, vehicleId, serviceIdStr, date, time, "PENDING", "NONE");
+        Appointment appointment = new Appointment(appointmentId, customerId, vehicleId, serviceIdStr, date, time, "PENDING", "NONE", "NONE");
         appointmentRepository.save(appointment);
         return "Success: Appointment booked.";
     }

@@ -1,5 +1,6 @@
 M001|Manager1|manager@gmail.com|0177896541|Manager123.|Manager|ACTIVE
 S001|CounterStaff1|1|0177896541|1|CounterStaff|ACTIVE
 T001|Technician1|technician@gmail.com|0177896541|Technician123.|Technician|ACTIVE
+T002|Technician2|technician2@gmail.com|0177896542|Technician123.|Technician|ACTIVE
 C001|Customer1|customer@gmail.com|0177896541|Customer123.|Customer|ACTIVE
 CUS001|Lee Zii Qing|leezq@mail.com|01263888765|Leezq123|Customer|ACTIVE

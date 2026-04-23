@@ -7,12 +7,15 @@ public class Appointment {
     private String serviceId;
     private String date;
     private String time;
-    private String status; // PENDING, COMPLETED, CANCELLED
+    private String status;
+    private String technicianId;
     private String technicianFeedback;
 
     public Appointment() {}
 
-    public Appointment(String appointmentId, String customerId, String vehicleId, String serviceId, String date, String time, String status, String technicianFeedback) {
+    public Appointment(String appointmentId, String customerId, String vehicleId, String serviceId,
+                       String date, String time, String status, String technicianId, String technicianFeedback) {
+
         this.appointmentId = appointmentId;
         this.customerId = customerId;
         this.vehicleId = vehicleId;
@@ -20,6 +23,7 @@ public class Appointment {
         this.date = date;
         this.time = time;
         this.status = status;
+        this.technicianId = technicianId;
         this.technicianFeedback = technicianFeedback;
     }
 
@@ -44,12 +48,24 @@ public class Appointment {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    public String getTechnicianId() { return technicianId; }
+    public void setTechnicianId(String technicianId) { this.technicianId = technicianId; }
+
     public String getTechnicianFeedback() { return technicianFeedback; }
     public void setTechnicianFeedback(String technicianFeedback) { this.technicianFeedback = technicianFeedback; }
 
     @Override
     public String toString() {
-        return String.join("|", appointmentId, customerId, vehicleId, serviceId, date, time, status, 
-                (technicianFeedback == null || technicianFeedback.isEmpty()) ? "NONE" : technicianFeedback);
+        return String.join("|",
+                appointmentId,
+                customerId,
+                vehicleId,
+                serviceId,
+                date,
+                time,
+                status,
+                (technicianId == null ? "NONE" : technicianId),
+                (technicianFeedback == null || technicianFeedback.isEmpty()) ? "NONE" : technicianFeedback
+        );
     }
 }

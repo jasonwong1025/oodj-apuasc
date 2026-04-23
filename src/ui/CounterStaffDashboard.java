@@ -246,95 +246,153 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
     }
 
     private JPanel buildAppointmentPanel() {
-        JPanel root = new JPanel(new BorderLayout(0, 15));
-        root.setBackground(SharedStyles.MAIN_BG);
-        root.setBorder(new EmptyBorder(16, 20, 20, 20));
+    JPanel root = new JPanel(new BorderLayout(0, 15));
+    root.setBackground(SharedStyles.MAIN_BG);
+    root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        service_layer.AppointmentService service = new service_layer.AppointmentService();
-        List<model.appointment.Appointment> list = service.getAllAppointments();
+    service_layer.AppointmentService service = new service_layer.AppointmentService();
+    List<model.appointment.Appointment> list = service.getAllAppointments();
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
-        top.setOpaque(false);
+    JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+    top.setOpaque(false);
 
-        JButton addBtn = SharedStyles.createActionButton("Add Appointment", SharedStyles.BTN_GREEN);
-        JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_BLUE);
+    JButton addBtn = SharedStyles.createActionButton("Add Appointment", SharedStyles.BTN_GREEN);
+    JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_BLUE);
+    JButton assignBtn = SharedStyles.createActionButton("Assign Technician", SharedStyles.BTN_BLUE);
 
-        top.add(addBtn);
-        top.add(updateBtn);
-        root.add(top, BorderLayout.NORTH);
+    top.add(addBtn);
+    top.add(updateBtn);
+    top.add(assignBtn);
 
-        String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status"};
+    root.add(top, BorderLayout.NORTH);
 
-        DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
-        };
+    String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status", "Technician"};
 
-        for (model.appointment.Appointment a : list) {
-            model.addRow(new Object[]{
-                    a.getAppointmentId(),
-                    a.getCustomerId(),
-                    a.getVehicleId(),
-                    a.getServiceId(),
-                    a.getDate(),
-                    a.getTime(),
-                    a.getStatus()
-            });
+    DefaultTableModel model = new DefaultTableModel(columns, 0) {
+        @Override public boolean isCellEditable(int r, int c) { return false; }
+    };
+
+    for (model.appointment.Appointment a : list) {
+        model.addRow(new Object[]{
+                a.getAppointmentId(),
+                a.getCustomerId(),
+                a.getVehicleId(),
+                a.getServiceId(),
+                a.getDate(),
+                a.getTime(),
+                a.getStatus(),
+                a.getTechnicianId()
+
+        });
+    }
+
+    JTable table = new JTable(model);
+    SharedStyles.applyTableStyle(table);
+    root.add(new JScrollPane(table), BorderLayout.CENTER);
+
+    // ADD
+    addBtn.addActionListener(e -> {
+        JTextField c = SharedStyles.createFilterField(20);
+        JTextField v = SharedStyles.createFilterField(20);
+        JTextField s = SharedStyles.createFilterField(20);
+        JTextField d = SharedStyles.createFilterField(20);
+        JTextField t = SharedStyles.createFilterField(20);
+
+        Object[] fields = {"Customer ID:", c, "Vehicle ID:", v, "Service ID:", s, "Date:", d, "Time:", t};
+
+        if (JOptionPane.showConfirmDialog(this, fields, "Add Appointment", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+            String result = service.bookAppointment(c.getText(), v.getText(), java.util.Arrays.asList(s.getText()), d.getText(), t.getText());
+            JOptionPane.showMessageDialog(this, result);
+            refresh();
+        }
+    });
+
+    // UPDATE STATUS
+    updateBtn.addActionListener(e -> {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select row");
+            return;
         }
 
-        JTable table = new JTable(model);
-        SharedStyles.applyTableStyle(table);
-        root.add(new JScrollPane(table), BorderLayout.CENTER);
+        String id = table.getValueAt(row, 0).toString();
 
-        addBtn.addActionListener(e -> {
-            JTextField c = SharedStyles.createFilterField(20);
-            JTextField v = SharedStyles.createFilterField(20);
-            JTextField s = SharedStyles.createFilterField(20);
-            JTextField d = SharedStyles.createFilterField(20);
-            JTextField t = SharedStyles.createFilterField(20);
+        String status = (String) JOptionPane.showInputDialog(
+                this,
+                "Status",
+                "Update",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                new String[]{"PENDING", "COMPLETED", "CANCELLED"},
+                "PENDING"
+        );
 
-            Object[] fields = {"Customer ID:", c, "Vehicle ID:", v, "Service ID:", s, "Date:", d, "Time:", t};
-
-            if (JOptionPane.showConfirmDialog(this, fields, "Add Appointment", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-                String result = service.bookAppointment(c.getText(), v.getText(), java.util.Arrays.asList(s.getText()), d.getText(), t.getText());
-                JOptionPane.showMessageDialog(this, result);
-                refresh();
-            }
-        });
-
-        updateBtn.addActionListener(e -> {
-            int row = table.getSelectedRow();
-            if (row == -1) {
-                JOptionPane.showMessageDialog(this, "Select row");
-                return;
-            }
-
-            String id = table.getValueAt(row, 0).toString();
-
-            String status = (String) JOptionPane.showInputDialog(
-                    this,
-                    "Status",
-                    "Update",
-                    JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    new String[]{"PENDING", "COMPLETED", "CANCELLED"},
-                    "PENDING"
-            );
-
-            if (status != null) {
-                for (model.appointment.Appointment a : list) {
-                    if (a.getAppointmentId().equals(id)) {
-                        a.setStatus(status);
-                        new repository.AppointmentRepository().update(a);
-                        break;
-                    }
+        if (status != null) {
+            for (model.appointment.Appointment a : list) {
+                if (a.getAppointmentId().equals(id)) {
+                    a.setStatus(status);
+                    new repository.AppointmentRepository().update(a);
+                    break;
                 }
-                JOptionPane.showMessageDialog(this, "Status updated");
-                refresh();
             }
-        });
+            JOptionPane.showMessageDialog(this, "Status updated");
+            refresh();
+        }
+    });
 
-        return root;
-    }
+    // ASSIGN TECHNICIAN
+    assignBtn.addActionListener(e -> {
+        int row = table.getSelectedRow();
+
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select appointment first");
+            return;
+        }
+
+        String appointmentId = table.getValueAt(row, 0).toString();
+
+        service_layer.UserService userService = new service_layer.UserService();
+        List<model.users.User> allUsers = userService.listAllUsers();
+
+        java.util.List<String> technicians = new java.util.ArrayList<>();
+
+        for (model.users.User u : allUsers) {
+            if ("Technician".equals(u.getRole())) {
+                technicians.add(u.getUserId());
+            }
+        }
+
+        if (technicians.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No technicians available");
+            return;
+        }
+
+        String selectedTech = (String) JOptionPane.showInputDialog(
+                this,
+                "Select Technician:",
+                "Assign Technician",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                technicians.toArray(),
+                technicians.get(0)
+        );
+
+        if (selectedTech != null) {
+            for (model.appointment.Appointment a : list) {
+                if (a.getAppointmentId().equals(appointmentId)) {
+                    a.setTechnicianId(selectedTech);
+                    new repository.AppointmentRepository().update(a);
+                    break;
+                }
+            }
+
+            JOptionPane.showMessageDialog(this, "Technician assigned!");
+            refresh();
+        }
+    });
+
+    return root;
+}
 
     private JPanel buildMyProfilePanel() {
         JPanel root = new JPanel(new GridBagLayout());
@@ -350,4 +408,5 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         p.add(new JLabel(title + " Panel"));
         return p;
     }
+    
 }
