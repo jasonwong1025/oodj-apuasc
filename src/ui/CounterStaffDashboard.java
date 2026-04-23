@@ -210,6 +210,10 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         JButton addBtn = SharedStyles.createActionButton("Add Customer", SharedStyles.BTN_GREEN);
         top.add(addBtn);
+        JButton editBtn = SharedStyles.createActionButton("Edit Customer", SharedStyles.BTN_BLUE);
+        top.add(editBtn);
+        JButton deleteBtn = SharedStyles.createActionButton("Delete Customer", SharedStyles.BTN_RED);
+        top.add(deleteBtn);
 
         root.add(top, BorderLayout.NORTH);
 
@@ -226,7 +230,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         JTable table = new JTable(model);
         SharedStyles.applyTableStyle(table);
         root.add(new JScrollPane(table), BorderLayout.CENTER);
-
+        
         addBtn.addActionListener(e -> {
             JTextField name = SharedStyles.createFilterField(20);
             JTextField email = SharedStyles.createFilterField(20);
@@ -236,8 +240,73 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             Object[] fields = {"Name:", name, "Email:", email, "Contact:", contact, "Password:", password};
 
             if (JOptionPane.showConfirmDialog(this, fields, "Add Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-                String id = IdGenerator.generateId("CUS", "data/users.txt");
+                String id = IdGenerator.generateId("C", "data/users.txt");
                 userService.addCustomer(new Customer(id, name.getText(), email.getText(), contact.getText(), password.getText()));
+                refresh();
+            }
+        });
+        editBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a customer!");
+               return;
+           }
+
+            String id = table.getValueAt(row, 0).toString();
+            String name = table.getValueAt(row, 1).toString();
+            String email = table.getValueAt(row, 2).toString();
+            String contact = table.getValueAt(row, 3).toString();
+
+            JTextField nameField = SharedStyles.createFilterField(20);
+            JTextField emailField = SharedStyles.createFilterField(20);
+            JTextField contactField = SharedStyles.createFilterField(20);
+
+            nameField.setText(name);
+            emailField.setText(email);
+            contactField.setText(contact);
+
+            Object[] fields = {
+                    "Name:", nameField,
+                    "Email:", emailField,
+                    "Contact:", contactField
+            };
+
+            if (JOptionPane.showConfirmDialog(this, fields, "Edit Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+
+                model.users.User existing = userService.findByUserId(id);
+
+                existing.setFullName(nameField.getText());
+                existing.setEmail(emailField.getText());
+                existing.setContact(contactField.getText());
+
+                userService.updateUser(existing);
+
+                JOptionPane.showMessageDialog(this, "Customer updated!");
+                refresh();
+            }
+        });
+
+        deleteBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a customer!");
+                return;
+            }
+
+            String id = table.getValueAt(row, 0).toString();
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Are you sure you want to delete this customer?",
+                    "Confirm Delete",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                userService.deleteUser(id);
+                JOptionPane.showMessageDialog(this, "Customer deleted!");
                 refresh();
             }
         });
@@ -258,7 +327,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
     JButton addBtn = SharedStyles.createActionButton("Add Appointment", SharedStyles.BTN_GREEN);
     JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_BLUE);
-    JButton assignBtn = SharedStyles.createActionButton("Assign Technician", SharedStyles.BTN_BLUE);
+    JButton assignBtn = SharedStyles.createActionButton("Assign Technician", SharedStyles.BTN_RED);
 
     top.add(addBtn);
     top.add(updateBtn);
