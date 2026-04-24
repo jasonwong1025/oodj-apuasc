@@ -6,6 +6,8 @@ import java.time.YearMonth;
 import java.util.stream.IntStream;
 import javax.swing.*;
 import service_layer.AppointmentService;
+import service_layer.AppointmentService.SlotCapacity;
+import service_layer.AppointmentService.SlotType;
 
 public class DateTimePicker extends JDialog {
 
@@ -14,16 +16,18 @@ public class DateTimePicker extends JDialog {
     private final JComboBox<Integer> dayCombo;
     private final JComboBox<SlotOption> slotCombo;
     private final AppointmentService appointmentService;
+    private final SlotType requestedType;
     private boolean confirmed = false;
     private int lastValidSlotIndex = -1;
     private String selectedDate;
     private String selectedTime;
 
-    public DateTimePicker(Frame parent) {
+    public DateTimePicker(Frame parent, SlotType requestedType) {
         super(parent, "Select Date & Time", true);
         setLayout(new BorderLayout());
         setResizable(false);
         this.appointmentService = new AppointmentService();
+        this.requestedType = requestedType;
 
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(Color.WHITE);
@@ -108,7 +112,7 @@ public class DateTimePicker extends JDialog {
             }
 
             String date = getSelectedDate();
-            String error = appointmentService.validateSchedule(date, selectedSlot.time);
+            String error = appointmentService.validateSchedule(date, selectedSlot.time, requestedType);
             if (error != null) {
                 SharedStyles.showWarning(this, error);
                 refreshSlotOptions();
@@ -165,8 +169,14 @@ public class DateTimePicker extends JDialog {
 
         int index = 0;
         for (String slotTime : AppointmentService.getAllowedSlotTimes()) {
-            boolean available = appointmentService.isSlotAvailable(dateValue, slotTime);
-            String label = slotTime + (available ? "" : " (FULL)");
+            SlotCapacity cap = appointmentService.getSlotCapacity(dateValue, slotTime);
+            boolean available = appointmentService.isSlotAvailable(dateValue, slotTime, requestedType);
+            String label = String.format("%s  [Major: %d/%d | Normal: %d/%d | Total: %d/%d]%s",
+                    slotTime,
+                    cap.getMajorCount(), AppointmentService.SLOT_MAJOR_CAPACITY,
+                    cap.getNormalCount(), AppointmentService.SLOT_NORMAL_CAPACITY,
+                    cap.getTotalCount(), AppointmentService.SLOT_TOTAL_CAPACITY,
+                    available ? "" : " (FULL)");
             slotCombo.addItem(new SlotOption(slotTime, label, available));
             if (available && lastValidSlotIndex == -1) {
                 lastValidSlotIndex = index;
@@ -179,8 +189,8 @@ public class DateTimePicker extends JDialog {
         }
     }
 
-    public static String showPicker(Frame parent) {
-        DateTimePicker picker = new DateTimePicker(parent);
+    public static String showPicker(Frame parent, SlotType requestedType) {
+        DateTimePicker picker = new DateTimePicker(parent, requestedType);
         picker.setVisible(true);
         if (picker.confirmed) {
             return picker.selectedDate + " " + picker.selectedTime;
