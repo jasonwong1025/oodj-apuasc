@@ -7,15 +7,20 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import model.appointment.Appointment;
 import model.vehicle.Vehicle;
 import repository.AppointmentRepository;
+import repository.ServiceFileRepository;
 import repository.VehicleRepository;
 import utils.IdGenerator;
 
 public class AppointmentService {
-    public static final int SLOT_CAPACITY = 5;
+    public static final int SLOT_TOTAL_CAPACITY = 10;
+    public static final int SLOT_MAJOR_CAPACITY = 5;
+    public static final int SLOT_NORMAL_CAPACITY = 5;
     public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final List<String> ALLOWED_SLOT_TIMES;
@@ -31,10 +36,39 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final VehicleRepository vehicleRepository;
+    private final ServiceFileRepository serviceRepository;
 
     public AppointmentService() {
         this.appointmentRepository = new AppointmentRepository();
         this.vehicleRepository = new VehicleRepository();
+        this.serviceRepository = new ServiceFileRepository();
+    }
+
+    public enum SlotType {
+        NORMAL,
+        MAJOR
+    }
+
+    public static final class SlotCapacity {
+        private final int majorCount;
+        private final int normalCount;
+
+        public SlotCapacity(int majorCount, int normalCount) {
+            this.majorCount = majorCount;
+            this.normalCount = normalCount;
+        }
+
+        public int getMajorCount() {
+            return majorCount;
+        }
+
+        public int getNormalCount() {
+            return normalCount;
+        }
+
+        public int getTotalCount() {
+            return majorCount + normalCount;
+        }
     }
 
     public List<Appointment> getCustomerAppointments(String customerId) {
@@ -49,22 +83,50 @@ public class AppointmentService {
         return time != null && ALLOWED_SLOT_TIMES.contains(time.trim());
     }
 
-    public int countPendingAppointmentsForSlot(String date, String time) {
-        int count = 0;
+    public SlotCapacity getSlotCapacity(String date, String time) {
+        Set<String> majorServiceIds = getMajorServiceIds();
+        int majorCount = 0;
+        int normalCount = 0;
+
         for (Appointment a : appointmentRepository.getAllAppointments()) {
             if (!"PENDING".equalsIgnoreCase(a.getStatus())) continue;
-            if (date.equals(a.getDate()) && time.equals(a.getTime())) {
-                count++;
+            if (!date.equals(a.getDate()) || !time.equals(a.getTime())) continue;
+
+            SlotType type = classifyAppointmentType(a.getServiceId(), majorServiceIds);
+            if (type == SlotType.MAJOR) {
+                majorCount++;
+            } else {
+                normalCount++;
             }
         }
-        return count;
+
+        return new SlotCapacity(majorCount, normalCount);
+    }
+
+    public int countPendingAppointmentsForSlot(String date, String time) {
+        return getSlotCapacity(date, time).getTotalCount();
     }
 
     public boolean isSlotAvailable(String date, String time) {
-        return countPendingAppointmentsForSlot(date, time) < SLOT_CAPACITY;
+        return isSlotAvailable(date, time, SlotType.NORMAL) || isSlotAvailable(date, time, SlotType.MAJOR);
+    }
+
+    public boolean isSlotAvailable(String date, String time, SlotType slotType) {
+        SlotCapacity capacity = getSlotCapacity(date, time);
+        if (capacity.getTotalCount() >= SLOT_TOTAL_CAPACITY) {
+            return false;
+        }
+        if (slotType == SlotType.MAJOR) {
+            return capacity.getMajorCount() < SLOT_MAJOR_CAPACITY;
+        }
+        return capacity.getNormalCount() < SLOT_NORMAL_CAPACITY;
     }
 
     public String validateSchedule(String date, String time) {
+        return validateSchedule(date, time, SlotType.NORMAL);
+    }
+
+    public String validateSchedule(String date, String time, SlotType slotType) {
         LocalDate pickedDate;
         LocalTime pickedTime;
         try {
@@ -83,7 +145,7 @@ public class AppointmentService {
             return "Error: You cannot book an appointment in the past.";
         }
 
-        if (!isSlotAvailable(date, time)) {
+        if (!isSlotAvailable(date, time, slotType)) {
             return "Error: This time slot is full. Please choose another slot.";
         }
 
@@ -109,7 +171,9 @@ public class AppointmentService {
             return "Error: You must select a registered vehicle.";
         }
 
-        String scheduleError = validateSchedule(date, time);
+        SlotType requestedType = determineRequestedSlotType(serviceIds);
+
+        String scheduleError = validateSchedule(date, time, requestedType);
         if (scheduleError != null) {
             return scheduleError;
         }
@@ -136,4 +200,39 @@ public class AppointmentService {
     public java.util.List<model.appointment.Appointment> getAllAppointments() {
     return appointmentRepository.getAllAppointments();
 }
+
+    public SlotType determineRequestedSlotType(List<String> serviceIds) {
+        if (serviceIds == null || serviceIds.isEmpty()) {
+            return SlotType.NORMAL;
+        }
+        Set<String> majorServiceIds = getMajorServiceIds();
+        for (String id : serviceIds) {
+            if (majorServiceIds.contains(id)) {
+                return SlotType.MAJOR;
+            }
+        }
+        return SlotType.NORMAL;
+    }
+
+    private SlotType classifyAppointmentType(String serviceIdCsv, Set<String> majorServiceIds) {
+        if (serviceIdCsv == null || serviceIdCsv.isBlank() || "NONE".equalsIgnoreCase(serviceIdCsv)) {
+            return SlotType.NORMAL;
+        }
+        String[] ids = serviceIdCsv.split(",");
+        for (String rawId : ids) {
+            String id = rawId.trim();
+            if (majorServiceIds.contains(id)) {
+                return SlotType.MAJOR;
+            }
+        }
+        return SlotType.NORMAL;
+    }
+
+    private Set<String> getMajorServiceIds() {
+        Set<String> major = new HashSet<>();
+        serviceRepository.getAll().stream()
+                .filter(s -> !s.isIncludedInNormalService())
+                .forEach(s -> major.add(s.getServiceId()));
+        return major;
+    }
 }
