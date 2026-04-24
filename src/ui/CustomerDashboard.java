@@ -15,6 +15,7 @@ import model.service.Service;
 import model.users.User;
 import model.vehicle.Vehicle;
 import service_layer.*;
+import service_layer.AppointmentService.SlotType;
 import utils.ValidationUtil;
 
 public class CustomerDashboard extends JFrame implements Refreshable {
@@ -221,7 +222,7 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         DefaultTableModel model = new DefaultTableModel(cols, 0);
         List<Appointment> upcoming = appointments.stream()
                 .filter(a -> a.getStatus().equals("PENDING"))
-                .limit(5).collect(Collectors.toList());
+            .collect(Collectors.toList());
         for (Appointment a : upcoming) {
             model.addRow(new Object[]{
                 a.getAppointmentId(),
@@ -385,10 +386,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         dateTimeField.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
-                String val = DateTimePicker.showPicker(CustomerDashboard.this);
+                SlotType requestedType = majorPkgCheck.isSelected() ? SlotType.MAJOR : SlotType.NORMAL;
+                String val = DateTimePicker.showPicker(CustomerDashboard.this, requestedType);
                 if (val != null) dateTimeField.setText(val);
             }
         });
+
+        majorPkgCheck.addActionListener(e -> dateTimeField.setText("Click to select ->"));
         
         int y = 0;
         SharedStyles.addFormRow(card, gbc, y++, "Select Vehicle:", vehicleCombo);
@@ -715,11 +719,28 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         String[] ids = serviceIds.split(",");
         List<String> names = new java.util.ArrayList<>();
         for (String id : ids) {
-            Service s = serviceLookup.findById(id.trim());
+            String rawId = id.trim();
+            Service s = serviceLookup.findById(rawId);
+            if (s == null) {
+                String normalizedId = normalizeLegacyServiceId(rawId);
+                if (!normalizedId.equals(rawId)) {
+                    s = serviceLookup.findById(normalizedId);
+                }
+            }
+
             if (s != null) names.add(s.getServiceName());
-            else names.add("Unknown Service (" + id + ")");
+            else names.add("Unknown Service (" + rawId + ")");
         }
         return String.join(", ", names);
+    }
+
+    private String normalizeLegacyServiceId(String serviceId) {
+        if (serviceId == null) return "";
+        String id = serviceId.trim().toUpperCase();
+        if (id.startsWith("SEV") && id.length() > 3) {
+            return "SV" + id.substring(3);
+        }
+        return id;
     }
 
     private String resolveVehicleInfo(String vehicleId) {
