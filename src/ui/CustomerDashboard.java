@@ -1,21 +1,21 @@
 package ui;
 
 import abstracts.AbstractUser;
-import model.appointment.Appointment;
-import model.review.Review;
-import model.vehicle.Vehicle;
-import model.service.Service;
-import model.users.User;
-import service_layer.*;
-import utils.ValidationUtil;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+import model.appointment.Appointment;
+import model.review.Review;
+import model.service.Service;
+import model.users.User;
+import model.vehicle.Vehicle;
+import service_layer.*;
+import utils.ValidationUtil;
 
 public class CustomerDashboard extends JFrame implements Refreshable {
 
@@ -264,22 +264,6 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        JPanel top = new JPanel(new BorderLayout());
-        top.setOpaque(false);
-        
-        JButton addBtn = SharedStyles.createActionButton("Register New Vehicle", SharedStyles.BTN_GREEN);
-        addBtn.addActionListener(e -> showAddVehicleDialog());
-        top.add(addBtn, BorderLayout.WEST);
-
-        JPanel searchBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        searchBar.setOpaque(false);
-        searchBar.add(new JLabel("Search Plate: "));
-        JTextField searchField = SharedStyles.createFilterField(15);
-        searchBar.add(searchField);
-        top.add(searchBar, BorderLayout.EAST);
-
-        root.add(top, BorderLayout.NORTH);
-
         String[] cols = {"Vehicle ID", "Plate Number", "Brand", "Model"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -291,6 +275,50 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         SharedStyles.applyTableStyle(table);
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
         table.setRowSorter(sorter);
+
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        actions.setOpaque(false);
+
+        JButton addBtn = SharedStyles.createActionButton("Register New Vehicle", SharedStyles.BTN_GREEN);
+        addBtn.addActionListener(e -> showAddVehicleDialog());
+        actions.add(addBtn);
+
+        JButton updateBtn = SharedStyles.createActionButton("Update Selected", SharedStyles.BTN_BLUE);
+        updateBtn.addActionListener(e -> {
+            Vehicle selected = getSelectedVehicle(table);
+            if (selected == null) {
+                SharedStyles.showSelectionError(this);
+                return;
+            }
+            showEditVehicleDialog(selected);
+        });
+        actions.add(updateBtn);
+
+        JButton deleteBtn = SharedStyles.createActionButton("Delete Selected", SharedStyles.BTN_RED);
+        deleteBtn.addActionListener(e -> {
+            Vehicle selected = getSelectedVehicle(table);
+            if (selected == null) {
+                SharedStyles.showSelectionError(this);
+                return;
+            }
+            deleteVehicle(selected);
+        });
+        actions.add(deleteBtn);
+
+        top.add(actions, BorderLayout.WEST);
+
+        JPanel searchBar = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        searchBar.setOpaque(false);
+        searchBar.add(new JLabel("Search Plate: "));
+        JTextField searchField = SharedStyles.createFilterField(15);
+        searchBar.add(searchField);
+        top.add(searchBar, BorderLayout.EAST);
+
+        root.add(top, BorderLayout.NORTH);
+
         searchField.addCaretListener(e -> {
             String text = searchField.getText();
             if (text.trim().length() == 0) sorter.setRowFilter(null);
@@ -414,9 +442,15 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
                 List<String> sIds = selected.stream().map(Service::getServiceId).collect(Collectors.toList());
                 String[] dt = dateTimeField.getText().split(" ");
+                if (dt.length != 2) {
+                    SharedStyles.showWarning(this, "Invalid date/time value. Please re-select schedule.");
+                    return;
+                }
                 String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sIds, dt[0], dt[1]);
                 SharedStyles.showMessage(this, res);
-                navList.setSelectedIndex(3);
+                if (res.startsWith("Success")) {
+                    navList.setSelectedIndex(3);
+                }
             }
         });
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
@@ -618,6 +652,51 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 refresh();
             }
         }
+    }
+
+    private Vehicle getSelectedVehicle(JTable table) {
+        int viewRow = table.getSelectedRow();
+        if (viewRow < 0) return null;
+        int modelRow = table.convertRowIndexToModel(viewRow);
+        String vehicleId = table.getModel().getValueAt(modelRow, 0).toString();
+        return vehicleService.findById(vehicleId);
+    }
+
+    private void showEditVehicleDialog(Vehicle vehicle) {
+        JTextField plate = SharedStyles.createFilterField(20);
+        JTextField brand = SharedStyles.createFilterField(20);
+        JTextField modelF = SharedStyles.createFilterField(20);
+
+        plate.setText(vehicle.getPlateNumber());
+        brand.setText(vehicle.getBrand());
+        modelF.setText(vehicle.getModel());
+
+        Object[] msg = {"Plate:", plate, "Brand:", brand, "Model:", modelF};
+        if (JOptionPane.showConfirmDialog(this, msg, "Update Vehicle", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+            utils.Result<Vehicle> res = vehicleService.updateVehicle(
+                    currentUser.getUserId(),
+                    vehicle.getVehicleId(),
+                    plate.getText(),
+                    brand.getText(),
+                    modelF.getText());
+            if (!res.isSuccess()) {
+                SharedStyles.showValidationError(this, res.getError());
+            } else {
+                SharedStyles.showMessage(this, "Vehicle updated successfully.");
+                refresh();
+            }
+        }
+    }
+
+    private void deleteVehicle(Vehicle vehicle) {
+        if (!SharedStyles.showConfirm(this, "Delete selected vehicle?")) return;
+        String err = vehicleService.deleteVehicleForCustomer(currentUser.getUserId(), vehicle.getVehicleId());
+        if (err != null) {
+            SharedStyles.showValidationError(this, err);
+            return;
+        }
+        SharedStyles.showMessage(this, "Vehicle deleted successfully.");
+        refresh();
     }
 
     private void showReviewDialog(String aptId) {
