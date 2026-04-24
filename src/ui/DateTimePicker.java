@@ -1,23 +1,29 @@
 package ui;
 
-import javax.swing.*;
 import java.awt.*;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.stream.IntStream;
+import javax.swing.*;
+import service_layer.AppointmentService;
 
 public class DateTimePicker extends JDialog {
 
     private final JComboBox<Integer> yearCombo;
     private final JComboBox<Integer> monthCombo;
     private final JComboBox<Integer> dayCombo;
-    private final JComboBox<String> hourCombo;
-    private final JComboBox<String> minuteCombo;
+    private final JComboBox<SlotOption> slotCombo;
+    private final AppointmentService appointmentService;
     private boolean confirmed = false;
+    private int lastValidSlotIndex = -1;
+    private String selectedDate;
+    private String selectedTime;
 
     public DateTimePicker(Frame parent) {
         super(parent, "Select Date & Time", true);
         setLayout(new BorderLayout());
         setResizable(false);
+        this.appointmentService = new AppointmentService();
 
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(Color.WHITE);
@@ -26,23 +32,53 @@ public class DateTimePicker extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
 
-        yearCombo = new JComboBox<>(IntStream.rangeClosed(now.getYear(), now.getYear() + 5).boxed().toArray(Integer[]::new));
+        yearCombo = new JComboBox<>(IntStream.rangeClosed(today.getYear(), today.getYear() + 5).boxed().toArray(Integer[]::new));
         monthCombo = new JComboBox<>(IntStream.rangeClosed(1, 12).boxed().toArray(Integer[]::new));
         dayCombo = new JComboBox<>(IntStream.rangeClosed(1, 31).boxed().toArray(Integer[]::new));
-        
-        String[] hours = IntStream.range(0, 24).mapToObj(i -> String.format("%02d", i)).toArray(String[]::new);
-        String[] mins = IntStream.range(0, 60).mapToObj(i -> String.format("%02d", i)).toArray(String[]::new);
-        
-        hourCombo = new JComboBox<>(hours);
-        minuteCombo = new JComboBox<>(mins);
+        slotCombo = new JComboBox<>();
 
-        yearCombo.setSelectedItem(now.getYear());
-        monthCombo.setSelectedItem(now.getMonthValue());
-        dayCombo.setSelectedItem(now.getDayOfMonth());
-        hourCombo.setSelectedItem(String.format("%02d", now.getHour()));
-        minuteCombo.setSelectedItem(String.format("%02d", now.getMinute()));
+        slotCombo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof SlotOption opt) {
+                    l.setText(opt.label);
+                    if (!opt.available && !isSelected) {
+                        l.setForeground(Color.GRAY);
+                    }
+                }
+                return l;
+            }
+        });
+
+        yearCombo.setSelectedItem(today.getYear());
+        monthCombo.setSelectedItem(today.getMonthValue());
+        dayCombo.setSelectedItem(today.getDayOfMonth());
+
+        yearCombo.addActionListener(e -> {
+            refreshDayOptions();
+            refreshSlotOptions();
+        });
+        monthCombo.addActionListener(e -> {
+            refreshDayOptions();
+            refreshSlotOptions();
+        });
+        dayCombo.addActionListener(e -> refreshSlotOptions());
+        slotCombo.addActionListener(e -> {
+            SlotOption selected = (SlotOption) slotCombo.getSelectedItem();
+            if (selected == null) return;
+            if (!selected.available) {
+                Toolkit.getDefaultToolkit().beep();
+                if (lastValidSlotIndex >= 0 && lastValidSlotIndex < slotCombo.getItemCount()) {
+                    slotCombo.setSelectedIndex(lastValidSlotIndex);
+                }
+                return;
+            }
+            lastValidSlotIndex = slotCombo.getSelectedIndex();
+        });
 
         int y = 0;
         gbc.gridx = 0; gbc.gridy = y; p.add(new JLabel("Year:"), gbc);
@@ -53,10 +89,9 @@ public class DateTimePicker extends JDialog {
         gbc.gridx = 5; p.add(dayCombo, gbc);
 
         y++;
-        gbc.gridy = y; gbc.gridx = 0; p.add(new JLabel("Hour:"), gbc);
-        gbc.gridx = 1; p.add(hourCombo, gbc);
-        gbc.gridx = 2; p.add(new JLabel("Minute:"), gbc);
-        gbc.gridx = 3; p.add(minuteCombo, gbc);
+        gbc.gridy = y; gbc.gridx = 0; p.add(new JLabel("Time Slot:"), gbc);
+        gbc.gridx = 1; gbc.gridwidth = 5; p.add(slotCombo, gbc);
+        gbc.gridwidth = 1;
 
         add(p, BorderLayout.CENTER);
 
@@ -65,28 +100,108 @@ public class DateTimePicker extends JDialog {
         JButton ok = SharedStyles.createActionButton("Confirm", SharedStyles.BTN_GREEN);
         JButton cancel = SharedStyles.createActionButton("Cancel", SharedStyles.BTN_RED);
         
-        ok.addActionListener(e -> { confirmed = true; dispose(); });
+        ok.addActionListener(e -> {
+            SlotOption selectedSlot = (SlotOption) slotCombo.getSelectedItem();
+            if (selectedSlot == null || !selectedSlot.available) {
+                SharedStyles.showWarning(this, "Please select an available slot.");
+                return;
+            }
+
+            String date = getSelectedDate();
+            String error = appointmentService.validateSchedule(date, selectedSlot.time);
+            if (error != null) {
+                SharedStyles.showWarning(this, error);
+                refreshSlotOptions();
+                return;
+            }
+
+            selectedDate = date;
+            selectedTime = selectedSlot.time;
+            confirmed = true;
+            dispose();
+        });
         cancel.addActionListener(e -> dispose());
         
         btnPanel.add(cancel);
         btnPanel.add(ok);
         add(btnPanel, BorderLayout.SOUTH);
 
+        refreshDayOptions();
+        refreshSlotOptions();
+
         pack();
         setLocationRelativeTo(parent);
+    }
+
+    private String getSelectedDate() {
+        return String.format("%04d-%02d-%02d",
+                yearCombo.getSelectedItem(),
+                monthCombo.getSelectedItem(),
+                dayCombo.getSelectedItem());
+    }
+
+    private void refreshDayOptions() {
+        Integer year = (Integer) yearCombo.getSelectedItem();
+        Integer month = (Integer) monthCombo.getSelectedItem();
+        if (year == null || month == null) return;
+
+        int maxDay = YearMonth.of(year, month).lengthOfMonth();
+        Integer currentDay = (Integer) dayCombo.getSelectedItem();
+
+        dayCombo.removeAllItems();
+        for (int i = 1; i <= maxDay; i++) {
+            dayCombo.addItem(i);
+        }
+
+        if (currentDay != null) {
+            dayCombo.setSelectedItem(Math.min(currentDay, maxDay));
+        }
+    }
+
+    private void refreshSlotOptions() {
+        String dateValue = getSelectedDate();
+        slotCombo.removeAllItems();
+        lastValidSlotIndex = -1;
+
+        int index = 0;
+        for (String slotTime : AppointmentService.getAllowedSlotTimes()) {
+            boolean available = appointmentService.isSlotAvailable(dateValue, slotTime);
+            String label = slotTime + (available ? "" : " (FULL)");
+            slotCombo.addItem(new SlotOption(slotTime, label, available));
+            if (available && lastValidSlotIndex == -1) {
+                lastValidSlotIndex = index;
+            }
+            index++;
+        }
+
+        if (lastValidSlotIndex >= 0) {
+            slotCombo.setSelectedIndex(lastValidSlotIndex);
+        }
     }
 
     public static String showPicker(Frame parent) {
         DateTimePicker picker = new DateTimePicker(parent);
         picker.setVisible(true);
         if (picker.confirmed) {
-            return String.format("%04d-%02d-%02d %s:%s",
-                    picker.yearCombo.getSelectedItem(),
-                    picker.monthCombo.getSelectedItem(),
-                    picker.dayCombo.getSelectedItem(),
-                    picker.hourCombo.getSelectedItem(),
-                    picker.minuteCombo.getSelectedItem());
+            return picker.selectedDate + " " + picker.selectedTime;
         }
         return null;
+    }
+
+    private static final class SlotOption {
+        private final String time;
+        private final String label;
+        private final boolean available;
+
+        private SlotOption(String time, String label, boolean available) {
+            this.time = time;
+            this.label = label;
+            this.available = available;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 }
