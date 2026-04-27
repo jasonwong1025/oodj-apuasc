@@ -1,7 +1,8 @@
-M001|Manager1|manager@gmail.com|0177896541|Manager123.|Manager|ACTIVE
-S001|CounterStaff1|1|0177896541|1|CounterStaff|ACTIVE
-T001|Technician1|technician@gmail.com|0177896541|Technician123.|Technician|ACTIVE
-T002|Technician2|technician2@gmail.com|0177896542|Technician123.|Technician|ACTIVE
-C001|Customer1|customer@gmail.com|0177896541|Customer123.|Customer|ACTIVE
-C002|Lee Zii Qing|leezq@mail.com|0129783813|leezq123|Customer|ACTIVE
-C003|Ong Jia Sen|ongjs@gmail.com|0129182000|ongjs123|Customer|ACTIVE
+M001|Manager1|manager@gmail.com|0177896541|Manager123.|Manager|-|ACTIVE
+S001|CounterStaff1|1|0177896541|1|CounterStaff|-|ACTIVE
+T001|Technician1|technician@gmail.com|0177896541|Technician123.|Technician|Major Service|ACTIVE
+T002|Technician2|technician2@gmail.com|0177896542|Technician123.|Technician|Major Service|ACTIVE
+C001|Customer1|customer@gmail.com|0177896541|Customer123.|Customer|-|ACTIVE
+C002|Lee Zii Qing|leezq@mail.com|0129783813|leezq123|Customer|-|ACTIVE
+C003|Ong Jia Sen|ongjs@gmail.com|0129182000|ongjs123|Customer|-|ACTIVE
+T003|qwe|qweqwe@qweqwe.com|0123456789|Qwe123.|Technician|Normal Service|ACTIVE

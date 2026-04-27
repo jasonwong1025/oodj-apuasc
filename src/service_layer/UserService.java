@@ -47,7 +47,8 @@ public class UserService {
     /**
      * @return null on success, otherwise error message.
      */
-    public String addUser(String role, String fullName, String email, String contact, String password) {
+    public String addUser(String role, String fullName, String email, String contact, String password,
+                          String technicianServiceType) {
         if (!ValidationUtil.isNotEmpty(fullName)
                 || !ValidationUtil.isNotEmpty(email) || !ValidationUtil.isNotEmpty(contact)
                 || !ValidationUtil.isNotEmpty(password)) {
@@ -65,6 +66,13 @@ public class UserService {
         if (!isAllowedManagedRole(role)) {
             return "Invalid role selected.";
         }
+        if ("Technician".equals(role)) {
+            if (!"Normal Service".equals(technicianServiceType) && !"Major Service".equals(technicianServiceType)) {
+                return "Technician service type is required.";
+            }
+        } else {
+            technicianServiceType = "-";
+        }
         List<User> all = listAllUsers();
         for (User u : all) {
             if (u.getEmail().equalsIgnoreCase(email)) {
@@ -74,7 +82,7 @@ public class UserService {
 
         String newId = IdGenerator.generateNextIdForRole(role);
         User created = instantiateUser(newId, fullName.trim(), email.trim(),
-                contact.trim(), password, role);
+                contact.trim(), password, role, technicianServiceType);
         created.setActive(true);
 
         all.add(created);
@@ -132,6 +140,15 @@ public class UserService {
         existing.setContact(updated.getContact().trim());
         if (ValidationUtil.isNotEmpty(updated.getPassword())) {
             existing.setPassword(updated.getPassword());
+        }
+        if ("Technician".equals(existing.getRole())) {
+            String serviceType = updated.getTechnicianServiceType();
+            if (!"Normal Service".equals(serviceType) && !"Major Service".equals(serviceType)) {
+                return "Technician service type is required.";
+            }
+            existing.setTechnicianServiceType(serviceType);
+        } else {
+            existing.setTechnicianServiceType("-");
         }
         existing.setActive(updated.isActive());
 
@@ -254,7 +271,7 @@ public class UserService {
             if (!isAllowedManagedRole(role)) {
                 return "Invalid row " + (i + 1) + ": unknown role.";
             }
-            User u = instantiateUser(userId, fullName, email, contact, password, role);
+            User u = instantiateUser(userId, fullName, email, contact, password, role, "-");
             u.setActive(active);
             imported.add(u);
         }
@@ -277,7 +294,7 @@ public class UserService {
 
     public List<String> exportUsersToCsvLines() {
         List<String> lines = new ArrayList<>();
-        lines.add("userId,fullName,email,contact,password,role,status");
+        lines.add("userId,fullName,email,contact,password,role,serviceType,status");
         for (User u : listAllUsers()) {
             lines.add(String.join(",",
                     escapeCsv(u.getUserId()),
@@ -286,6 +303,7 @@ public class UserService {
                     escapeCsv(u.getContact()),
                     escapeCsv(u.getPassword()),
                     escapeCsv(u.getRole()),
+                    escapeCsv("Technician".equals(u.getRole()) ? u.getTechnicianServiceType() : "-"),
                     u.isActive() ? "ACTIVE" : "INACTIVE"));
         }
         return lines;
@@ -338,7 +356,7 @@ public class UserService {
     }
 
     private static User instantiateUser(String userId, String fullName, String email,
-                                        String contact, String password, String role) {
+                                        String contact, String password, String role, String technicianServiceType) {
         User user;
         switch (role) {
             case "Customer":
@@ -356,6 +374,11 @@ public class UserService {
             default:
                 user = new User(userId, fullName, email, contact, password, role);
                 break;
+        }
+        if ("Technician".equals(role)) {
+            user.setTechnicianServiceType(technicianServiceType);
+        } else {
+            user.setTechnicianServiceType("-");
         }
         return user;
     }

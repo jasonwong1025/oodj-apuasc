@@ -34,14 +34,27 @@ public class UserFileRepository {
     /**
      * Supports:
      * <ul>
-     *   <li>7 fields (current): userId|fullName|email|contact|password|role|status</li>
+     *   <li>8 fields (current): userId|fullName|email|contact|password|role|technicianServiceType|status</li>
      *   <li>8 fields (legacy): userId|username|fullName|email|contact|password|role|status</li>
+     *   <li>7 fields (legacy): userId|fullName|email|contact|password|role|status</li>
      *   <li>6 fields (legacy): userId|fullName|email|contact|password|role — status defaults to ACTIVE</li>
      * </ul>
      */
     private User parseUserLine(String line) {
         String[] parts = line.split("\\|", -1);
         if (parts.length == 8) {
+            if ("ACTIVE".equalsIgnoreCase(parts[7].trim()) || "INACTIVE".equalsIgnoreCase(parts[7].trim())) {
+                boolean active = "ACTIVE".equalsIgnoreCase(parts[7]);
+                return buildUser(
+                        parts[0].trim(),
+                        parts[1].trim(),
+                        parts[2].trim(),
+                        parts[3].trim(),
+                        parts[4].trim(),
+                        parts[5].trim(),
+                        parts[6].trim(),
+                        active);
+            }
             boolean active = "ACTIVE".equalsIgnoreCase(parts[7]);
             return buildUser(
                     parts[0].trim(),
@@ -50,6 +63,7 @@ public class UserFileRepository {
                     parts[4].trim(),
                     parts[5].trim(),
                     parts[6].trim(),
+                    "-",
                     active);
         }
         if (parts.length == 7) {
@@ -61,6 +75,7 @@ public class UserFileRepository {
                     parts[3].trim(),
                     parts[4].trim(),
                     parts[5].trim(),
+                    "-",
                     active);
         }
         if (parts.length == 6) {
@@ -71,13 +86,14 @@ public class UserFileRepository {
                     parts[3].trim(),
                     parts[4].trim(),
                     parts[5].trim(),
+                    "-",
                     true);
         }
         return null;
     }
 
     private User buildUser(String userId, String fullName, String email,
-                           String contact, String password, String role, boolean active) {
+                           String contact, String password, String role, String technicianServiceType, boolean active) {
         User user;
         switch (role) {
             case "Customer":
@@ -96,6 +112,10 @@ public class UserFileRepository {
                 user = new User(userId, fullName, email, contact, password, role);
                 break;
         }
+        String normalizedServiceType = "Technician".equals(role)
+                ? (technicianServiceType == null || technicianServiceType.trim().isEmpty() ? "-" : technicianServiceType.trim())
+                : "-";
+        user.setTechnicianServiceType(normalizedServiceType);
         user.setActive(active);
         return user;
     }

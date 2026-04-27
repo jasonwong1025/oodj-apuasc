@@ -58,7 +58,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private static final String SVC_HEADER = "Service Management";
     private static final String SVC_CATALOG = "Manage Service Catalog";
     private static final String SVC_CATEGORIES = "Manage Categories";
-    private static final String SVC_CAPACITY = "Appointment Capacity";
 
     public ManagerDashboard(AbstractUser user) {
         this.currentUser = user;
@@ -170,8 +169,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         cardPanel.add(buildUserManagementPanel(), "USER");
         cardPanel.add(buildServiceCatalogPanel(), "SVC_CATALOG");
         cardPanel.add(buildCategoriesPanel(), "SVC_CATEGORIES");
-        cardPanel.add(buildPlaceholderPanel("Appointment Capacity",
-                "Set appointment capacity and scheduling limits."), "SVC_CAPACITY");
         cardPanel.add(buildPlaceholderPanel("All Feedback", "View customer and staff feedback (link to data layer next)."), "FEED");
         cardPanel.add(buildPlaceholderPanel("Reports", "Export analysis summaries (link to appointments/payments next)."), "REPORT");
         cardPanel.add(buildMyProfilePanel(), "PROFILE");
@@ -209,7 +206,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             case "User Management": cardLayout.show(cardPanel, "USER"); refreshUserTable(); break;
             case SVC_CATALOG: cardLayout.show(cardPanel, "SVC_CATALOG"); refreshServiceTable(); break;
             case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); refreshCategoryTable(); break;
-            case SVC_CAPACITY: cardLayout.show(cardPanel, "SVC_CAPACITY"); break;
             case "All Feedback": cardLayout.show(cardPanel, "FEED"); break;
             case "Reports": cardLayout.show(cardPanel, "REPORT"); break;
             case "My Profile": cardLayout.show(cardPanel, "PROFILE"); break;
@@ -239,14 +235,12 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         if (serviceExpanded) {
             navModel.removeElement(SVC_CATALOG);
             navModel.removeElement(SVC_CATEGORIES);
-            navModel.removeElement(SVC_CAPACITY);
             serviceExpanded = false;
             navList.repaint();
             updatingNav = false;
         } else {
             navModel.insertElementAt(SVC_CATALOG, svcIdx + 1);
             navModel.insertElementAt(SVC_CATEGORIES, svcIdx + 2);
-            navModel.insertElementAt(SVC_CAPACITY, svcIdx + 3);
             serviceExpanded = true;
             navList.repaint();
             updatingNav = false;
@@ -255,7 +249,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     }
 
     private boolean isServiceSubItem(String text) {
-        return SVC_CATALOG.equals(text) || SVC_CATEGORIES.equals(text) || SVC_CAPACITY.equals(text);
+        return SVC_CATALOG.equals(text) || SVC_CATEGORIES.equals(text);
     }
 
     private JPanel buildPlaceholderPanel(String title, String body) {
@@ -510,7 +504,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         top.add(row2);
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"ID", "Full Name", "Email", "Contact", "Role", "Status"};
+        String[] cols = {"ID", "Full Name", "Email", "Contact", "Role", "Service Type", "Status"};
         userTableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int r, int c) {
@@ -633,6 +627,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
                     u.getEmail(),
                     u.getContact(),
                     roleDisplay(u.getRole()),
+                    "Technician".equals(u.getRole()) ? u.getTechnicianServiceType() : "-",
                     u.isActive() ? "ACTIVE" : "INACTIVE"
             });
         }
@@ -1015,6 +1010,20 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         JTextField email = SharedStyles.createFilterField(22);
         JTextField contact = SharedStyles.createFilterField(22);
         JPasswordField password = new JPasswordField(22);
+        JComboBox<String> technicianServiceType = SharedStyles.createFilterCombo(new String[]{
+                "Select Service Type",
+                "Normal Service",
+                "Major Service"
+        });
+        technicianServiceType.setEnabled(false);
+        role.addActionListener(e -> {
+            String selectedRole = mapRoleFilter((String) role.getSelectedItem());
+            boolean isTechnician = "Technician".equals(selectedRole);
+            technicianServiceType.setEnabled(isTechnician);
+            if (!isTechnician) {
+                technicianServiceType.setSelectedIndex(0);
+            }
+        });
 
         int y = 0;
         addDialogRow(d, gbc, y++, "Role:", role);
@@ -1022,6 +1031,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         addDialogRow(d, gbc, y++, "Email:", email);
         addDialogRow(d, gbc, y++, "Contact:", contact);
         addDialogRow(d, gbc, y++, "Password:", password);
+        addDialogRow(d, gbc, y++, "Technician Service:", technicianServiceType);
 
         JButton save = SharedStyles.createActionButton("Save", SharedStyles.BTN_GREEN);
         gbc.gridx = 1;
@@ -1029,8 +1039,12 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         gbc.anchor = GridBagConstraints.EAST;
         save.addActionListener(e -> {
             String rk = mapRoleFilter((String) role.getSelectedItem());
+            String selectedTechServiceType = String.valueOf(technicianServiceType.getSelectedItem());
+            if (!"Technician".equals(rk)) {
+                selectedTechServiceType = "-";
+            }
             String err = userService.addUser(rk, fullName.getText(), email.getText(),
-                    contact.getText(), new String(password.getPassword()));
+                    contact.getText(), new String(password.getPassword()), selectedTechServiceType);
             if (err != null) {
                 JOptionPane.showMessageDialog(d, err, "Add User", JOptionPane.ERROR_MESSAGE);
             } else {
@@ -1069,6 +1083,17 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         contact.setText(u.getContact());
         JComboBox<String> status = SharedStyles.createFilterCombo(new String[]{"ACTIVE", "INACTIVE"});
         status.setSelectedItem(u.isActive() ? "ACTIVE" : "INACTIVE");
+        JComboBox<String> technicianServiceType = SharedStyles.createFilterCombo(new String[]{
+                "Normal Service",
+                "Major Service"
+        });
+        boolean isTechnician = "Technician".equals(u.getRole());
+        technicianServiceType.setEnabled(isTechnician);
+        String currentServiceType = u.getTechnicianServiceType();
+        if (!"Normal Service".equals(currentServiceType) && !"Major Service".equals(currentServiceType)) {
+            currentServiceType = "Normal Service";
+        }
+        technicianServiceType.setSelectedItem(currentServiceType);
         JPasswordField password = new JPasswordField(22);
 
         int y = 0;
@@ -1077,6 +1102,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         addDialogRow(d, gbc, y++, "Email:", email);
         addDialogRow(d, gbc, y++, "Contact:", contact);
         addDialogRow(d, gbc, y++, "Status:", status);
+        addDialogRow(d, gbc, y++, "Technician Service:", technicianServiceType);
         addDialogRow(d, gbc, y++, "New Password (optional):", password);
 
         JButton save = SharedStyles.createActionButton("Update", SharedStyles.BTN_BLUE);
@@ -1090,6 +1116,11 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             copy.setEmail(email.getText().trim());
             copy.setContact(contact.getText().trim());
             copy.setActive("ACTIVE".equals(status.getSelectedItem()));
+            if ("Technician".equals(copy.getRole())) {
+                copy.setTechnicianServiceType(String.valueOf(technicianServiceType.getSelectedItem()));
+            } else {
+                copy.setTechnicianServiceType("-");
+            }
             String np = new String(password.getPassword());
             if (ValidationUtil.isNotEmpty(np)) {
                 copy.setPassword(np);
