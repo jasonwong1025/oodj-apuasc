@@ -58,7 +58,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private static final String SVC_HEADER = "Service Management";
     private static final String SVC_CATALOG = "Manage Service Catalog";
     private static final String SVC_CATEGORIES = "Manage Categories";
-    private static final String SVC_CAPACITY = "Appointment Capacity";
 
     public ManagerDashboard(AbstractUser user) {
         this.currentUser = user;
@@ -170,8 +169,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         cardPanel.add(buildUserManagementPanel(), "USER");
         cardPanel.add(buildServiceCatalogPanel(), "SVC_CATALOG");
         cardPanel.add(buildCategoriesPanel(), "SVC_CATEGORIES");
-        cardPanel.add(buildPlaceholderPanel("Appointment Capacity",
-                "Set appointment capacity and scheduling limits."), "SVC_CAPACITY");
         cardPanel.add(buildPlaceholderPanel("All Feedback", "View customer and staff feedback (link to data layer next)."), "FEED");
         cardPanel.add(buildPlaceholderPanel("Reports", "Export analysis summaries (link to appointments/payments next)."), "REPORT");
         cardPanel.add(buildMyProfilePanel(), "PROFILE");
@@ -209,7 +206,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             case "User Management": cardLayout.show(cardPanel, "USER"); refreshUserTable(); break;
             case SVC_CATALOG: cardLayout.show(cardPanel, "SVC_CATALOG"); refreshServiceTable(); break;
             case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); refreshCategoryTable(); break;
-            case SVC_CAPACITY: cardLayout.show(cardPanel, "SVC_CAPACITY"); break;
             case "All Feedback": cardLayout.show(cardPanel, "FEED"); break;
             case "Reports": cardLayout.show(cardPanel, "REPORT"); break;
             case "My Profile": cardLayout.show(cardPanel, "PROFILE"); break;
@@ -239,14 +235,12 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         if (serviceExpanded) {
             navModel.removeElement(SVC_CATALOG);
             navModel.removeElement(SVC_CATEGORIES);
-            navModel.removeElement(SVC_CAPACITY);
             serviceExpanded = false;
             navList.repaint();
             updatingNav = false;
         } else {
             navModel.insertElementAt(SVC_CATALOG, svcIdx + 1);
             navModel.insertElementAt(SVC_CATEGORIES, svcIdx + 2);
-            navModel.insertElementAt(SVC_CAPACITY, svcIdx + 3);
             serviceExpanded = true;
             navList.repaint();
             updatingNav = false;
@@ -255,7 +249,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     }
 
     private boolean isServiceSubItem(String text) {
-        return SVC_CATALOG.equals(text) || SVC_CATEGORIES.equals(text) || SVC_CAPACITY.equals(text);
+        return SVC_CATALOG.equals(text) || SVC_CATEGORIES.equals(text);
     }
 
     private JPanel buildPlaceholderPanel(String title, String body) {
