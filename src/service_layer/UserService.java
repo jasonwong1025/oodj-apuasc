@@ -141,6 +141,15 @@ public class UserService {
         if (ValidationUtil.isNotEmpty(updated.getPassword())) {
             existing.setPassword(updated.getPassword());
         }
+        if ("Technician".equals(existing.getRole())) {
+            String serviceType = updated.getTechnicianServiceType();
+            if (!"Normal Service".equals(serviceType) && !"Major Service".equals(serviceType)) {
+                return "Technician service type is required.";
+            }
+            existing.setTechnicianServiceType(serviceType);
+        } else {
+            existing.setTechnicianServiceType("-");
+        }
         existing.setActive(updated.isActive());
 
         try {

@@ -1083,6 +1083,17 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         contact.setText(u.getContact());
         JComboBox<String> status = SharedStyles.createFilterCombo(new String[]{"ACTIVE", "INACTIVE"});
         status.setSelectedItem(u.isActive() ? "ACTIVE" : "INACTIVE");
+        JComboBox<String> technicianServiceType = SharedStyles.createFilterCombo(new String[]{
+                "Normal Service",
+                "Major Service"
+        });
+        boolean isTechnician = "Technician".equals(u.getRole());
+        technicianServiceType.setEnabled(isTechnician);
+        String currentServiceType = u.getTechnicianServiceType();
+        if (!"Normal Service".equals(currentServiceType) && !"Major Service".equals(currentServiceType)) {
+            currentServiceType = "Normal Service";
+        }
+        technicianServiceType.setSelectedItem(currentServiceType);
         JPasswordField password = new JPasswordField(22);
 
         int y = 0;
@@ -1091,6 +1102,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         addDialogRow(d, gbc, y++, "Email:", email);
         addDialogRow(d, gbc, y++, "Contact:", contact);
         addDialogRow(d, gbc, y++, "Status:", status);
+        addDialogRow(d, gbc, y++, "Technician Service:", technicianServiceType);
         addDialogRow(d, gbc, y++, "New Password (optional):", password);
 
         JButton save = SharedStyles.createActionButton("Update", SharedStyles.BTN_BLUE);
@@ -1104,6 +1116,11 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             copy.setEmail(email.getText().trim());
             copy.setContact(contact.getText().trim());
             copy.setActive("ACTIVE".equals(status.getSelectedItem()));
+            if ("Technician".equals(copy.getRole())) {
+                copy.setTechnicianServiceType(String.valueOf(technicianServiceType.getSelectedItem()));
+            } else {
+                copy.setTechnicianServiceType("-");
+            }
             String np = new String(password.getPassword());
             if (ValidationUtil.isNotEmpty(np)) {
                 copy.setPassword(np);
