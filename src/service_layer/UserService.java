@@ -285,7 +285,7 @@ public class UserService {
 
     public List<String> exportUsersToCsvLines() {
         List<String> lines = new ArrayList<>();
-        lines.add("userId,fullName,email,contact,password,role,status");
+        lines.add("userId,fullName,email,contact,password,role,serviceType,status");
         for (User u : listAllUsers()) {
             lines.add(String.join(",",
                     escapeCsv(u.getUserId()),
@@ -294,6 +294,7 @@ public class UserService {
                     escapeCsv(u.getContact()),
                     escapeCsv(u.getPassword()),
                     escapeCsv(u.getRole()),
+                    escapeCsv("Technician".equals(u.getRole()) ? u.getTechnicianServiceType() : "-"),
                     u.isActive() ? "ACTIVE" : "INACTIVE"));
         }
         return lines;
