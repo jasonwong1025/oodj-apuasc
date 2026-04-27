@@ -23,6 +23,7 @@ public abstract class AbstractUser {
     private String password;
 
     private String role;
+    private String technicianServiceType = "-";
     private boolean active = true;
 
     public AbstractUser() {
@@ -35,6 +36,7 @@ public abstract class AbstractUser {
         this.contact = contact;
         this.password = password;
         this.role = role;
+        this.technicianServiceType = "Technician".equals(role) ? "" : "-";
         this.active = true;
     }
 
@@ -86,6 +88,14 @@ public abstract class AbstractUser {
         this.role = role;
     }
 
+    public String getTechnicianServiceType() {
+        return technicianServiceType;
+    }
+
+    public void setTechnicianServiceType(String technicianServiceType) {
+        this.technicianServiceType = technicianServiceType;
+    }
+
     public boolean isActive() {
         return active;
     }
@@ -96,7 +106,10 @@ public abstract class AbstractUser {
 
     @Override
     public String toString() {
-        return String.join("|", userId, fullName, email, contact, password, role,
+        String serviceType = technicianServiceType == null || technicianServiceType.trim().isEmpty()
+                ? "-"
+                : technicianServiceType.trim();
+        return String.join("|", userId, fullName, email, contact, password, role, serviceType,
                 active ? "ACTIVE" : "INACTIVE");
     }
 }

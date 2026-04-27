@@ -504,7 +504,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         top.add(row2);
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"ID", "Full Name", "Email", "Contact", "Role", "Status"};
+        String[] cols = {"ID", "Full Name", "Email", "Contact", "Role", "Service Type", "Status"};
         userTableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int r, int c) {
@@ -627,6 +627,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
                     u.getEmail(),
                     u.getContact(),
                     roleDisplay(u.getRole()),
+                    "Technician".equals(u.getRole()) ? u.getTechnicianServiceType() : "-",
                     u.isActive() ? "ACTIVE" : "INACTIVE"
             });
         }
@@ -1009,6 +1010,20 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         JTextField email = SharedStyles.createFilterField(22);
         JTextField contact = SharedStyles.createFilterField(22);
         JPasswordField password = new JPasswordField(22);
+        JComboBox<String> technicianServiceType = SharedStyles.createFilterCombo(new String[]{
+                "Select Service Type",
+                "Normal Service",
+                "Major Service"
+        });
+        technicianServiceType.setEnabled(false);
+        role.addActionListener(e -> {
+            String selectedRole = mapRoleFilter((String) role.getSelectedItem());
+            boolean isTechnician = "Technician".equals(selectedRole);
+            technicianServiceType.setEnabled(isTechnician);
+            if (!isTechnician) {
+                technicianServiceType.setSelectedIndex(0);
+            }
+        });
 
         int y = 0;
         addDialogRow(d, gbc, y++, "Role:", role);
@@ -1016,6 +1031,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         addDialogRow(d, gbc, y++, "Email:", email);
         addDialogRow(d, gbc, y++, "Contact:", contact);
         addDialogRow(d, gbc, y++, "Password:", password);
+        addDialogRow(d, gbc, y++, "Technician Service:", technicianServiceType);
 
         JButton save = SharedStyles.createActionButton("Save", SharedStyles.BTN_GREEN);
         gbc.gridx = 1;
@@ -1023,8 +1039,12 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         gbc.anchor = GridBagConstraints.EAST;
         save.addActionListener(e -> {
             String rk = mapRoleFilter((String) role.getSelectedItem());
+            String selectedTechServiceType = String.valueOf(technicianServiceType.getSelectedItem());
+            if (!"Technician".equals(rk)) {
+                selectedTechServiceType = "-";
+            }
             String err = userService.addUser(rk, fullName.getText(), email.getText(),
-                    contact.getText(), new String(password.getPassword()));
+                    contact.getText(), new String(password.getPassword()), selectedTechServiceType);
             if (err != null) {
                 JOptionPane.showMessageDialog(d, err, "Add User", JOptionPane.ERROR_MESSAGE);
             } else {
