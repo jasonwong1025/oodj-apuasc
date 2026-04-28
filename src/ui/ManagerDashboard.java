@@ -4,6 +4,7 @@ import abstracts.AbstractUser;
 import model.service.Category;
 import model.service.Service;
 import model.users.User;
+import service_layer.AppointmentService;
 import service_layer.CategoryService;
 import service_layer.ServiceService;
 import service_layer.UserService;
@@ -24,6 +25,7 @@ import java.util.List;
 public class ManagerDashboard extends JFrame implements Refreshable {
 
     private static final String[] NAV_ITEMS = {
+            "Dashboard",
             "User Management",
             "Service Management",
             "All Feedback",
@@ -35,6 +37,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private final UserService userService;
     private final ServiceService serviceService;
     private final CategoryService categoryService;
+    private final AppointmentService appointmentService;
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
@@ -52,6 +55,8 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private JTextField categorySearchField;
     private DefaultListModel<String> navModel;
     private JList<String> navList;
+    /** Rebuilt when switching to Dashboard so counts stay current. */
+    private JPanel dashboardPanelRef;
     private boolean serviceExpanded = false;
     private boolean updatingNav = false;
 
@@ -64,6 +69,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         this.userService = new UserService();
         this.serviceService = new ServiceService();
         this.categoryService = new CategoryService();
+        this.appointmentService = new AppointmentService();
 
         setTitle("APU-ASC | Manager - " + currentUser.getFullName());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -203,6 +209,16 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         if (SVC_HEADER.equals(selected)) return;
 
         switch (selected) {
+            case "Dashboard":
+                if (dashboardPanelRef != null) {
+                    cardPanel.remove(dashboardPanelRef);
+                }
+                dashboardPanelRef = buildDashboardPanel();
+                cardPanel.add(dashboardPanelRef, "DASHBOARD");
+                cardLayout.show(cardPanel, "DASHBOARD");
+                cardPanel.revalidate();
+                cardPanel.repaint();
+                break;
             case "User Management": cardLayout.show(cardPanel, "USER"); refreshUserTable(); break;
             case SVC_CATALOG: cardLayout.show(cardPanel, "SVC_CATALOG"); refreshServiceTable(); break;
             case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); refreshCategoryTable(); break;
@@ -250,6 +266,65 @@ public class ManagerDashboard extends JFrame implements Refreshable {
 
     private boolean isServiceSubItem(String text) {
         return SVC_CATALOG.equals(text) || SVC_CATEGORIES.equals(text);
+    }
+
+    private JPanel buildDashboardPanel() {
+        JPanel p = new JPanel(new BorderLayout(0, 30));
+        p.setBackground(SharedStyles.MAIN_BG);
+        p.setBorder(new EmptyBorder(30, 40, 40, 40));
+
+        JPanel topRow = new JPanel(new BorderLayout());
+        topRow.setOpaque(false);
+        JLabel welcome = new JLabel("Welcome back, " + currentUser.getFullName());
+        welcome.setFont(new Font("SansSerif", Font.BOLD, 28));
+        topRow.add(welcome, BorderLayout.WEST);
+        p.add(topRow, BorderLayout.NORTH);
+
+        int userCount = userService.listAllUsers().size();
+        int svcCount = serviceService.listAll().size();
+        long pendingAppts = appointmentService.getAllAppointments().stream()
+                .filter(a -> "PENDING".equals(a.getStatus()))
+                .count();
+
+        JPanel statsGrid = new JPanel(new GridLayout(1, 3, 20, 0));
+        statsGrid.setOpaque(false);
+        statsGrid.add(createStatCard("Registered Users", String.valueOf(userCount)));
+        statsGrid.add(createStatCard("Services in Catalog", String.valueOf(svcCount)));
+        statsGrid.add(createStatCard("Pending Appointments", String.valueOf(pendingAppts)));
+
+        JPanel overviewCard = SharedStyles.createCardPanel();
+        overviewCard.setLayout(new BorderLayout(0, 12));
+        JLabel overviewTitle = new JLabel("Operations overview");
+        overviewTitle.setFont(new Font("SansSerif", Font.BOLD, 18));
+        overviewCard.add(overviewTitle, BorderLayout.NORTH);
+        int catCount = categoryService.listAll().size();
+        JLabel body = new JLabel("<html><div style='width:520px'>There are <b>" + catCount
+                + "</b> service categories. Use <b>User Management</b> for accounts, "
+                + "<b>Service Management</b> for catalog and categories, "
+                + "and <b>Reports</b> for summaries.</div></html>");
+        body.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        overviewCard.add(body, BorderLayout.CENTER);
+
+        JPanel mainCenter = new JPanel(new BorderLayout(0, 20));
+        mainCenter.setOpaque(false);
+        mainCenter.add(statsGrid, BorderLayout.NORTH);
+        mainCenter.add(overviewCard, BorderLayout.CENTER);
+
+        p.add(mainCenter, BorderLayout.CENTER);
+        return p;
+    }
+
+    private JPanel createStatCard(String title, String value) {
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new BorderLayout());
+        JLabel t = new JLabel(title);
+        t.setFont(new Font("SansSerif", Font.PLAIN, 15));
+        JLabel v = new JLabel(value);
+        v.setFont(new Font("SansSerif", Font.BOLD, 36));
+        v.setForeground(SharedStyles.NAV_ACTIVE_TOP);
+        card.add(t, BorderLayout.NORTH);
+        card.add(v, BorderLayout.CENTER);
+        return card;
     }
 
     private JPanel buildPlaceholderPanel(String title, String body) {
