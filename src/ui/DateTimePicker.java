@@ -171,11 +171,14 @@ public class DateTimePicker extends JDialog {
         for (String slotTime : AppointmentService.getAllowedSlotTimes()) {
             SlotCapacity cap = appointmentService.getSlotCapacity(dateValue, slotTime);
             boolean available = appointmentService.isSlotAvailable(dateValue, slotTime, requestedType);
+            int majorLimit = appointmentService.getCapacityLimitForSlotType(SlotType.MAJOR);
+            int normalLimit = appointmentService.getCapacityLimitForSlotType(SlotType.NORMAL);
+            int totalLimit = appointmentService.getTotalCapacityLimit();
             String label = String.format("%s  [Major: %d/%d | Normal: %d/%d | Total: %d/%d]%s",
                     slotTime,
-                    cap.getMajorCount(), AppointmentService.SLOT_MAJOR_CAPACITY,
-                    cap.getNormalCount(), AppointmentService.SLOT_NORMAL_CAPACITY,
-                    cap.getTotalCount(), AppointmentService.SLOT_TOTAL_CAPACITY,
+                    cap.getMajorCount(), majorLimit,
+                    cap.getNormalCount(), normalLimit,
+                    cap.getTotalCount(), totalLimit,
                     available ? "" : " (FULL)");
             slotCombo.addItem(new SlotOption(slotTime, label, available));
             if (available && lastValidSlotIndex == -1) {
