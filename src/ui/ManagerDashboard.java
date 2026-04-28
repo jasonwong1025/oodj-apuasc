@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ManagerDashboard extends JFrame implements Refreshable {
@@ -283,6 +282,13 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         JLabel heading = new JLabel("Dashboard");
         heading.setFont(new Font("SansSerif", Font.BOLD, 24));
         topRow.add(heading, BorderLayout.WEST);
+
+        JButton refreshDashboardBtn = SharedStyles.createActionButton("Refresh", SharedStyles.BTN_BLUE);
+        refreshDashboardBtn.addActionListener(e -> refresh());
+        JPanel topRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        topRight.setOpaque(false);
+        topRight.add(refreshDashboardBtn);
+        topRow.add(topRight, BorderLayout.EAST);
         p.add(topRow, BorderLayout.NORTH);
 
         List<User> allUsers = userService.listAllUsers();
@@ -395,36 +401,21 @@ public class ManagerDashboard extends JFrame implements Refreshable {
 
     private JPanel buildAppointmentsTableCard(List<Appointment> appointments) {
         JPanel card = SharedStyles.createCardPanel();
-        card.setLayout(new BorderLayout(0, 12));
+        card.setLayout(new BorderLayout(0, 10));
 
-        JPanel titleRow = new JPanel(new BorderLayout(8, 0));
-        titleRow.setOpaque(false);
-        JLabel title = new JLabel("Opened bookings");
+        // ── Title ──────────────────────────────────────────────────────────
+        JLabel title = new JLabel("All Bookings");
         title.setFont(new Font("SansSerif", Font.BOLD, 18));
-        titleRow.add(title, BorderLayout.WEST);
+        title.setBorder(new EmptyBorder(0, 0, 4, 0));
+        card.add(title, BorderLayout.NORTH);
 
-        JTextField quickSearch = SharedStyles.createFilterField(18);
-        quickSearch.setText("Search...");
-        JButton filterBtn = SharedStyles.createActionButton("Filters", SharedStyles.BTN_BLUE);
-        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        right.setOpaque(false);
-        right.add(quickSearch);
-        right.add(filterBtn);
-        titleRow.add(right, BorderLayout.EAST);
-        card.add(titleRow, BorderLayout.NORTH);
-
+        // ── Table model ────────────────────────────────────────────────────
         String[] cols = {"Appointment ID", "Customer ID", "Vehicle ID", "Service ID(s)", "Date", "Time", "Status", "Technician ID"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
-            @Override
-            public boolean isCellEditable(int r, int c) {
-                return false;
-            }
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        List<Appointment> opened = new ArrayList<>();
         for (Appointment a : appointments) {
-            if (!"PENDING".equalsIgnoreCase(a.getStatus())) continue;
-            opened.add(a);
             model.addRow(new Object[]{
                     a.getAppointmentId(),
                     a.getCustomerId(),
@@ -436,11 +427,11 @@ public class ManagerDashboard extends JFrame implements Refreshable {
                     a.getTechnicianId()
             });
         }
-        title.setText("Opened bookings (" + opened.size() + ")");
 
         JTable table = new JTable(model);
         table.setFont(new Font("SansSerif", Font.PLAIN, 13));
         table.setRowHeight(28);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         table.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
         table.setGridColor(new Color(220, 220, 225));
@@ -448,20 +439,88 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         table.setFillsViewportHeight(true);
         table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
                                                            boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
+                    String status = (String) tbl.getValueAt(row, 6);
+                    if ("PENDING".equalsIgnoreCase(status)) {
+                        c.setBackground(new Color(255, 253, 235));
+                    } else if ("COMPLETED".equalsIgnoreCase(status)) {
+                        c.setBackground(new Color(236, 253, 242));
+                    } else if ("CANCELLED".equalsIgnoreCase(status)) {
+                        c.setBackground(new Color(255, 242, 242));
+                    } else {
+                        c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
+                    }
                 }
                 return c;
             }
         });
 
-        JScrollPane sp = new JScrollPane(table);
-        sp.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 205)));
-        card.add(sp, BorderLayout.CENTER);
+        // ── Filter controls ────────────────────────────────────────────────
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        filterRow.setOpaque(false);
 
+        filterRow.add(new JLabel("Search:"));
+        JTextField searchField = SharedStyles.createFilterField(20);
+        filterRow.add(searchField);
+
+        filterRow.add(new JLabel("Status:"));
+        JComboBox<String> statusFilter = SharedStyles.createFilterCombo(
+                new String[]{"ALL", "PENDING", "COMPLETED", "CANCELLED"});
+        filterRow.add(statusFilter);
+
+        JButton applyBtn = SharedStyles.createActionButton("Filter", SharedStyles.BTN_BLUE);
+        filterRow.add(applyBtn);
+
+        JButton clearBtn = SharedStyles.createActionButton("Clear", SharedStyles.BTN_BLUE);
+        filterRow.add(clearBtn);
+
+        // ── Apply filter logic ─────────────────────────────────────────────
+        Runnable applyFilter = () -> {
+            String keyword = searchField.getText().trim().toLowerCase();
+            String status = (String) statusFilter.getSelectedItem();
+            model.setRowCount(0);
+            for (Appointment a : appointments) {
+                if (!"ALL".equals(status) && !status.equalsIgnoreCase(a.getStatus())) continue;
+                String row = (a.getAppointmentId() + a.getCustomerId() + a.getVehicleId()
+                        + a.getServiceId() + a.getDate() + a.getTime()
+                        + a.getStatus() + a.getTechnicianId()).toLowerCase();
+                if (!keyword.isEmpty() && !row.contains(keyword)) continue;
+                model.addRow(new Object[]{
+                        a.getAppointmentId(), a.getCustomerId(), a.getVehicleId(),
+                        a.getServiceId(), a.getDate(), a.getTime(),
+                        a.getStatus(), a.getTechnicianId()
+                });
+            }
+        };
+
+        applyBtn.addActionListener(e -> applyFilter.run());
+        clearBtn.addActionListener(e -> {
+            searchField.setText("");
+            statusFilter.setSelectedIndex(0);
+            applyFilter.run();
+        });
+
+        // ── Wrap table in scroll, wrap scroll + filters in a scrollable panel
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 205)));
+        tableScroll.setPreferredSize(new Dimension(0, 280));
+
+        JPanel body = new JPanel(new BorderLayout(0, 6));
+        body.setOpaque(false);
+        body.add(filterRow, BorderLayout.NORTH);
+        body.add(tableScroll, BorderLayout.CENTER);
+
+        // Outer scroll so entire section can be scrolled when screen is limited
+        JScrollPane outerScroll = new JScrollPane(body,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        outerScroll.setBorder(null);
+        outerScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        card.add(outerScroll, BorderLayout.CENTER);
         return card;
     }
 
