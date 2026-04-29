@@ -2,6 +2,8 @@ package ui;
 
 import abstracts.AbstractUser;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -344,7 +346,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         List<Vehicle> vehicles = vehicleService.getCustomerVehicles(currentUser.getUserId());
         if (vehicles.isEmpty()) {
             card.add(new JLabel("Please register a vehicle first!"), gbc);
-            center.add(card);
+            GridBagConstraints emptyGbc = new GridBagConstraints();
+            emptyGbc.gridx = 0;
+            emptyGbc.gridy = 0;
+            emptyGbc.weightx = 1;
+            emptyGbc.weighty = 1;
+            emptyGbc.fill = GridBagConstraints.BOTH;
+            center.add(card, emptyGbc);
             return center;
         }
 
@@ -354,224 +362,452 @@ public class CustomerDashboard extends JFrame implements Refreshable {
 
         List<Service> allServices = serviceLookup.listAll();
         List<Service> normalServices = allServices.stream().filter(Service::isIncludedInNormalService).collect(Collectors.toList());
-        List<Service> baseServices = allServices.stream().filter(s -> !s.isIncludedInNormalService()).collect(Collectors.toList());
+        List<Service> majorServices = allServices.stream().filter(s -> !s.isIncludedInNormalService()).collect(Collectors.toList());
 
-        JToggleButton normalBtn = new JToggleButton("Normal");
-        JToggleButton majorBtn = new JToggleButton("Major");
-        normalBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
-        majorBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
-        ButtonGroup serviceTypeGroup = new ButtonGroup();
-        serviceTypeGroup.add(normalBtn);
-        serviceTypeGroup.add(majorBtn);
-
-        JPanel serviceTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        serviceTypePanel.setOpaque(false);
-        serviceTypePanel.add(new JLabel("Service Type:"));
-        serviceTypePanel.add(normalBtn);
-        serviceTypePanel.add(majorBtn);
-
-        // Major service shows all services ticked (view-only)
-        JPanel majorPanel = new JPanel();
-        majorPanel.setLayout(new BoxLayout(majorPanel, BoxLayout.Y_AXIS));
-        majorPanel.setOpaque(false);
-        for (Service s : allServices) {
-            JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
-            cb.setOpaque(false);
-            cb.setEnabled(false);
-            cb.setSelected(true);
-            cb.putClientProperty("service", s);
-            majorPanel.add(cb);
-        }
-        JScrollPane majorScroll = new JScrollPane(majorPanel);
-        majorScroll.setPreferredSize(new Dimension(350, 150));
-        majorScroll.setBorder(BorderFactory.createTitledBorder("All Services (Major includes all)"));
-        majorScroll.setOpaque(false);
-        majorScroll.getViewport().setOpaque(false);
-
-        // Normal service: select base services (non-normal) and add-on normal services
-        List<JCheckBox> baseChecks = new ArrayList<>();
-        JPanel basePanel = new JPanel();
-        basePanel.setLayout(new BoxLayout(basePanel, BoxLayout.Y_AXIS));
-        basePanel.setOpaque(false);
-        for (Service s : baseServices) {
-            JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
-            cb.setOpaque(false);
-            cb.putClientProperty("service", s);
-            baseChecks.add(cb);
-            basePanel.add(cb);
-        }
-        JScrollPane baseScroll = new JScrollPane(basePanel);
-        baseScroll.setPreferredSize(new Dimension(350, 150));
-        baseScroll.setBorder(BorderFactory.createTitledBorder("Main Services"));
-        baseScroll.setOpaque(false);
-        baseScroll.getViewport().setOpaque(false);
-
-        JPanel addonPanel = new JPanel();
-        addonPanel.setLayout(new BoxLayout(addonPanel, BoxLayout.Y_AXIS));
-        addonPanel.setOpaque(false);
-        List<JCheckBox> addonChecks = new ArrayList<>();
+        List<JCheckBox> normalChecks = new ArrayList<>();
+        JPanel normalPanel = new JPanel();
+        normalPanel.setLayout(new BoxLayout(normalPanel, BoxLayout.Y_AXIS));
+        normalPanel.setOpaque(false);
         for (Service s : normalServices) {
             JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
             cb.setOpaque(false);
             cb.putClientProperty("service", s);
-            addonChecks.add(cb);
-            addonPanel.add(cb);
+            normalChecks.add(cb);
+            normalPanel.add(cb);
         }
-        JLabel addonStatusLabel = new JLabel("0/2 normal services selected");
-        addonStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
-        addonStatusLabel.setForeground(Color.GRAY);
-        JScrollPane addonScroll = new JScrollPane(addonPanel);
-        addonScroll.setPreferredSize(new Dimension(350, 150));
-        addonScroll.setBorder(BorderFactory.createTitledBorder("Add-on Services (select up to 2)"));
-        addonScroll.setOpaque(false);
-        addonScroll.getViewport().setOpaque(false);
+        JScrollPane normalScroll = new JScrollPane(normalPanel);
+        normalScroll.setPreferredSize(new Dimension(320, 220));
+        normalScroll.setBorder(BorderFactory.createTitledBorder("Normal Services (select at least 1)"));
+        normalScroll.setOpaque(false);
+        normalScroll.getViewport().setOpaque(false);
 
-        JPanel normalPanel = new JPanel();
-        normalPanel.setLayout(new BoxLayout(normalPanel, BoxLayout.Y_AXIS));
-        normalPanel.setOpaque(false);
-        normalPanel.add(baseScroll);
-        normalPanel.add(addonScroll);
-        normalPanel.add(addonStatusLabel);
+        JLabel normalStatusLabel = new JLabel("0 selected (min 1)");
+        normalStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        normalStatusLabel.setForeground(Color.GRAY);
 
-        JPanel majorPanelWrap = new JPanel(new BorderLayout());
-        majorPanelWrap.setOpaque(false);
-        majorPanelWrap.add(majorScroll, BorderLayout.CENTER);
+        List<JCheckBox> majorChecks = new ArrayList<>();
+        JPanel majorPanel = new JPanel();
+        majorPanel.setLayout(new BoxLayout(majorPanel, BoxLayout.Y_AXIS));
+        majorPanel.setOpaque(false);
+        for (Service s : majorServices) {
+            JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
+            cb.setOpaque(false);
+            cb.putClientProperty("service", s);
+            majorChecks.add(cb);
+            majorPanel.add(cb);
+        }
+        JScrollPane majorScroll = new JScrollPane(majorPanel);
+        majorScroll.setPreferredSize(new Dimension(320, 220));
+        majorScroll.setBorder(BorderFactory.createTitledBorder("Major Services (select at least 1)"));
+        majorScroll.setOpaque(false);
+        majorScroll.getViewport().setOpaque(false);
 
-        CardLayout serviceCards = new CardLayout();
-        JPanel serviceCardPanel = new JPanel(serviceCards);
-        serviceCardPanel.setOpaque(false);
-        JPanel emptyPanel = new JPanel(new BorderLayout());
-        emptyPanel.setOpaque(false);
-        JLabel pickLabel = new JLabel("Select Normal or Major to continue.");
-        pickLabel.setForeground(Color.GRAY);
-        emptyPanel.add(pickLabel, BorderLayout.NORTH);
-        serviceCardPanel.add(emptyPanel, "NONE");
-        serviceCardPanel.add(normalPanel, "NORMAL");
-        serviceCardPanel.add(majorPanelWrap, "MAJOR");
-        serviceCards.show(serviceCardPanel, "NONE");
+        JLabel majorStatusLabel = new JLabel("0 selected (min 1)");
+        majorStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        majorStatusLabel.setForeground(Color.GRAY);
 
-        JTextField dateTimeField = SharedStyles.createFilterField(20);
-        dateTimeField.setEditable(false);
-        dateTimeField.setText("Click to select ->");
-        dateTimeField.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        dateTimeField.addMouseListener(new java.awt.event.MouseAdapter() {
+        JLabel totalStatusLabel = new JLabel("Total selected: 0/8");
+        totalStatusLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        totalStatusLabel.setForeground(SharedStyles.NAV_ACTIVE_TOP);
+
+        CardLayout stepCards = new CardLayout();
+        JPanel stepPanel = new JPanel(stepCards);
+        stepPanel.setOpaque(false);
+
+        JButton step1Next = SharedStyles.createActionButton("Next", SharedStyles.BTN_BLUE);
+        JButton step1Finish = SharedStyles.createActionButton("Finish", SharedStyles.BTN_GREEN);
+        JPanel step1Actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        step1Actions.setOpaque(false);
+        step1Actions.add(step1Finish);
+        step1Actions.add(step1Next);
+
+        JPanel step1 = new JPanel(new BorderLayout(0, 10));
+        step1.setOpaque(false);
+        step1.add(new JLabel("Step 1 of 3: Normal Services"), BorderLayout.NORTH);
+        JPanel step1Center = new JPanel(new BorderLayout(0, 6));
+        step1Center.setOpaque(false);
+        step1Center.add(normalScroll, BorderLayout.CENTER);
+        step1Center.add(normalStatusLabel, BorderLayout.SOUTH);
+        step1.add(step1Center, BorderLayout.CENTER);
+        step1.add(step1Actions, BorderLayout.SOUTH);
+
+        JButton step2Back = SharedStyles.createActionButton("Back", SharedStyles.BTN_BLUE);
+        JButton step2Finish = SharedStyles.createActionButton("Finish", SharedStyles.BTN_GREEN);
+        JPanel step2Actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        step2Actions.setOpaque(false);
+        step2Actions.add(step2Back);
+        step2Actions.add(step2Finish);
+
+        JPanel step2 = new JPanel(new BorderLayout(0, 10));
+        step2.setOpaque(false);
+        step2.add(new JLabel("Step 2 of 3: Major Services (optional)"), BorderLayout.NORTH);
+        JPanel step2Center = new JPanel(new BorderLayout(0, 6));
+        step2Center.setOpaque(false);
+        step2Center.add(majorScroll, BorderLayout.CENTER);
+        step2Center.add(majorStatusLabel, BorderLayout.SOUTH);
+        step2.add(step2Center, BorderLayout.CENTER);
+        step2.add(step2Actions, BorderLayout.SOUTH);
+
+        LocalDate today = LocalDate.now();
+        final LocalDate[] selectedDate = {today};
+        final String[] selectedTime = {null};
+        final LocalDate[] displayedMonth = {today.withDayOfMonth(1)};
+
+        JLabel monthLabel = new JLabel();
+        monthLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JButton prevMonth = SharedStyles.createActionButton("<", SharedStyles.BTN_BLUE);
+        JButton nextMonth = SharedStyles.createActionButton(">", SharedStyles.BTN_BLUE);
+        JPanel calendarHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        calendarHeader.setOpaque(false);
+        calendarHeader.add(prevMonth);
+        calendarHeader.add(monthLabel);
+        calendarHeader.add(nextMonth);
+
+        JPanel calendarGrid = new JPanel(new GridLayout(0, 7, 4, 4));
+        calendarGrid.setOpaque(false);
+
+        JComboBox<SlotOption> slotCombo = new JComboBox<>();
+        slotCombo.setRenderer(new DefaultListCellRenderer() {
             @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                SlotType requestedType;
-                if (majorBtn.isSelected()) {
-                    requestedType = SlotType.MAJOR;
-                } else if (normalBtn.isSelected()) {
-                    requestedType = SlotType.NORMAL;
-                } else {
-                    SharedStyles.showWarning(CustomerDashboard.this, "Please select Normal or Major service type first.");
-                    return;
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (value instanceof SlotOption opt) {
+                    l.setText(opt.label);
+                    if (!opt.available && !isSelected) {
+                        l.setForeground(Color.GRAY);
+                    }
                 }
-                String val = DateTimePicker.showPicker(CustomerDashboard.this, requestedType);
-                if (val != null) dateTimeField.setText(val);
+                return l;
             }
         });
 
-        normalBtn.addActionListener(e -> {
-            serviceCards.show(serviceCardPanel, "NORMAL");
-            for (JCheckBox cb : addonChecks) cb.setSelected(false);
-            addonStatusLabel.setText("0/2 normal services selected");
-            dateTimeField.setText("Click to select ->");
-        });
+        Runnable refreshSlots = () -> {
+            slotCombo.removeAllItems();
+            String dateValue = selectedDate[0].format(AppointmentService.DATE_FORMATTER);
+            SlotType requestedType = majorChecks.stream().anyMatch(JCheckBox::isSelected)
+                    ? SlotType.MAJOR
+                    : SlotType.NORMAL;
+            for (String slotTime : AppointmentService.getAllowedSlotTimes()) {
+                AppointmentService.SlotCapacity cap = appointmentService.getSlotCapacity(dateValue, slotTime);
+                boolean available = appointmentService.isSlotAvailable(dateValue, slotTime, requestedType);
+                int majorLimit = appointmentService.getCapacityLimitForSlotType(SlotType.MAJOR);
+                int normalLimit = appointmentService.getCapacityLimitForSlotType(SlotType.NORMAL);
+                int totalLimit = appointmentService.getTotalCapacityLimit();
+                String label = String.format("%s  [Major: %d/%d | Normal: %d/%d | Total: %d/%d]%s",
+                        slotTime,
+                        cap.getMajorCount(), majorLimit,
+                        cap.getNormalCount(), normalLimit,
+                        cap.getTotalCount(), totalLimit,
+                        available ? "" : " (FULL)");
+                slotCombo.addItem(new SlotOption(slotTime, label, available));
+            }
+        };
 
-        majorBtn.addActionListener(e -> {
-            serviceCards.show(serviceCardPanel, "MAJOR");
-            for (JCheckBox cb : addonChecks) cb.setSelected(false);
-            for (JCheckBox cb : baseChecks) cb.setSelected(false);
-            addonStatusLabel.setText("0/2 normal services selected");
-            dateTimeField.setText("Click to select ->");
-        });
+        final Runnable[] updateSummaryRef = new Runnable[1];
+        final Runnable[] updateCalendarRef = new Runnable[1];
 
-        for (JCheckBox cb : addonChecks) {
-            cb.addItemListener(ev -> {
-                long sel = addonChecks.stream().filter(JCheckBox::isSelected).count();
-                if (sel > 2) {
-                    cb.setSelected(false);
-                    sel = addonChecks.stream().filter(JCheckBox::isSelected).count();
+        updateCalendarRef[0] = () -> {
+            calendarGrid.removeAll();
+            YearMonth ym = YearMonth.of(displayedMonth[0].getYear(), displayedMonth[0].getMonth());
+            monthLabel.setText(ym.getMonth() + " " + ym.getYear());
+
+            String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+            for (String d : days) {
+                JLabel lbl = new JLabel(d, SwingConstants.CENTER);
+                lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+                calendarGrid.add(lbl);
+            }
+
+            LocalDate firstDay = displayedMonth[0];
+            int startOffset = firstDay.getDayOfWeek().getValue();
+            for (int i = 1; i < startOffset; i++) {
+                calendarGrid.add(new JLabel(""));
+            }
+
+            int maxDay = ym.lengthOfMonth();
+            for (int day = 1; day <= maxDay; day++) {
+                LocalDate date = LocalDate.of(ym.getYear(), ym.getMonth(), day);
+                JButton btn = new JButton(String.valueOf(day));
+                btn.setMargin(new Insets(2, 2, 2, 2));
+                btn.setFocusPainted(false);
+                if (date.equals(selectedDate[0])) {
+                    btn.setBackground(SharedStyles.NAV_ACTIVE_TOP);
+                    btn.setForeground(Color.WHITE);
                 }
-                addonStatusLabel.setText(sel + "/2 normal services selected");
-                dateTimeField.setText("Click to select ->");
+                btn.addActionListener(e -> {
+                    selectedDate[0] = date;
+                    updateCalendarRef[0].run();
+                    refreshSlots.run();
+                    if (updateSummaryRef[0] != null) {
+                        updateSummaryRef[0].run();
+                    }
+                });
+                calendarGrid.add(btn);
+            }
+
+            calendarGrid.revalidate();
+            calendarGrid.repaint();
+        };
+
+        prevMonth.addActionListener(e -> {
+            displayedMonth[0] = displayedMonth[0].minusMonths(1);
+            updateCalendarRef[0].run();
+        });
+        nextMonth.addActionListener(e -> {
+            displayedMonth[0] = displayedMonth[0].plusMonths(1);
+            updateCalendarRef[0].run();
+        });
+
+        JButton step3Back = SharedStyles.createActionButton("Back", SharedStyles.BTN_BLUE);
+        JPanel step3Actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        step3Actions.setOpaque(false);
+        step3Actions.add(step3Back);
+
+        JPanel step3 = new JPanel(new BorderLayout(0, 10));
+        step3.setOpaque(false);
+        step3.add(new JLabel("Step 3 of 3: Schedule"), BorderLayout.NORTH);
+        JPanel schedulePanel = new JPanel(new BorderLayout(0, 10));
+        schedulePanel.setOpaque(false);
+
+        JPanel calendarPanel = new JPanel(new BorderLayout(0, 2));
+        calendarPanel.setOpaque(false);
+        calendarPanel.add(calendarHeader, BorderLayout.NORTH);
+        calendarPanel.add(calendarGrid, BorderLayout.CENTER);
+
+        JPanel slotRow = new JPanel(new BorderLayout(10, 0));
+        slotRow.setOpaque(false);
+        slotRow.setBorder(new EmptyBorder(6, 0, 0, 0));
+        slotRow.add(new JLabel("Time Slot:"), BorderLayout.WEST);
+        slotRow.add(slotCombo, BorderLayout.CENTER);
+
+        schedulePanel.add(calendarPanel, BorderLayout.CENTER);
+        schedulePanel.add(slotRow, BorderLayout.SOUTH);
+        step3.add(schedulePanel, BorderLayout.CENTER);
+        step3.add(step3Actions, BorderLayout.SOUTH);
+
+        stepPanel.add(step1, "STEP1");
+        stepPanel.add(step2, "STEP2");
+        stepPanel.add(step3, "STEP3");
+        stepCards.show(stepPanel, "STEP1");
+
+        JTextArea summaryArea = new JTextArea(16, 28);
+        summaryArea.setEditable(false);
+        summaryArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        summaryArea.setBackground(Color.WHITE);
+        JScrollPane summaryScroll = new JScrollPane(summaryArea);
+        summaryScroll.setBorder(BorderFactory.createTitledBorder("Summary"));
+
+        JButton checkoutBtn = SharedStyles.createActionButton("Checkout", SharedStyles.BTN_GREEN);
+
+        Runnable updateSummary = () -> {
+            StringBuilder sb = new StringBuilder();
+            List<Service> selectedNormals = normalChecks.stream()
+                    .filter(JCheckBox::isSelected)
+                    .map(cb -> (Service) cb.getClientProperty("service"))
+                    .collect(Collectors.toList());
+            List<Service> selectedMajors = majorChecks.stream()
+                    .filter(JCheckBox::isSelected)
+                    .map(cb -> (Service) cb.getClientProperty("service"))
+                    .collect(Collectors.toList());
+
+            int totalCount = selectedNormals.size() + selectedMajors.size();
+            double totalPrice = 0.0;
+            for (Service s : selectedNormals) totalPrice += s.getPrice();
+            for (Service s : selectedMajors) totalPrice += s.getPrice();
+
+            sb.append("Normal services (" + selectedNormals.size() + ")\n");
+            for (Service s : selectedNormals) {
+                sb.append("- ").append(s.getServiceName()).append(" (RM ").append(String.format("%.2f", s.getPrice())).append(")\n");
+            }
+            sb.append("\nMajor services (" + selectedMajors.size() + ")\n");
+            for (Service s : selectedMajors) {
+                sb.append("- ").append(s.getServiceName()).append(" (RM ").append(String.format("%.2f", s.getPrice())).append(")\n");
+            }
+            sb.append("\nTotal selected: ").append(totalCount).append("/8\n");
+            sb.append("Total: RM ").append(String.format("%.2f", totalPrice)).append("\n");
+                String scheduleText = selectedTime[0] == null
+                    ? "Not selected"
+                    : selectedDate[0].format(AppointmentService.DATE_FORMATTER) + " " + selectedTime[0];
+                sb.append("Schedule: ").append(scheduleText).append("\n");
+            summaryArea.setText(sb.toString());
+
+            totalStatusLabel.setText("Total selected: " + totalCount + "/8");
+        };
+        updateSummaryRef[0] = updateSummary;
+
+        for (JCheckBox cb : normalChecks) {
+            cb.addItemListener(ev -> {
+                int total = (int) normalChecks.stream().filter(JCheckBox::isSelected).count()
+                        + (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
+                if (total > 8) {
+                    cb.setSelected(false);
+                }
+                int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
+                normalStatusLabel.setText(normalCount + " selected (min 1)");
+                refreshSlots.run();
+                updateSummaryRef[0].run();
             });
         }
 
-        normalBtn.setSelected(true);
-        serviceCards.show(serviceCardPanel, "NORMAL");
+        for (JCheckBox cb : majorChecks) {
+            cb.addItemListener(ev -> {
+                int total = (int) normalChecks.stream().filter(JCheckBox::isSelected).count()
+                        + (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
+                if (total > 8) {
+                    cb.setSelected(false);
+                }
+                int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
+                majorStatusLabel.setText(majorCount + " selected (min 1)");
+                refreshSlots.run();
+                updateSummaryRef[0].run();
+            });
+        }
+
+        slotCombo.addActionListener(e -> {
+            SlotOption selected = (SlotOption) slotCombo.getSelectedItem();
+            if (selected == null) return;
+            if (!selected.available) {
+                Toolkit.getDefaultToolkit().beep();
+                selectedTime[0] = null;
+                updateSummaryRef[0].run();
+                return;
+            }
+            selectedTime[0] = selected.time;
+            updateSummaryRef[0].run();
+        });
+
+        step1Next.addActionListener(e -> {
+            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
+            if (normalCount < 1) {
+                SharedStyles.showWarning(this, "Select at least 1 normal service to continue.");
+                return;
+            }
+            stepCards.show(stepPanel, "STEP2");
+        });
+
+        step1Finish.addActionListener(e -> {
+            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
+            if (normalCount < 1) {
+                SharedStyles.showWarning(this, "Select at least 1 normal service to finish.");
+                return;
+            }
+            stepCards.show(stepPanel, "STEP3");
+        });
+
+        step2Back.addActionListener(e -> stepCards.show(stepPanel, "STEP1"));
+
+        step2Finish.addActionListener(e -> {
+            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
+            int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
+            if (normalCount < 1) {
+                SharedStyles.showWarning(this, "Select at least 1 normal service.");
+                return;
+            }
+            if (majorCount < 1) {
+                SharedStyles.showWarning(this, "Select at least 1 major service.");
+                return;
+            }
+            stepCards.show(stepPanel, "STEP3");
+        });
+
+        step3Back.addActionListener(e -> {
+            int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
+            if (majorCount > 0) stepCards.show(stepPanel, "STEP2");
+            else stepCards.show(stepPanel, "STEP1");
+        });
+
+        updateCalendarRef[0].run();
+        refreshSlots.run();
+        updateSummaryRef[0].run();
         
+        JPanel leftPanel = new JPanel(new BorderLayout(0, 12));
+        leftPanel.setOpaque(false);
+        leftPanel.add(stepPanel, BorderLayout.CENTER);
+        leftPanel.add(totalStatusLabel, BorderLayout.SOUTH);
+
+        JPanel rightPanel = new JPanel(new BorderLayout(0, 12));
+        rightPanel.setOpaque(false);
+        rightPanel.add(summaryScroll, BorderLayout.CENTER);
+        rightPanel.add(checkoutBtn, BorderLayout.SOUTH);
+
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 0));
+        contentPanel.setOpaque(false);
+        contentPanel.add(leftPanel);
+        contentPanel.add(rightPanel);
+
         int y = 0;
         SharedStyles.addFormRow(card, gbc, y++, "Select Vehicle:", vehicleCombo);
-        
-        gbc.gridx = 0; gbc.gridy = y++; gbc.gridwidth = 2;
-        card.add(serviceTypePanel, gbc);
 
-        gbc.gridy = y++;
-        card.add(serviceCardPanel, gbc);
+        gbc.gridx = 0; gbc.gridy = y++; gbc.gridwidth = 2;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.fill = GridBagConstraints.BOTH;
+        card.add(contentPanel, gbc);
 
         gbc.gridwidth = 1; // reset
 
-        SharedStyles.addFormRow(card, gbc, y++, "Schedule:", dateTimeField);
+        GridBagConstraints cardGbc = new GridBagConstraints();
+        cardGbc.gridx = 0;
+        cardGbc.gridy = 0;
+        cardGbc.weightx = 1;
+        cardGbc.weighty = 1;
+        cardGbc.fill = GridBagConstraints.BOTH;
+        center.add(card, cardGbc);
 
-        JButton bookBtn = SharedStyles.createActionButton("Book Appointment", SharedStyles.BTN_BLUE);
-        bookBtn.addActionListener(e -> {
-            if (dateTimeField.getText().contains("Click to select")) {
+        checkoutBtn.addActionListener(e -> {
+            if (selectedTime[0] == null) {
                 SharedStyles.showWarning(this, "Please select a date and time.");
                 return;
             }
-            
-            if (!majorBtn.isSelected() && !normalBtn.isSelected()) {
-                SharedStyles.showWarning(this, "Please select Normal or Major service type.");
+
+            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
+            int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
+            int totalCount = normalCount + majorCount;
+
+            if (normalCount < 1) {
+                SharedStyles.showWarning(this, "Please select at least 1 normal service.");
+                return;
+            }
+            if (totalCount > 8) {
+                SharedStyles.showWarning(this, "You can select up to 8 services only.");
                 return;
             }
 
             List<Service> selected = new ArrayList<>();
-            if (majorBtn.isSelected()) {
-                selected.addAll(allServices);
-            } else {
-                for (JCheckBox cb : baseChecks) {
-                    if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
-                }
-                for (JCheckBox cb : addonChecks) {
-                    if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
-                }
+            for (JCheckBox cb : normalChecks) {
+                if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
             }
-            
-            if (selected.isEmpty()) {
-                SharedStyles.showWarning(this, "Please select at least one main service.");
-                return;
+            for (JCheckBox cb : majorChecks) {
+                if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
             }
 
             double total = selected.stream().mapToDouble(Service::getPrice).sum();
+            String dateValue = selectedDate[0].format(AppointmentService.DATE_FORMATTER);
+            String timeValue = selectedTime[0];
+            SlotType requestedType = majorCount > 0 ? SlotType.MAJOR : SlotType.NORMAL;
+            String scheduleError = appointmentService.validateSchedule(dateValue, timeValue, requestedType);
+            if (scheduleError != null) {
+                SharedStyles.showWarning(this, scheduleError);
+                return;
+            }
             StringBuilder summary = new StringBuilder("<html><body style='width: 300px;'>");
             summary.append("<h2>Booking Summary</h2>");
             summary.append("<hr>");
-            if (majorBtn.isSelected()) {
-                summary.append("<b>Major Service (All Services)</b>:<br>");
-                for (Service s : allServices) {
+            summary.append("<b>Normal Services</b>:<br>");
+            for (JCheckBox cb : normalChecks) {
+                if (cb.isSelected()) {
+                    Service s = (Service) cb.getClientProperty("service");
                     summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
                 }
-                summary.append("<br>");
-            } else {
-                summary.append("<b>Main Services</b>:<br>");
-                for (JCheckBox cb : baseChecks) {
+            }
+            if (majorCount > 0) {
+                summary.append("<br><b>Major Services</b>:<br>");
+                for (JCheckBox cb : majorChecks) {
                     if (cb.isSelected()) {
                         Service s = (Service) cb.getClientProperty("service");
                         summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
                     }
-                }
-                summary.append("<br>");
-
-                if (addonChecks.stream().anyMatch(JCheckBox::isSelected)) {
-                    summary.append("<b>Add-on Services</b>:<br>");
-                    for (JCheckBox cb : addonChecks) {
-                        if (cb.isSelected()) {
-                            Service s = (Service) cb.getClientProperty("service");
-                            summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
-                        }
-                    }
-                    summary.append("<br>");
                 }
             }
             summary.append("<hr>");
@@ -581,22 +817,14 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             if (SharedStyles.showConfirm(this, summary.toString())) {
                 String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
                 List<String> sIds = selected.stream().map(Service::getServiceId).collect(Collectors.toList());
-                String[] dt = dateTimeField.getText().split(" ");
-                if (dt.length != 2) {
-                    SharedStyles.showWarning(this, "Invalid date/time value. Please re-select schedule.");
-                    return;
-                }
-                String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sIds, dt[0], dt[1]);
+                String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sIds, dateValue, timeValue);
                 SharedStyles.showMessage(this, res);
                 if (res.startsWith("Success")) {
                     navList.setSelectedIndex(3);
                 }
             }
         });
-        gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
-        card.add(bookBtn, gbc);
 
-        center.add(card);
         return center;
     }
 
@@ -886,5 +1114,22 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             return v.getPlateNumber() + " (" + v.getBrand() + " " + v.getModel() + ")";
         }
         return "Unknown Vehicle (" + vehicleId + ")";
+    }
+
+    private static final class SlotOption {
+        private final String time;
+        private final String label;
+        private final boolean available;
+
+        private SlotOption(String time, String label, boolean available) {
+            this.time = time;
+            this.label = label;
+            this.available = available;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 }

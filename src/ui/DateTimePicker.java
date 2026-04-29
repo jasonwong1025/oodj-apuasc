@@ -3,7 +3,6 @@ package ui;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.stream.IntStream;
 import javax.swing.*;
 import service_layer.AppointmentService;
 import service_layer.AppointmentService.SlotCapacity;
@@ -11,9 +10,6 @@ import service_layer.AppointmentService.SlotType;
 
 public class DateTimePicker extends JDialog {
 
-    private final JComboBox<Integer> yearCombo;
-    private final JComboBox<Integer> monthCombo;
-    private final JComboBox<Integer> dayCombo;
     private final JComboBox<SlotOption> slotCombo;
     private final AppointmentService appointmentService;
     private final SlotType requestedType;
@@ -21,6 +17,10 @@ public class DateTimePicker extends JDialog {
     private int lastValidSlotIndex = -1;
     private String selectedDate;
     private String selectedTime;
+    private LocalDate displayedMonth;
+    private LocalDate selectedDateObj;
+    private JLabel monthLabel;
+    private JPanel calendarGrid;
 
     public DateTimePicker(Frame parent, SlotType requestedType) {
         super(parent, "Select Date & Time", true);
@@ -37,10 +37,8 @@ public class DateTimePicker extends JDialog {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         LocalDate today = LocalDate.now();
-
-        yearCombo = new JComboBox<>(IntStream.rangeClosed(today.getYear(), today.getYear() + 5).boxed().toArray(Integer[]::new));
-        monthCombo = new JComboBox<>(IntStream.rangeClosed(1, 12).boxed().toArray(Integer[]::new));
-        dayCombo = new JComboBox<>(IntStream.rangeClosed(1, 31).boxed().toArray(Integer[]::new));
+        displayedMonth = today.withDayOfMonth(1);
+        selectedDateObj = today;
         slotCombo = new JComboBox<>();
 
         slotCombo.setRenderer(new DefaultListCellRenderer() {
@@ -58,19 +56,27 @@ public class DateTimePicker extends JDialog {
             }
         });
 
-        yearCombo.setSelectedItem(today.getYear());
-        monthCombo.setSelectedItem(today.getMonthValue());
-        dayCombo.setSelectedItem(today.getDayOfMonth());
+        JPanel calendarHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        calendarHeader.setOpaque(false);
+        JButton prevMonth = SharedStyles.createActionButton("<", SharedStyles.BTN_BLUE);
+        JButton nextMonth = SharedStyles.createActionButton(">", SharedStyles.BTN_BLUE);
+        monthLabel = new JLabel();
+        monthLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        calendarHeader.add(prevMonth);
+        calendarHeader.add(monthLabel);
+        calendarHeader.add(nextMonth);
 
-        yearCombo.addActionListener(e -> {
-            refreshDayOptions();
-            refreshSlotOptions();
+        calendarGrid = new JPanel(new GridLayout(0, 7, 4, 4));
+        calendarGrid.setOpaque(false);
+
+        prevMonth.addActionListener(e -> {
+            displayedMonth = displayedMonth.minusMonths(1);
+            updateCalendar();
         });
-        monthCombo.addActionListener(e -> {
-            refreshDayOptions();
-            refreshSlotOptions();
+        nextMonth.addActionListener(e -> {
+            displayedMonth = displayedMonth.plusMonths(1);
+            updateCalendar();
         });
-        dayCombo.addActionListener(e -> refreshSlotOptions());
         slotCombo.addActionListener(e -> {
             SlotOption selected = (SlotOption) slotCombo.getSelectedItem();
             if (selected == null) return;
@@ -85,12 +91,10 @@ public class DateTimePicker extends JDialog {
         });
 
         int y = 0;
-        gbc.gridx = 0; gbc.gridy = y; p.add(new JLabel("Year:"), gbc);
-        gbc.gridx = 1; p.add(yearCombo, gbc);
-        gbc.gridx = 2; p.add(new JLabel("Month:"), gbc);
-        gbc.gridx = 3; p.add(monthCombo, gbc);
-        gbc.gridx = 4; p.add(new JLabel("Day:"), gbc);
-        gbc.gridx = 5; p.add(dayCombo, gbc);
+        gbc.gridx = 0; gbc.gridy = y; gbc.gridwidth = 6; p.add(calendarHeader, gbc);
+        y++;
+        gbc.gridx = 0; gbc.gridy = y; gbc.gridwidth = 6; p.add(calendarGrid, gbc);
+        gbc.gridwidth = 1;
 
         y++;
         gbc.gridy = y; gbc.gridx = 0; p.add(new JLabel("Time Slot:"), gbc);
@@ -130,7 +134,7 @@ public class DateTimePicker extends JDialog {
         btnPanel.add(ok);
         add(btnPanel, BorderLayout.SOUTH);
 
-        refreshDayOptions();
+        updateCalendar();
         refreshSlotOptions();
 
         pack();
@@ -138,28 +142,49 @@ public class DateTimePicker extends JDialog {
     }
 
     private String getSelectedDate() {
-        return String.format("%04d-%02d-%02d",
-                yearCombo.getSelectedItem(),
-                monthCombo.getSelectedItem(),
-                dayCombo.getSelectedItem());
+        LocalDate date = selectedDateObj != null ? selectedDateObj : LocalDate.now();
+        return date.format(AppointmentService.DATE_FORMATTER);
     }
 
-    private void refreshDayOptions() {
-        Integer year = (Integer) yearCombo.getSelectedItem();
-        Integer month = (Integer) monthCombo.getSelectedItem();
-        if (year == null || month == null) return;
+    private void updateCalendar() {
+        calendarGrid.removeAll();
 
-        int maxDay = YearMonth.of(year, month).lengthOfMonth();
-        Integer currentDay = (Integer) dayCombo.getSelectedItem();
+        YearMonth ym = YearMonth.of(displayedMonth.getYear(), displayedMonth.getMonth());
+        monthLabel.setText(ym.getMonth() + " " + ym.getYear());
 
-        dayCombo.removeAllItems();
-        for (int i = 1; i <= maxDay; i++) {
-            dayCombo.addItem(i);
+        String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+        for (String d : days) {
+            JLabel lbl = new JLabel(d, SwingConstants.CENTER);
+            lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+            calendarGrid.add(lbl);
         }
 
-        if (currentDay != null) {
-            dayCombo.setSelectedItem(Math.min(currentDay, maxDay));
+        LocalDate firstDay = displayedMonth;
+        int startOffset = firstDay.getDayOfWeek().getValue();
+        for (int i = 1; i < startOffset; i++) {
+            calendarGrid.add(new JLabel(""));
         }
+
+        int maxDay = ym.lengthOfMonth();
+        for (int day = 1; day <= maxDay; day++) {
+            LocalDate date = LocalDate.of(ym.getYear(), ym.getMonth(), day);
+            JButton btn = new JButton(String.valueOf(day));
+            btn.setMargin(new Insets(2, 2, 2, 2));
+            btn.setFocusPainted(false);
+            if (date.equals(selectedDateObj)) {
+                btn.setBackground(SharedStyles.NAV_ACTIVE_TOP);
+                btn.setForeground(Color.WHITE);
+            }
+            btn.addActionListener(e -> {
+                selectedDateObj = date;
+                updateCalendar();
+                refreshSlotOptions();
+            });
+            calendarGrid.add(btn);
+        }
+
+        calendarGrid.revalidate();
+        calendarGrid.repaint();
     }
 
     private void refreshSlotOptions() {
