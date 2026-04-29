@@ -3,3 +3,8 @@ CAT002|Wear & Tear Replacements
 CAT003|Electrical & Battery
 CAT004|Inspection & Diagnostics
 CAT005|Cleaning & Detailing
+CAT006|Tires & Wheels
+CAT007|Climate Control
+CAT008|Suspension & Steering
+CAT009|Exhaust System
+CAT010|Transmission & Drivetrain
