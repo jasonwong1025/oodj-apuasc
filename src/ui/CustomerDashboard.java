@@ -364,89 +364,60 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         List<Service> normalServices = allServices.stream().filter(Service::isIncludedInNormalService).collect(Collectors.toList());
         List<Service> majorServices = allServices.stream().filter(s -> !s.isIncludedInNormalService()).collect(Collectors.toList());
 
+        final int NORMAL_LIMIT = 3;
+        final int MAJOR_LIMIT = 8;
+
         List<JCheckBox> normalChecks = new ArrayList<>();
-        JPanel normalPanel = new JPanel();
-        normalPanel.setLayout(new BoxLayout(normalPanel, BoxLayout.Y_AXIS));
-        normalPanel.setOpaque(false);
+        List<JCheckBox> majorChecks = new ArrayList<>();
+        List<JCheckBox> allChecks = new ArrayList<>();
+
         for (Service s : normalServices) {
             JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
             cb.setOpaque(false);
             cb.putClientProperty("service", s);
             normalChecks.add(cb);
-            normalPanel.add(cb);
+            allChecks.add(cb);
         }
-        JScrollPane normalScroll = new JScrollPane(normalPanel);
-        normalScroll.setPreferredSize(new Dimension(320, 220));
-        normalScroll.setBorder(BorderFactory.createTitledBorder("Normal Services (select at least 1)"));
-        normalScroll.setOpaque(false);
-        normalScroll.getViewport().setOpaque(false);
-
-        JLabel normalStatusLabel = new JLabel("0 selected (min 1)");
-        normalStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
-        normalStatusLabel.setForeground(Color.GRAY);
-
-        List<JCheckBox> majorChecks = new ArrayList<>();
-        JPanel majorPanel = new JPanel();
-        majorPanel.setLayout(new BoxLayout(majorPanel, BoxLayout.Y_AXIS));
-        majorPanel.setOpaque(false);
         for (Service s : majorServices) {
             JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
             cb.setOpaque(false);
             cb.putClientProperty("service", s);
             majorChecks.add(cb);
-            majorPanel.add(cb);
+            allChecks.add(cb);
         }
-        JScrollPane majorScroll = new JScrollPane(majorPanel);
-        majorScroll.setPreferredSize(new Dimension(320, 220));
-        majorScroll.setBorder(BorderFactory.createTitledBorder("Major Services (select at least 1)"));
-        majorScroll.setOpaque(false);
-        majorScroll.getViewport().setOpaque(false);
 
-        JLabel majorStatusLabel = new JLabel("0 selected (min 1)");
-        majorStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
-        majorStatusLabel.setForeground(Color.GRAY);
+        JRadioButton normalCategoryBtn = new JRadioButton("Normal");
+        JRadioButton majorCategoryBtn = new JRadioButton("Major");
+        normalCategoryBtn.setSelected(true);
+        normalCategoryBtn.setOpaque(false);
+        majorCategoryBtn.setOpaque(false);
+        ButtonGroup categoryGroup = new ButtonGroup();
+        categoryGroup.add(normalCategoryBtn);
+        categoryGroup.add(majorCategoryBtn);
 
-        JLabel totalStatusLabel = new JLabel("Total selected: 0/8");
+        JPanel categoryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        categoryPanel.setOpaque(false);
+        categoryPanel.add(new JLabel("Category:"));
+        categoryPanel.add(normalCategoryBtn);
+        categoryPanel.add(majorCategoryBtn);
+
+        JPanel serviceListPanel = new JPanel();
+        serviceListPanel.setLayout(new BoxLayout(serviceListPanel, BoxLayout.Y_AXIS));
+        serviceListPanel.setOpaque(false);
+
+        JScrollPane serviceScroll = new JScrollPane(serviceListPanel);
+        serviceScroll.setPreferredSize(new Dimension(320, 220));
+        serviceScroll.setBorder(BorderFactory.createTitledBorder("Normal Services (max 3)"));
+        serviceScroll.setOpaque(false);
+        serviceScroll.getViewport().setOpaque(false);
+
+        JLabel selectionStatusLabel = new JLabel("0 selected (max 3)");
+        selectionStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        selectionStatusLabel.setForeground(Color.GRAY);
+
+        JLabel totalStatusLabel = new JLabel("Total selected: 0/3");
         totalStatusLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
         totalStatusLabel.setForeground(SharedStyles.NAV_ACTIVE_TOP);
-
-        CardLayout stepCards = new CardLayout();
-        JPanel stepPanel = new JPanel(stepCards);
-        stepPanel.setOpaque(false);
-
-        JButton step1Next = SharedStyles.createActionButton("Next", SharedStyles.BTN_BLUE);
-        JButton step1Finish = SharedStyles.createActionButton("Finish", SharedStyles.BTN_GREEN);
-        JPanel step1Actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        step1Actions.setOpaque(false);
-        step1Actions.add(step1Finish);
-        step1Actions.add(step1Next);
-
-        JPanel step1 = new JPanel(new BorderLayout(0, 10));
-        step1.setOpaque(false);
-        step1.add(new JLabel("Step 1 of 3: Normal Services"), BorderLayout.NORTH);
-        JPanel step1Center = new JPanel(new BorderLayout(0, 6));
-        step1Center.setOpaque(false);
-        step1Center.add(normalScroll, BorderLayout.CENTER);
-        step1Center.add(normalStatusLabel, BorderLayout.SOUTH);
-        step1.add(step1Center, BorderLayout.CENTER);
-        step1.add(step1Actions, BorderLayout.SOUTH);
-
-        JButton step2Back = SharedStyles.createActionButton("Back", SharedStyles.BTN_BLUE);
-        JButton step2Finish = SharedStyles.createActionButton("Finish", SharedStyles.BTN_GREEN);
-        JPanel step2Actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        step2Actions.setOpaque(false);
-        step2Actions.add(step2Back);
-        step2Actions.add(step2Finish);
-
-        JPanel step2 = new JPanel(new BorderLayout(0, 10));
-        step2.setOpaque(false);
-        step2.add(new JLabel("Step 2 of 3: Major Services (optional)"), BorderLayout.NORTH);
-        JPanel step2Center = new JPanel(new BorderLayout(0, 6));
-        step2Center.setOpaque(false);
-        step2Center.add(majorScroll, BorderLayout.CENTER);
-        step2Center.add(majorStatusLabel, BorderLayout.SOUTH);
-        step2.add(step2Center, BorderLayout.CENTER);
-        step2.add(step2Actions, BorderLayout.SOUTH);
 
         LocalDate today = LocalDate.now();
         final LocalDate[] selectedDate = {today};
@@ -485,9 +456,7 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         Runnable refreshSlots = () -> {
             slotCombo.removeAllItems();
             String dateValue = selectedDate[0].format(AppointmentService.DATE_FORMATTER);
-            SlotType requestedType = majorChecks.stream().anyMatch(JCheckBox::isSelected)
-                    ? SlotType.MAJOR
-                    : SlotType.NORMAL;
+            SlotType requestedType = majorCategoryBtn.isSelected() ? SlotType.MAJOR : SlotType.NORMAL;
             for (String slotTime : AppointmentService.getAllowedSlotTimes()) {
                 AppointmentService.SlotCapacity cap = appointmentService.getSlotCapacity(dateValue, slotTime);
                 boolean available = appointmentService.isSlotAvailable(dateValue, slotTime, requestedType);
@@ -502,6 +471,31 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                         available ? "" : " (FULL)");
                 slotCombo.addItem(new SlotOption(slotTime, label, available));
             }
+        };
+
+        java.util.function.Supplier<List<JCheckBox>> activeChecks = () ->
+                majorCategoryBtn.isSelected() ? allChecks : normalChecks;
+        java.util.function.Supplier<Integer> maxSelection = () ->
+                majorCategoryBtn.isSelected() ? MAJOR_LIMIT : NORMAL_LIMIT;
+
+        Runnable refreshServiceList = () -> {
+            if (normalCategoryBtn.isSelected()) {
+                for (JCheckBox cb : majorChecks) {
+                    if (cb.isSelected()) cb.setSelected(false);
+                }
+                serviceScroll.setBorder(BorderFactory.createTitledBorder("Normal Services"));
+            } else {
+                serviceScroll.setBorder(BorderFactory.createTitledBorder("All Services"));
+            }
+            serviceListPanel.removeAll();
+            for (JCheckBox cb : activeChecks.get()) {
+                serviceListPanel.add(cb);
+            }
+            int total = (int) activeChecks.get().stream().filter(JCheckBox::isSelected).count();
+            selectionStatusLabel.setText(total + " selected (max " + maxSelection.get() + ")");
+            totalStatusLabel.setText("Total selected: " + total + "/" + maxSelection.get());
+            serviceListPanel.revalidate();
+            serviceListPanel.repaint();
         };
 
         final Runnable[] updateSummaryRef = new Runnable[1];
@@ -559,14 +553,6 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             updateCalendarRef[0].run();
         });
 
-        JButton step3Back = SharedStyles.createActionButton("Back", SharedStyles.BTN_BLUE);
-        JPanel step3Actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        step3Actions.setOpaque(false);
-        step3Actions.add(step3Back);
-
-        JPanel step3 = new JPanel(new BorderLayout(0, 10));
-        step3.setOpaque(false);
-        step3.add(new JLabel("Step 3 of 3: Schedule"), BorderLayout.NORTH);
         JPanel schedulePanel = new JPanel(new BorderLayout(0, 10));
         schedulePanel.setOpaque(false);
 
@@ -583,13 +569,12 @@ public class CustomerDashboard extends JFrame implements Refreshable {
 
         schedulePanel.add(calendarPanel, BorderLayout.CENTER);
         schedulePanel.add(slotRow, BorderLayout.SOUTH);
-        step3.add(schedulePanel, BorderLayout.CENTER);
-        step3.add(step3Actions, BorderLayout.SOUTH);
 
-        stepPanel.add(step1, "STEP1");
-        stepPanel.add(step2, "STEP2");
-        stepPanel.add(step3, "STEP3");
-        stepCards.show(stepPanel, "STEP1");
+        JPanel serviceSelectionPanel = new JPanel(new BorderLayout(0, 6));
+        serviceSelectionPanel.setOpaque(false);
+        serviceSelectionPanel.add(categoryPanel, BorderLayout.NORTH);
+        serviceSelectionPanel.add(serviceScroll, BorderLayout.CENTER);
+        serviceSelectionPanel.add(selectionStatusLabel, BorderLayout.SOUTH);
 
         JTextArea summaryArea = new JTextArea(16, 28);
         summaryArea.setEditable(false);
@@ -602,29 +587,23 @@ public class CustomerDashboard extends JFrame implements Refreshable {
 
         Runnable updateSummary = () -> {
             StringBuilder sb = new StringBuilder();
-            List<Service> selectedNormals = normalChecks.stream()
-                    .filter(JCheckBox::isSelected)
-                    .map(cb -> (Service) cb.getClientProperty("service"))
-                    .collect(Collectors.toList());
-            List<Service> selectedMajors = majorChecks.stream()
+            boolean isMajorCategory = majorCategoryBtn.isSelected();
+            List<Service> selectedServices = activeChecks.get().stream()
                     .filter(JCheckBox::isSelected)
                     .map(cb -> (Service) cb.getClientProperty("service"))
                     .collect(Collectors.toList());
 
-            int totalCount = selectedNormals.size() + selectedMajors.size();
+            int totalCount = selectedServices.size();
             double totalPrice = 0.0;
-            for (Service s : selectedNormals) totalPrice += s.getPrice();
-            for (Service s : selectedMajors) totalPrice += s.getPrice();
+            for (Service s : selectedServices) totalPrice += s.getPrice();
 
-            sb.append("Normal services (" + selectedNormals.size() + ")\n");
-            for (Service s : selectedNormals) {
+            sb.append("Category: ").append(isMajorCategory ? "Major" : "Normal").append("\n");
+            sb.append("Selected services (").append(totalCount).append(")\n");
+            for (Service s : selectedServices) {
                 sb.append("- ").append(s.getServiceName()).append(" (RM ").append(String.format("%.2f", s.getPrice())).append(")\n");
             }
-            sb.append("\nMajor services (" + selectedMajors.size() + ")\n");
-            for (Service s : selectedMajors) {
-                sb.append("- ").append(s.getServiceName()).append(" (RM ").append(String.format("%.2f", s.getPrice())).append(")\n");
-            }
-            sb.append("\nTotal selected: ").append(totalCount).append("/8\n");
+            sb.append("\nTotal selected: ").append(totalCount).append("/")
+                    .append(maxSelection.get()).append("\n");
             sb.append("Total: RM ").append(String.format("%.2f", totalPrice)).append("\n");
                 String scheduleText = selectedTime[0] == null
                     ? "Not selected"
@@ -632,37 +611,35 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 sb.append("Schedule: ").append(scheduleText).append("\n");
             summaryArea.setText(sb.toString());
 
-            totalStatusLabel.setText("Total selected: " + totalCount + "/8");
+            totalStatusLabel.setText("Total selected: " + totalCount + "/" + maxSelection.get());
         };
         updateSummaryRef[0] = updateSummary;
 
-        for (JCheckBox cb : normalChecks) {
+        for (JCheckBox cb : allChecks) {
             cb.addItemListener(ev -> {
-                int total = (int) normalChecks.stream().filter(JCheckBox::isSelected).count()
-                        + (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
-                if (total > 8) {
+                int total = (int) activeChecks.get().stream().filter(JCheckBox::isSelected).count();
+                if (total > maxSelection.get()) {
                     cb.setSelected(false);
+                    Toolkit.getDefaultToolkit().beep();
+                    total = (int) activeChecks.get().stream().filter(JCheckBox::isSelected).count();
                 }
-                int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
-                normalStatusLabel.setText(normalCount + " selected (min 1)");
+                selectionStatusLabel.setText(total + " selected (max " + maxSelection.get() + ")");
+                totalStatusLabel.setText("Total selected: " + total + "/" + maxSelection.get());
                 refreshSlots.run();
                 updateSummaryRef[0].run();
             });
         }
 
-        for (JCheckBox cb : majorChecks) {
-            cb.addItemListener(ev -> {
-                int total = (int) normalChecks.stream().filter(JCheckBox::isSelected).count()
-                        + (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
-                if (total > 8) {
-                    cb.setSelected(false);
-                }
-                int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
-                majorStatusLabel.setText(majorCount + " selected (min 1)");
-                refreshSlots.run();
-                updateSummaryRef[0].run();
-            });
-        }
+        normalCategoryBtn.addActionListener(e -> {
+            refreshServiceList.run();
+            refreshSlots.run();
+            updateSummaryRef[0].run();
+        });
+        majorCategoryBtn.addActionListener(e -> {
+            refreshServiceList.run();
+            refreshSlots.run();
+            updateSummaryRef[0].run();
+        });
 
         slotCombo.addActionListener(e -> {
             SlotOption selected = (SlotOption) slotCombo.getSelectedItem();
@@ -677,54 +654,25 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             updateSummaryRef[0].run();
         });
 
-        step1Next.addActionListener(e -> {
-            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
-            if (normalCount < 1) {
-                SharedStyles.showWarning(this, "Select at least 1 normal service to continue.");
-                return;
-            }
-            stepCards.show(stepPanel, "STEP2");
-        });
-
-        step1Finish.addActionListener(e -> {
-            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
-            if (normalCount < 1) {
-                SharedStyles.showWarning(this, "Select at least 1 normal service to finish.");
-                return;
-            }
-            stepCards.show(stepPanel, "STEP3");
-        });
-
-        step2Back.addActionListener(e -> stepCards.show(stepPanel, "STEP1"));
-
-        step2Finish.addActionListener(e -> {
-            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
-            int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
-            if (normalCount < 1) {
-                SharedStyles.showWarning(this, "Select at least 1 normal service.");
-                return;
-            }
-            if (majorCount < 1) {
-                SharedStyles.showWarning(this, "Select at least 1 major service.");
-                return;
-            }
-            stepCards.show(stepPanel, "STEP3");
-        });
-
-        step3Back.addActionListener(e -> {
-            int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
-            if (majorCount > 0) stepCards.show(stepPanel, "STEP2");
-            else stepCards.show(stepPanel, "STEP1");
-        });
-
         updateCalendarRef[0].run();
+        refreshServiceList.run();
         refreshSlots.run();
         updateSummaryRef[0].run();
         
         JPanel leftPanel = new JPanel(new BorderLayout(0, 12));
         leftPanel.setOpaque(false);
-        leftPanel.add(stepPanel, BorderLayout.CENTER);
-        leftPanel.add(totalStatusLabel, BorderLayout.SOUTH);
+        JPanel leftContent = new JPanel();
+        leftContent.setOpaque(false);
+        leftContent.setLayout(new BoxLayout(leftContent, BoxLayout.Y_AXIS));
+        leftContent.add(serviceSelectionPanel);
+        leftContent.add(Box.createVerticalStrut(8));
+        JSeparator serviceCalendarSeparator = new JSeparator(SwingConstants.HORIZONTAL);
+        serviceCalendarSeparator.setForeground(new Color(220, 220, 220));
+        serviceCalendarSeparator.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
+        leftContent.add(serviceCalendarSeparator);
+        leftContent.add(Box.createVerticalStrut(8));
+        leftContent.add(schedulePanel);
+        leftPanel.add(leftContent, BorderLayout.CENTER);
 
         JPanel rightPanel = new JPanel(new BorderLayout(0, 12));
         rightPanel.setOpaque(false);
@@ -761,31 +709,26 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 return;
             }
 
-            int normalCount = (int) normalChecks.stream().filter(JCheckBox::isSelected).count();
-            int majorCount = (int) majorChecks.stream().filter(JCheckBox::isSelected).count();
-            int totalCount = normalCount + majorCount;
+            boolean isMajorCategory = majorCategoryBtn.isSelected();
+            List<Service> selected = activeChecks.get().stream()
+                    .filter(JCheckBox::isSelected)
+                    .map(cb -> (Service) cb.getClientProperty("service"))
+                    .collect(Collectors.toList());
+            int totalCount = selected.size();
 
-            if (normalCount < 1) {
-                SharedStyles.showWarning(this, "Please select at least 1 normal service.");
+            if (totalCount < 1) {
+                SharedStyles.showWarning(this, "Please select at least 1 service.");
                 return;
             }
-            if (totalCount > 8) {
-                SharedStyles.showWarning(this, "You can select up to 8 services only.");
+            if (totalCount > maxSelection.get()) {
+                SharedStyles.showWarning(this, "You can select up to " + maxSelection.get() + " services only.");
                 return;
-            }
-
-            List<Service> selected = new ArrayList<>();
-            for (JCheckBox cb : normalChecks) {
-                if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
-            }
-            for (JCheckBox cb : majorChecks) {
-                if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
             }
 
             double total = selected.stream().mapToDouble(Service::getPrice).sum();
             String dateValue = selectedDate[0].format(AppointmentService.DATE_FORMATTER);
             String timeValue = selectedTime[0];
-            SlotType requestedType = majorCount > 0 ? SlotType.MAJOR : SlotType.NORMAL;
+            SlotType requestedType = isMajorCategory ? SlotType.MAJOR : SlotType.NORMAL;
             String scheduleError = appointmentService.validateSchedule(dateValue, timeValue, requestedType);
             if (scheduleError != null) {
                 SharedStyles.showWarning(this, scheduleError);
@@ -794,21 +737,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             StringBuilder summary = new StringBuilder("<html><body style='width: 300px;'>");
             summary.append("<h2>Booking Summary</h2>");
             summary.append("<hr>");
-            summary.append("<b>Normal Services</b>:<br>");
-            for (JCheckBox cb : normalChecks) {
-                if (cb.isSelected()) {
-                    Service s = (Service) cb.getClientProperty("service");
-                    summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
-                }
-            }
-            if (majorCount > 0) {
-                summary.append("<br><b>Major Services</b>:<br>");
-                for (JCheckBox cb : majorChecks) {
-                    if (cb.isSelected()) {
-                        Service s = (Service) cb.getClientProperty("service");
-                        summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
-                    }
-                }
+            summary.append("<b>Category</b>: ")
+                    .append(isMajorCategory ? "Major" : "Normal")
+                    .append("<br><br>");
+            summary.append("<b>Selected Services</b>:<br>");
+            for (Service s : selected) {
+                summary.append("• ").append(s.getServiceName()).append(": RM ")
+                        .append(String.format("%.2f", s.getPrice())).append("<br>");
             }
             summary.append("<hr>");
             summary.append("<h3 style='color: #2e7d32;'>Total Amount: RM ").append(String.format("%.2f", total)).append("</h3>");
