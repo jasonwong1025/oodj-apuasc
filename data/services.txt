@@ -8,3 +8,20 @@ SV007|Alternator Check|CAT003|90.00|YES
 SV008|Full Vehicle Inspection|CAT004|150.00|NO
 SV009|Engine Diagnostics|CAT004|120.00|NO
 SV010|Full Detailing Package|CAT005|300.00|NO
+SV011|Tire Rotation|CAT006|80.00|YES
+SV012|Tire Replacement (each)|CAT006|220.00|NO
+SV013|Wheel Alignment|CAT006|120.00|NO
+SV014|Tire Pressure Check & Adjust|CAT006|30.00|YES
+SV015|AC Refrigerant Recharge|CAT007|180.00|NO
+SV016|Cabin Air Filter Replacement|CAT007|55.00|YES
+SV017|Shock Absorber Replacement (pair)|CAT008|650.00|NO
+SV018|Power Steering Fluid Flush|CAT008|95.00|YES
+SV019|Muffler Replacement|CAT009|420.00|NO
+SV020|Exhaust System Inspection|CAT009|70.00|YES
+SV021|Clutch Inspection|CAT010|150.00|NO
+SV022|CV Boot Replacement (each)|CAT010|280.00|NO
+SV023|Differential Fluid Change|CAT010|140.00|YES
+SV024|Coolant Flush & Top-Up|CAT001|160.00|YES
+SV025|Brake Disc Skimming (per disc)|CAT002|120.00|NO
+SV026|Headlight Bulb Replacement|CAT003|35.00|YES
+SV027|Interior Vacuum & Wipe|CAT005|45.00|YES
