@@ -353,31 +353,58 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         );
 
         List<Service> allServices = serviceLookup.listAll();
-        List<Service> majorServices = allServices.stream().filter(s -> !s.isIncludedInNormalService()).collect(Collectors.toList());
-        List<Service> normalServices = allServices.stream().filter(s -> s.isIncludedInNormalService()).collect(Collectors.toList());
+        List<Service> normalServices = allServices.stream().filter(Service::isIncludedInNormalService).collect(Collectors.toList());
+        List<Service> baseServices = allServices.stream().filter(s -> !s.isIncludedInNormalService()).collect(Collectors.toList());
 
-        // Major services: allow the user to select up to 3 items from the major services list
-        List<JCheckBox> majorChecks = new ArrayList<>();
+        JToggleButton normalBtn = new JToggleButton("Normal");
+        JToggleButton majorBtn = new JToggleButton("Major");
+        normalBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        majorBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+        ButtonGroup serviceTypeGroup = new ButtonGroup();
+        serviceTypeGroup.add(normalBtn);
+        serviceTypeGroup.add(majorBtn);
+
+        JPanel serviceTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        serviceTypePanel.setOpaque(false);
+        serviceTypePanel.add(new JLabel("Service Type:"));
+        serviceTypePanel.add(normalBtn);
+        serviceTypePanel.add(majorBtn);
+
+        // Major service shows all services ticked (view-only)
         JPanel majorPanel = new JPanel();
         majorPanel.setLayout(new BoxLayout(majorPanel, BoxLayout.Y_AXIS));
         majorPanel.setOpaque(false);
-        for (Service s : majorServices) {
+        for (Service s : allServices) {
             JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
             cb.setOpaque(false);
+            cb.setEnabled(false);
+            cb.setSelected(true);
             cb.putClientProperty("service", s);
-            majorChecks.add(cb);
             majorPanel.add(cb);
         }
         JScrollPane majorScroll = new JScrollPane(majorPanel);
         majorScroll.setPreferredSize(new Dimension(350, 150));
-        majorScroll.setBorder(BorderFactory.createTitledBorder("Major Services (select up to 3)"));
+        majorScroll.setBorder(BorderFactory.createTitledBorder("All Services (Major includes all)"));
         majorScroll.setOpaque(false);
         majorScroll.getViewport().setOpaque(false);
 
-        // Status label to show count of selected major services
-        JLabel majorStatusLabel = new JLabel("0/3 major services selected");
-        majorStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
-        majorStatusLabel.setForeground(Color.GRAY);
+        // Normal service: select base services (non-normal) and add-on normal services
+        List<JCheckBox> baseChecks = new ArrayList<>();
+        JPanel basePanel = new JPanel();
+        basePanel.setLayout(new BoxLayout(basePanel, BoxLayout.Y_AXIS));
+        basePanel.setOpaque(false);
+        for (Service s : baseServices) {
+            JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
+            cb.setOpaque(false);
+            cb.putClientProperty("service", s);
+            baseChecks.add(cb);
+            basePanel.add(cb);
+        }
+        JScrollPane baseScroll = new JScrollPane(basePanel);
+        baseScroll.setPreferredSize(new Dimension(350, 150));
+        baseScroll.setBorder(BorderFactory.createTitledBorder("Main Services"));
+        baseScroll.setOpaque(false);
+        baseScroll.getViewport().setOpaque(false);
 
         JPanel addonPanel = new JPanel();
         addonPanel.setLayout(new BoxLayout(addonPanel, BoxLayout.Y_AXIS));
@@ -390,11 +417,38 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             addonChecks.add(cb);
             addonPanel.add(cb);
         }
+        JLabel addonStatusLabel = new JLabel("0/2 normal services selected");
+        addonStatusLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        addonStatusLabel.setForeground(Color.GRAY);
         JScrollPane addonScroll = new JScrollPane(addonPanel);
         addonScroll.setPreferredSize(new Dimension(350, 150));
-        addonScroll.setBorder(BorderFactory.createTitledBorder("Normal Service / Add-ons"));
+        addonScroll.setBorder(BorderFactory.createTitledBorder("Add-on Services (select up to 2)"));
         addonScroll.setOpaque(false);
         addonScroll.getViewport().setOpaque(false);
+
+        JPanel normalPanel = new JPanel();
+        normalPanel.setLayout(new BoxLayout(normalPanel, BoxLayout.Y_AXIS));
+        normalPanel.setOpaque(false);
+        normalPanel.add(baseScroll);
+        normalPanel.add(addonScroll);
+        normalPanel.add(addonStatusLabel);
+
+        JPanel majorPanelWrap = new JPanel(new BorderLayout());
+        majorPanelWrap.setOpaque(false);
+        majorPanelWrap.add(majorScroll, BorderLayout.CENTER);
+
+        CardLayout serviceCards = new CardLayout();
+        JPanel serviceCardPanel = new JPanel(serviceCards);
+        serviceCardPanel.setOpaque(false);
+        JPanel emptyPanel = new JPanel(new BorderLayout());
+        emptyPanel.setOpaque(false);
+        JLabel pickLabel = new JLabel("Select Normal or Major to continue.");
+        pickLabel.setForeground(Color.GRAY);
+        emptyPanel.add(pickLabel, BorderLayout.NORTH);
+        serviceCardPanel.add(emptyPanel, "NONE");
+        serviceCardPanel.add(normalPanel, "NORMAL");
+        serviceCardPanel.add(majorPanelWrap, "MAJOR");
+        serviceCards.show(serviceCardPanel, "NONE");
 
         JTextField dateTimeField = SharedStyles.createFilterField(20);
         dateTimeField.setEditable(false);
@@ -403,41 +457,59 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         dateTimeField.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent e) {
-                boolean anyMajor = majorChecks.stream().anyMatch(JCheckBox::isSelected);
-                SlotType requestedType = anyMajor ? SlotType.MAJOR : SlotType.NORMAL;
+                SlotType requestedType;
+                if (majorBtn.isSelected()) {
+                    requestedType = SlotType.MAJOR;
+                } else if (normalBtn.isSelected()) {
+                    requestedType = SlotType.NORMAL;
+                } else {
+                    SharedStyles.showWarning(CustomerDashboard.this, "Please select Normal or Major service type first.");
+                    return;
+                }
                 String val = DateTimePicker.showPicker(CustomerDashboard.this, requestedType);
                 if (val != null) dateTimeField.setText(val);
             }
         });
 
-        // attach listeners to major checkboxes to enforce 3-selection limit and update status label
-        for (JCheckBox cb : majorChecks) {
+        normalBtn.addActionListener(e -> {
+            serviceCards.show(serviceCardPanel, "NORMAL");
+            for (JCheckBox cb : addonChecks) cb.setSelected(false);
+            addonStatusLabel.setText("0/2 normal services selected");
+            dateTimeField.setText("Click to select ->");
+        });
+
+        majorBtn.addActionListener(e -> {
+            serviceCards.show(serviceCardPanel, "MAJOR");
+            for (JCheckBox cb : addonChecks) cb.setSelected(false);
+            for (JCheckBox cb : baseChecks) cb.setSelected(false);
+            addonStatusLabel.setText("0/2 normal services selected");
+            dateTimeField.setText("Click to select ->");
+        });
+
+        for (JCheckBox cb : addonChecks) {
             cb.addItemListener(ev -> {
-                long sel = majorChecks.stream().filter(JCheckBox::isSelected).count();
-                if (sel > 3) {
-                    // Silently deselect without showing a dialog
+                long sel = addonChecks.stream().filter(JCheckBox::isSelected).count();
+                if (sel > 2) {
                     cb.setSelected(false);
-                    return;
+                    sel = addonChecks.stream().filter(JCheckBox::isSelected).count();
                 }
-                // Update status label and reset date selection when major selection changes
-                majorStatusLabel.setText(sel + "/3 major services selected");
+                addonStatusLabel.setText(sel + "/2 normal services selected");
                 dateTimeField.setText("Click to select ->");
             });
         }
+
+        normalBtn.setSelected(true);
+        serviceCards.show(serviceCardPanel, "NORMAL");
         
         int y = 0;
         SharedStyles.addFormRow(card, gbc, y++, "Select Vehicle:", vehicleCombo);
         
         gbc.gridx = 0; gbc.gridy = y++; gbc.gridwidth = 2;
-        card.add(majorScroll, gbc);
+        card.add(serviceTypePanel, gbc);
 
-        // Add status label below major services scroll
-        gbc.gridx = 0; gbc.gridy = y++; gbc.gridwidth = 2; gbc.insets = new Insets(0, 10, 10, 10);
-        card.add(majorStatusLabel, gbc);
-        gbc.insets = new Insets(10, 10, 10, 10); // reset insets
-        
         gbc.gridy = y++;
-        card.add(addonScroll, gbc);
+        card.add(serviceCardPanel, gbc);
+
         gbc.gridwidth = 1; // reset
 
         SharedStyles.addFormRow(card, gbc, y++, "Schedule:", dateTimeField);
@@ -449,16 +521,25 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 return;
             }
             
-            List<Service> selected = new ArrayList<>();
-            for (JCheckBox cb : majorChecks) {
-                if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
+            if (!majorBtn.isSelected() && !normalBtn.isSelected()) {
+                SharedStyles.showWarning(this, "Please select Normal or Major service type.");
+                return;
             }
-            for (JCheckBox cb : addonChecks) {
-                if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
+
+            List<Service> selected = new ArrayList<>();
+            if (majorBtn.isSelected()) {
+                selected.addAll(allServices);
+            } else {
+                for (JCheckBox cb : baseChecks) {
+                    if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
+                }
+                for (JCheckBox cb : addonChecks) {
+                    if (cb.isSelected()) selected.add((Service) cb.getClientProperty("service"));
+                }
             }
             
             if (selected.isEmpty()) {
-                SharedStyles.showWarning(this, "Please select at least one service.");
+                SharedStyles.showWarning(this, "Please select at least one main service.");
                 return;
             }
 
@@ -466,25 +547,32 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             StringBuilder summary = new StringBuilder("<html><body style='width: 300px;'>");
             summary.append("<h2>Booking Summary</h2>");
             summary.append("<hr>");
-            if (majorChecks.stream().anyMatch(JCheckBox::isSelected)) {
-                summary.append("<b>Major Services Selected</b>:<br>");
-                for (JCheckBox cb : majorChecks) {
+            if (majorBtn.isSelected()) {
+                summary.append("<b>Major Service (All Services)</b>:<br>");
+                for (Service s : allServices) {
+                    summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
+                }
+                summary.append("<br>");
+            } else {
+                summary.append("<b>Main Services</b>:<br>");
+                for (JCheckBox cb : baseChecks) {
                     if (cb.isSelected()) {
                         Service s = (Service) cb.getClientProperty("service");
                         summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
                     }
                 }
                 summary.append("<br>");
-            }
-            if (addonChecks.stream().anyMatch(JCheckBox::isSelected)) {
-                summary.append("<b>Normal/Add-on Services</b>:<br>");
-                for (JCheckBox cb : addonChecks) {
-                    if (cb.isSelected()) {
-                        Service s = (Service) cb.getClientProperty("service");
-                        summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
+
+                if (addonChecks.stream().anyMatch(JCheckBox::isSelected)) {
+                    summary.append("<b>Add-on Services</b>:<br>");
+                    for (JCheckBox cb : addonChecks) {
+                        if (cb.isSelected()) {
+                            Service s = (Service) cb.getClientProperty("service");
+                            summary.append("• ").append(s.getServiceName()).append(": RM ").append(String.format("%.2f", s.getPrice())).append("<br>");
+                        }
                     }
+                    summary.append("<br>");
                 }
-                summary.append("<br>");
             }
             summary.append("<hr>");
             summary.append("<h3 style='color: #2e7d32;'>Total Amount: RM ").append(String.format("%.2f", total)).append("</h3>");
