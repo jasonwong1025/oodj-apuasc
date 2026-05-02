@@ -205,10 +205,6 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
-        JComboBox<String> filterBox = new JComboBox<>(new String[]{"All", "Unpaid", "Partial"});
-        top.add(new JLabel("Filter:"));
-        top.add(filterBox);
-        top.setOpaque(false);
 
         JButton addBtn = SharedStyles.createActionButton("Add Customer", SharedStyles.BTN_GREEN);
         top.add(addBtn);
