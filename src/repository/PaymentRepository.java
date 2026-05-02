@@ -1,9 +1,9 @@
 package repository;
 
-import model.payment.Payment;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import model.payment.Payment;
 
 public class PaymentRepository {
     private static final String FILE_PATH = "data/payments.txt";
@@ -15,27 +15,54 @@ public class PaymentRepository {
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
+
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
+
                 String[] parts = line.split("\\|", -1);
+
                 if (parts.length == 6) {
-                    payments.add(new Payment(parts[0], parts[1], parts[2], Double.parseDouble(parts[3]), parts[4], parts[5]));
+                    // OLD DATA (no remainingAmount)
+                    payments.add(new Payment(
+                            parts[0],
+                            parts[1],
+                            parts[2],
+                            Double.parseDouble(parts[3]),
+                            0, // default remaining
+                            parts[4],
+                            parts[5]
+                    ));
+                } else if (parts.length >= 7) {
+                    // NEW DATA
+                    payments.add(new Payment(
+                            parts[0],
+                            parts[1],
+                            parts[2],
+                            Double.parseDouble(parts[3]),
+                            Double.parseDouble(parts[4]),
+                            parts[5],
+                            parts[6]
+                    ));
                 }
             }
-        } catch (IOException | NumberFormatException e) {
+
+        } catch (IOException e) {
             e.printStackTrace();
         }
+
         return payments;
     }
 
     public List<Payment> getPaymentsByCustomer(String customerId) {
         List<Payment> all = getAllPayments();
         List<Payment> filtered = new ArrayList<>();
+
         for (Payment p : all) {
             if (p.getCustomerId().equals(customerId)) {
                 filtered.add(p);
             }
         }
+
         return filtered;
     }
 

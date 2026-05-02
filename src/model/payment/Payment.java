@@ -7,14 +7,18 @@ public class Payment {
     private double amount;
     private String date;
     private String status; // PAID, UNPAID
+    private double remainingAmount;
 
     public Payment() {}
 
-    public Payment(String paymentId, String appointmentId, String customerId, double amount, String date, String status) {
+    public Payment(String paymentId, String appointmentId, String customerId,
+        double amount, double remainingAmount, String date, String status) {
+
         this.paymentId = paymentId;
         this.appointmentId = appointmentId;
         this.customerId = customerId;
         this.amount = amount;
+        this.remainingAmount = remainingAmount;
         this.date = date;
         this.status = status;
     }
@@ -37,8 +41,19 @@ public class Payment {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
+    public double getRemainingAmount() { return remainingAmount; }
+    public void setRemainingAmount(double remainingAmount) { this.remainingAmount = remainingAmount; }
+
     @Override
     public String toString() {
-        return String.join("|", paymentId, appointmentId, customerId, String.valueOf(amount), date, status);
-    }
+    return String.join("|",
+        paymentId,
+        appointmentId,
+        customerId,
+        String.valueOf(amount),
+        String.valueOf(remainingAmount),
+        date,
+        status
+    ); 
+    } 
 }

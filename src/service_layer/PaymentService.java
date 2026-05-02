@@ -1,8 +1,8 @@
 package service_layer;
 
+import java.util.List;
 import model.payment.Payment;
 import repository.PaymentRepository;
-import java.util.List;
 
 public class PaymentService {
     private final PaymentRepository paymentRepository;
@@ -24,4 +24,8 @@ public class PaymentService {
         }
         return false;
     }
+    public void processPayment(Payment payment) {
+        paymentRepository.save(payment);
 }
+}
+
