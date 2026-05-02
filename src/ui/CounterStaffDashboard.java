@@ -1,15 +1,15 @@
 package ui;
 
 import abstracts.AbstractUser;
-import service_layer.UserService;
-import model.users.User;
-import model.users.Customer;
-import utils.IdGenerator;
+import java.awt.*;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.util.List;
+import model.users.Customer;
+import model.users.User;
+import service_layer.UserService;
+import utils.IdGenerator;
 
 public class CounterStaffDashboard extends JFrame implements Refreshable {
 
@@ -136,8 +136,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             case "Dashboard": panel = buildDashboardPanel(); break;
             case "Manage Customers": panel = buildCustomerManagementPanel(); break;
             case "Manage Appointments": panel = buildAppointmentPanel(); break;
-            case "Process Payment": panel = buildPlaceholderPanel("Process Payment"); break;
-            case "My Profile": panel = buildMyProfilePanel(); break;
+            case "Process Payment": panel = buildPaymentPanel(); break;            case "My Profile": panel = buildMyProfilePanel(); break;
             default: panel = new JPanel();
         }
 
@@ -206,7 +205,6 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
-        top.setOpaque(false);
 
         JButton addBtn = SharedStyles.createActionButton("Add Customer", SharedStyles.BTN_GREEN);
         top.add(addBtn);
@@ -477,5 +475,300 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         p.add(new JLabel(title + " Panel"));
         return p;
     }
-    
+
+//PAYMENT
+    private JPanel buildPaymentPanel() {
+        JPanel root = new JPanel(new BorderLayout(0, 15));
+        root.setBackground(SharedStyles.MAIN_BG);
+        root.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        service_layer.AppointmentService apptService = new service_layer.AppointmentService();
+        service_layer.PaymentService paymentService = new service_layer.PaymentService();
+
+        java.util.List<model.appointment.Appointment> list = apptService.getAllAppointments();
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        top.setOpaque(false);
+
+        JComboBox<String> filterBox = new JComboBox<>(new String[]{"All", "Unpaid", "Partial"});
+        top.add(new JLabel("Filter:"));
+        top.add(filterBox);
+
+        JButton payBtn = SharedStyles.createActionButton("Process Payment", SharedStyles.BTN_GREEN);
+        JButton deleteBtn = SharedStyles.createActionButton("Delete Payment", SharedStyles.BTN_RED);
+        JButton receiptBtn = SharedStyles.createActionButton("Print Receipt", SharedStyles.BTN_BLUE);
+
+        top.add(payBtn);
+        top.add(deleteBtn);
+        top.add(receiptBtn);
+
+        root.add(top, BorderLayout.NORTH);
+
+        String[] cols = {"Appointment ID", "Customer", "Service", "Price", "Payment Status", "Remaining"};
+
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
+        };
+
+        for (model.appointment.Appointment a : list) {
+
+            String rawServiceId = a.getServiceId();
+            String[] serviceIds = rawServiceId.split(",");
+
+            StringBuilder serviceNames = new StringBuilder();
+            double totalPrice = 0;
+
+            try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("data/services.txt"))) {
+
+                java.util.List<String[]> services = new java.util.ArrayList<>();
+                String line;
+
+                while ((line = br.readLine()) != null) {
+                    services.add(line.split("\\|"));
+                }
+
+                for (String sid : serviceIds) {
+                    String idNumber = sid.replaceAll("\\D", "");
+
+                    for (String[] parts : services) {
+                        String serviceNumber = parts[0].replaceAll("\\D", "");
+
+                        if (serviceNumber.equals(idNumber)) {
+                            serviceNames.append(parts[1]).append(", ");
+                            totalPrice += Double.parseDouble(parts[3]);
+                            break;
+                        }
+                    }
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            String finalServiceNames = serviceNames.length() > 0
+                    ? serviceNames.substring(0, serviceNames.length() - 2)
+                    : "Unknown";
+
+            String paymentStatus = "UNPAID";
+            double remaining = totalPrice;
+
+            java.util.List<model.payment.Payment> payments =
+                    paymentService.getCustomerPayments(a.getCustomerId());
+
+            for (model.payment.Payment p : payments) {
+                if (p.getAppointmentId().equals(a.getAppointmentId())) {
+                    paymentStatus = p.getStatus();
+                    remaining = p.getRemainingAmount();
+                    break;
+                }
+            }
+
+            String selectedFilter = filterBox.getSelectedItem().toString();
+
+            if (selectedFilter.equals("Unpaid") && !paymentStatus.equalsIgnoreCase("UNPAID")) continue;
+            if (selectedFilter.equals("Partial") && !paymentStatus.equalsIgnoreCase("PARTIAL")) continue;
+
+            model.addRow(new Object[]{
+                    a.getAppointmentId(),
+                    a.getCustomerId(),
+                    finalServiceNames,
+                    totalPrice,
+                    paymentStatus,
+                    remaining
+            });
+        }
+
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
+        root.add(new JScrollPane(table), BorderLayout.CENTER);
+
+    filterBox.addActionListener(e -> {
+        model.setRowCount(0); // clear table
+
+        for (model.appointment.Appointment a : list) {
+
+            String rawServiceId = a.getServiceId();
+            String[] serviceIds = rawServiceId.split(",");
+
+            StringBuilder serviceNames = new StringBuilder();
+            double totalPrice = 0;
+
+            try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("data/services.txt"))) {
+
+                java.util.List<String[]> services = new java.util.ArrayList<>();
+                String line;
+
+                while ((line = br.readLine()) != null) {
+                    services.add(line.split("\\|"));
+                }
+
+                for (String sid : serviceIds) {
+                    String idNumber = sid.replaceAll("\\D", "");
+
+                    for (String[] parts : services) {
+                        String serviceNumber = parts[0].replaceAll("\\D", "");
+
+                        if (serviceNumber.equals(idNumber)) {
+                            serviceNames.append(parts[1]).append(", ");
+                            totalPrice += Double.parseDouble(parts[3]);
+                            break;
+                        }
+                    }
+                }
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            String finalServiceNames = serviceNames.length() > 0
+                    ? serviceNames.substring(0, serviceNames.length() - 2)
+                    : "Unknown";
+
+            String paymentStatus = "UNPAID";
+            double remaining = totalPrice;
+
+            java.util.List<model.payment.Payment> payments =
+                    paymentService.getCustomerPayments(a.getCustomerId());
+
+            for (model.payment.Payment p : payments) {
+                if (p.getAppointmentId().equals(a.getAppointmentId())) {
+                    paymentStatus = p.getStatus();
+                    remaining = p.getRemainingAmount();
+                    break;
+                }
+            }
+
+            String selectedFilter = filterBox.getSelectedItem().toString();
+
+            if (selectedFilter.equals("Unpaid") && !paymentStatus.equalsIgnoreCase("UNPAID")) continue;
+            if (selectedFilter.equals("Partial") && !paymentStatus.equalsIgnoreCase("PARTIAL")) continue;
+
+            model.addRow(new Object[]{
+                    a.getAppointmentId(),
+                    a.getCustomerId(),
+                    finalServiceNames,
+                    totalPrice,
+                    paymentStatus,
+                    remaining
+            });
+        }
+    });
+
+        payBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this, "Select appointment!");
+                return;
+            }
+
+            String appointmentId = table.getValueAt(row, 0).toString();
+            String customerId = table.getValueAt(row, 1).toString();
+            String paymentStatus = table.getValueAt(row, 4).toString();
+
+            if ("PAID".equalsIgnoreCase(paymentStatus)) {
+                JOptionPane.showMessageDialog(this, "Already fully paid!");
+                return;
+            }
+
+            double totalPrice = Double.parseDouble(table.getValueAt(row, 3).toString());
+
+            JTextField amountField = SharedStyles.createFilterField(20);
+            amountField.setText(String.valueOf(totalPrice));
+
+            Object[] fields = {"Amount:", amountField};
+
+            if (JOptionPane.showConfirmDialog(this, fields, "Process Payment", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+                try {
+                    double enteredAmount = Double.parseDouble(amountField.getText());
+                    double remaining = totalPrice - enteredAmount;
+
+                    String newStatus = (remaining <= 0) ? "PAID" : "PARTIAL";
+                    if (remaining <= 0) remaining = 0;
+
+                    model.payment.Payment payment = new model.payment.Payment(
+                            utils.IdGenerator.generateId("PAY", "data/payments.txt"),
+                            appointmentId,
+                            customerId,
+                            enteredAmount,
+                            remaining,
+                            java.time.LocalDate.now().toString(),
+                            newStatus
+                    );
+
+                    paymentService.processPayment(payment);
+
+                    JOptionPane.showMessageDialog(this, "Payment recorded!");
+                    refresh();
+
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid amount!");
+                }
+            }
+        });
+
+        deleteBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this, "Select a row!");
+                return;
+            }
+
+            String appointmentId = table.getValueAt(row, 0).toString();
+
+            int confirm = JOptionPane.showConfirmDialog(this,
+                    "Delete payment for this appointment?",
+                    "Confirm",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (confirm != JOptionPane.YES_OPTION) return;
+
+            java.util.List<model.payment.Payment> all =
+                    paymentService.getCustomerPayments(table.getValueAt(row,1).toString());
+
+            java.util.List<model.payment.Payment> updated = new java.util.ArrayList<>();
+
+            for (model.payment.Payment p : all) {
+                if (!p.getAppointmentId().equals(appointmentId)) {
+                    updated.add(p);
+                }
+            }
+
+            try (java.io.BufferedWriter bw = new java.io.BufferedWriter(new java.io.FileWriter("data/payments.txt"))) {
+                for (model.payment.Payment p : updated) {
+                    bw.write(p.toString());
+                    bw.newLine();
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            JOptionPane.showMessageDialog(this, "Payment deleted!");
+            refresh();
+        });
+
+        receiptBtn.addActionListener(e -> {
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this, "Select a row!");
+                return;
+            }
+
+            String receipt = "====== RECEIPT ======\n"
+                    + "Appointment: " + table.getValueAt(row, 0) + "\n"
+                    + "Customer: " + table.getValueAt(row, 1) + "\n"
+                    + "Service: " + table.getValueAt(row, 2) + "\n"
+                    + "Total: RM " + table.getValueAt(row, 3) + "\n"
+                    + "Status: " + table.getValueAt(row, 4) + "\n"
+                    + "Remaining: RM " + table.getValueAt(row, 5) + "\n"
+                    + "Date: " + java.time.LocalDate.now() + "\n"
+                    + "=====================";
+
+            JOptionPane.showMessageDialog(this, receipt);
+        });
+
+        return root;
+    }
 }
