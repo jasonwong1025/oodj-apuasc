@@ -11,18 +11,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import model.appointment.Appointment;
+import model.users.User;
 import model.vehicle.Vehicle;
 import repository.AppointmentRepository;
 import repository.ServiceFileRepository;
+import repository.UserFileRepository;
 import repository.VehicleRepository;
 import utils.IdGenerator;
 
 public class AppointmentService {
-    public static final int SLOT_TOTAL_CAPACITY = 10;
-    public static final int SLOT_MAJOR_CAPACITY = 5;
-    public static final int SLOT_NORMAL_CAPACITY = 5;
+    // Capacities are computed dynamically from active technicians' `technicianServiceType`.
     public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+    private static final int MAJOR_DURATION_SLOTS = 3;
     private static final List<String> ALLOWED_SLOT_TIMES;
 
     static {
@@ -37,11 +38,13 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final VehicleRepository vehicleRepository;
     private final ServiceFileRepository serviceRepository;
+    private final UserFileRepository userRepository;
 
     public AppointmentService() {
         this.appointmentRepository = new AppointmentRepository();
         this.vehicleRepository = new VehicleRepository();
         this.serviceRepository = new ServiceFileRepository();
+        this.userRepository = new UserFileRepository();
     }
 
     public enum SlotType {
@@ -90,13 +93,17 @@ public class AppointmentService {
 
         for (Appointment a : appointmentRepository.getAllAppointments()) {
             if (!"PENDING".equalsIgnoreCase(a.getStatus())) continue;
-            if (!date.equals(a.getDate()) || !time.equals(a.getTime())) continue;
+            if (!date.equals(a.getDate())) continue;
 
             SlotType type = classifyAppointmentType(a.getServiceId(), majorServiceIds);
             if (type == SlotType.MAJOR) {
-                majorCount++;
+                if (isMajorAppointmentCoveringSlot(a.getTime(), time)) {
+                    majorCount++;
+                }
             } else {
-                normalCount++;
+                if (time.equals(a.getTime())) {
+                    normalCount++;
+                }
             }
         }
 
@@ -112,14 +119,71 @@ public class AppointmentService {
     }
 
     public boolean isSlotAvailable(String date, String time, SlotType slotType) {
+        if (slotType == SlotType.MAJOR) {
+            return isMajorSlotWindowAvailable(date, time);
+        }
+        return isNormalSlotAvailable(date, time);
+    }
+
+    private boolean isNormalSlotAvailable(String date, String time) {
         SlotCapacity capacity = getSlotCapacity(date, time);
-        if (capacity.getTotalCount() >= SLOT_TOTAL_CAPACITY) {
+        int majorLimit = getCapacityLimitForSlotType(SlotType.MAJOR);
+        int normalLimit = getCapacityLimitForSlotType(SlotType.NORMAL);
+        int totalLimit = majorLimit + normalLimit;
+
+        if (capacity.getTotalCount() >= totalLimit) {
             return false;
         }
-        if (slotType == SlotType.MAJOR) {
-            return capacity.getMajorCount() < SLOT_MAJOR_CAPACITY;
+        return capacity.getNormalCount() < normalLimit;
+    }
+
+    private boolean isMajorSlotWindowAvailable(String date, String startTime) {
+        List<String> slots = getAllowedSlotTimes();
+        int startIndex = slots.indexOf(startTime);
+        if (startIndex < 0 || startIndex + MAJOR_DURATION_SLOTS > slots.size()) {
+            return false;
         }
-        return capacity.getNormalCount() < SLOT_NORMAL_CAPACITY;
+
+        int majorLimit = getCapacityLimitForSlotType(SlotType.MAJOR);
+        int normalLimit = getCapacityLimitForSlotType(SlotType.NORMAL);
+        int totalLimit = majorLimit + normalLimit;
+
+        for (int i = 0; i < MAJOR_DURATION_SLOTS; i++) {
+            String time = slots.get(startIndex + i);
+            SlotCapacity capacity = getSlotCapacity(date, time);
+            if (capacity.getTotalCount() >= totalLimit) {
+                return false;
+            }
+            if (capacity.getMajorCount() >= majorLimit) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public int getCapacityLimitForSlotType(SlotType slotType) {
+        List<User> users = userRepository.getAllUsers();
+        int count = 0;
+        for (User u : users) {
+            if (u == null) continue;
+            if (u.getRole() == null) continue;
+            if (!"Technician".equalsIgnoreCase(u.getRole())) continue;
+            if (!u.isActive()) continue;
+            String svc = u.getTechnicianServiceType();
+            if (svc == null) continue;
+            String norm = svc.trim().toLowerCase();
+            if (slotType == SlotType.MAJOR) {
+                if (norm.contains("major")) count++;
+            } else {
+                if (norm.contains("normal")) count++;
+            }
+        }
+        // Fallback to at least 1 to avoid blocking all bookings accidentally
+        return Math.max(1, count);
+    }
+
+    public int getTotalCapacityLimit() {
+        return getCapacityLimitForSlotType(SlotType.MAJOR) + getCapacityLimitForSlotType(SlotType.NORMAL);
     }
 
     public String validateSchedule(String date, String time) {
@@ -140,6 +204,10 @@ public class AppointmentService {
             return "Error: Appointment time must be one of the allowed slots (08:30 to 16:30).";
         }
 
+        if (slotType == SlotType.MAJOR && !isMajorSlotWindowAvailable(date, time)) {
+            return "Error: Major service requires a 3-hour block. Please choose an earlier slot.";
+        }
+
         LocalDateTime picked = LocalDateTime.of(pickedDate, pickedTime);
         if (picked.isBefore(LocalDateTime.now())) {
             return "Error: You cannot book an appointment in the past.";
@@ -150,6 +218,14 @@ public class AppointmentService {
         }
 
         return null;
+    }
+
+    private boolean isMajorAppointmentCoveringSlot(String startTime, String slotTime) {
+        List<String> slots = getAllowedSlotTimes();
+        int startIndex = slots.indexOf(startTime);
+        int slotIndex = slots.indexOf(slotTime);
+        if (startIndex < 0 || slotIndex < 0) return false;
+        return slotIndex >= startIndex && slotIndex < startIndex + MAJOR_DURATION_SLOTS;
     }
 
     public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time) {
