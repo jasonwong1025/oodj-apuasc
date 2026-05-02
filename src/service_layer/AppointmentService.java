@@ -258,7 +258,7 @@ public class AppointmentService {
         // Join multiple service IDs with commas
         String serviceIdStr = String.join(",", serviceIds);
         
-        Appointment appointment = new Appointment(appointmentId, customerId, vehicleId, serviceIdStr, date, time, "PENDING", "NONE", "NONE");
+        Appointment appointment = new Appointment(appointmentId, customerId, vehicleId, serviceIdStr, date, time, "PENDING", "NONE", "NONE", requestedType.name());
         appointmentRepository.save(appointment);
         return "Success: Appointment booked.";
     }
@@ -281,6 +281,9 @@ public class AppointmentService {
         if (serviceIds == null || serviceIds.isEmpty()) {
             return SlotType.NORMAL;
         }
+        if (serviceIds.size() > 3) {
+            return SlotType.MAJOR;
+        }
         Set<String> majorServiceIds = getMajorServiceIds();
         for (String id : serviceIds) {
             if (majorServiceIds.contains(id)) {
@@ -295,6 +298,9 @@ public class AppointmentService {
             return SlotType.NORMAL;
         }
         String[] ids = serviceIdCsv.split(",");
+        if (ids.length > 3) {
+            return SlotType.MAJOR;
+        }
         for (String rawId : ids) {
             String id = rawId.trim();
             if (majorServiceIds.contains(id)) {

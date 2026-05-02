@@ -3,6 +3,8 @@ package ui;
 import abstracts.AbstractUser;
 import java.awt.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -420,9 +422,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         totalStatusLabel.setForeground(SharedStyles.NAV_ACTIVE_TOP);
 
         LocalDate today = LocalDate.now();
-        final LocalDate[] selectedDate = {today};
+        LocalDate defaultDate = today;
+        if (java.time.LocalTime.now().isAfter(java.time.LocalTime.of(16, 30))) {
+            defaultDate = today.plusDays(1);
+        }
+        final LocalDate[] selectedDate = {defaultDate};
         final String[] selectedTime = {null};
-        final LocalDate[] displayedMonth = {today.withDayOfMonth(1)};
+        final LocalDate[] displayedMonth = {defaultDate.withDayOfMonth(1)};
 
         JLabel monthLabel = new JLabel();
         monthLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
@@ -460,6 +466,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             for (String slotTime : AppointmentService.getAllowedSlotTimes()) {
                 AppointmentService.SlotCapacity cap = appointmentService.getSlotCapacity(dateValue, slotTime);
                 boolean available = appointmentService.isSlotAvailable(dateValue, slotTime, requestedType);
+                
+                // Exclude past timeslots
+                LocalDateTime slotDateTime = LocalDateTime.of(selectedDate[0], LocalTime.parse(slotTime, AppointmentService.TIME_FORMATTER));
+                if (slotDateTime.isBefore(LocalDateTime.now())) {
+                    available = false;
+                }
+
                 int majorLimit = appointmentService.getCapacityLimitForSlotType(SlotType.MAJOR);
                 int normalLimit = appointmentService.getCapacityLimitForSlotType(SlotType.NORMAL);
                 int totalLimit = appointmentService.getTotalCapacityLimit();
@@ -469,7 +482,12 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                         cap.getNormalCount(), normalLimit,
                         cap.getTotalCount(), totalLimit,
                         available ? "" : " (FULL)");
-                slotCombo.addItem(new SlotOption(slotTime, label, available));
+                if (available) {
+                    slotCombo.addItem(new SlotOption(slotTime, label, available));
+                }
+            }
+            if (slotCombo.getItemCount() == 0) {
+                slotCombo.addItem(new SlotOption(null, "No slots available", false));
             }
         };
 

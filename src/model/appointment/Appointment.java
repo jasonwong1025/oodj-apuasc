@@ -10,11 +10,12 @@ public class Appointment {
     private String status;
     private String technicianId;
     private String technicianFeedback;
+    private String appointmentType;
 
     public Appointment() {}
 
     public Appointment(String appointmentId, String customerId, String vehicleId, String serviceId,
-                       String date, String time, String status, String technicianId, String technicianFeedback) {
+                       String date, String time, String status, String technicianId, String technicianFeedback, String appointmentType) {
 
         this.appointmentId = appointmentId;
         this.customerId = customerId;
@@ -25,6 +26,7 @@ public class Appointment {
         this.status = status;
         this.technicianId = technicianId;
         this.technicianFeedback = technicianFeedback;
+        this.appointmentType = appointmentType;
     }
 
     public String getAppointmentId() { return appointmentId; }
@@ -54,6 +56,9 @@ public class Appointment {
     public String getTechnicianFeedback() { return technicianFeedback; }
     public void setTechnicianFeedback(String technicianFeedback) { this.technicianFeedback = technicianFeedback; }
 
+    public String getAppointmentType() { return appointmentType; }
+    public void setAppointmentType(String appointmentType) { this.appointmentType = appointmentType; }
+
     @Override
     public String toString() {
         return String.join("|",
@@ -65,7 +70,8 @@ public class Appointment {
                 time,
                 status,
                 (technicianId == null ? "NONE" : technicianId),
-                (technicianFeedback == null || technicianFeedback.isEmpty()) ? "NONE" : technicianFeedback
+                (technicianFeedback == null || technicianFeedback.isEmpty()) ? "NONE" : technicianFeedback,
+                (appointmentType == null || appointmentType.isEmpty()) ? "NORMAL" : appointmentType
         );
     }
 }
