@@ -1,9 +1,10 @@
 package repository;
 
-import model.review.Review;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+
+import model.feedback.Review;
 
 public class ReviewRepository {
     private static final String FILE_PATH = "data/reviews.txt";

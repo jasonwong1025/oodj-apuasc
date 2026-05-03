@@ -9,13 +9,12 @@ public class Appointment {
     private String time;
     private String status;
     private String technicianId;
-    private String technicianFeedback;
     private String appointmentType;
 
     public Appointment() {}
 
     public Appointment(String appointmentId, String customerId, String vehicleId, String serviceId,
-                       String date, String time, String status, String technicianId, String technicianFeedback, String appointmentType) {
+                       String date, String time, String status, String technicianId, String appointmentType) {
 
         this.appointmentId = appointmentId;
         this.customerId = customerId;
@@ -25,7 +24,6 @@ public class Appointment {
         this.time = time;
         this.status = status;
         this.technicianId = technicianId;
-        this.technicianFeedback = technicianFeedback;
         this.appointmentType = appointmentType;
     }
 
@@ -48,16 +46,54 @@ public class Appointment {
     public void setTime(String time) { this.time = time; }
 
     public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public void setStatus(String status) {
+        if ("PENDING".equalsIgnoreCase(status)) {
+            this.technicianId = "NONE";
+        }
+        if ("CONFIRMED".equalsIgnoreCase(status) || "IN PROGRESS".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) {
+            if (technicianId == null || technicianId.trim().isEmpty() || "NONE".equalsIgnoreCase(technicianId)) {
+                this.status = "PENDING";
+                return;
+            }
+        }
+        this.status = status;
+    }
 
     public String getTechnicianId() { return technicianId; }
-    public void setTechnicianId(String technicianId) { this.technicianId = technicianId; }
-
-    public String getTechnicianFeedback() { return technicianFeedback; }
-    public void setTechnicianFeedback(String technicianFeedback) { this.technicianFeedback = technicianFeedback; }
+    public void setTechnicianId(String technicianId) {
+        this.technicianId = technicianId;
+        if (technicianId != null && !technicianId.trim().isEmpty() && !"NONE".equalsIgnoreCase(technicianId)) {
+            if ("PENDING".equalsIgnoreCase(this.status)) {
+                this.status = "CONFIRMED";
+            }
+        } else {
+            if ("CONFIRMED".equalsIgnoreCase(this.status)) {
+                this.status = "PENDING";
+            }
+        }
+    }
 
     public String getAppointmentType() { return appointmentType; }
     public void setAppointmentType(String appointmentType) { this.appointmentType = appointmentType; }
+
+    public boolean canTechnicianProvideFeedback() {
+        return "IN PROGRESS".equalsIgnoreCase(this.status) || "COMPLETED".equalsIgnoreCase(this.status);
+    }
+
+    public boolean canBeAssignedTo(model.users.User technician) {
+        if (technician == null || !"Technician".equalsIgnoreCase(technician.getRole())) {
+            return false;
+        }
+        String type = this.appointmentType == null || this.appointmentType.trim().isEmpty() ? "NORMAL" : this.appointmentType;
+        String techSvc = technician.getTechnicianServiceType() == null ? "" : technician.getTechnicianServiceType();
+        if ("NORMAL".equalsIgnoreCase(type)) {
+            return techSvc.toLowerCase().contains("normal");
+        }
+        if ("MAJOR".equalsIgnoreCase(type)) {
+            return techSvc.toLowerCase().contains("major");
+        }
+        return false;
+    }
 
     @Override
     public String toString() {
@@ -70,7 +106,6 @@ public class Appointment {
                 time,
                 status,
                 (technicianId == null ? "NONE" : technicianId),
-                (technicianFeedback == null || technicianFeedback.isEmpty()) ? "NONE" : technicianFeedback,
                 (appointmentType == null || appointmentType.isEmpty()) ? "NORMAL" : appointmentType
         );
     }

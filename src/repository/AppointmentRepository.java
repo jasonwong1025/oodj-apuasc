@@ -18,12 +18,12 @@ public class AppointmentRepository {
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
                 String[] parts = line.split("\\|", -1);
-                if (parts.length >= 9) {
+                if (parts.length >= 8) {
                     appointments.add(new Appointment(
                         parts[0], parts[1], parts[2], parts[3],
                         parts[4], parts[5], parts[6],
-                        parts[7], parts[8],
-                        parts.length >= 10 ? parts[9] : "NORMAL"
+                        parts[7],
+                        parts.length >= 9 ? parts[8] : "NORMAL"
                     ));
                 }
             }

@@ -14,7 +14,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import model.appointment.Appointment;
-import model.review.Review;
+import model.feedback.Review;
 import model.service.Service;
 import model.users.User;
 import model.vehicle.Vehicle;
@@ -838,9 +838,12 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         List<Appointment> list = appointmentService.getCustomerAppointments(currentUser.getUserId());
+        repository.FeedbackRepository fbRepo = new repository.FeedbackRepository();
         for (Appointment a : list) {
             if (!a.getStatus().equals("PENDING")) {
                 boolean isPaid = paymentService.isPaid(a.getAppointmentId());
+                model.feedback.Feedback fbObj = fbRepo.findByAppointmentId(a.getAppointmentId());
+                String existingFb = (fbObj == null || fbObj.getDescription().trim().isEmpty() || "NONE".equalsIgnoreCase(fbObj.getDescription())) ? "-" : fbObj.getDescription();
                 model.addRow(new Object[]{
                     a.getAppointmentId(),
                     resolveVehicleInfo(a.getVehicleId()),
@@ -848,7 +851,7 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                     a.getDate(),
                     a.getStatus(),
                     isPaid ? "PAID" : "UNPAID",
-                    a.getTechnicianFeedback()
+                    existingFb
                 });
             }
         }

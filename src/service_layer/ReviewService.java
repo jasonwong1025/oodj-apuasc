@@ -1,10 +1,11 @@
 package service_layer;
 
-import model.review.Review;
 import repository.ReviewRepository;
 import utils.IdGenerator;
 import java.time.LocalDate;
 import java.util.List;
+
+import model.feedback.Review;
 
 public class ReviewService {
     private final ReviewRepository reviewRepository;
