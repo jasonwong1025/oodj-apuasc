@@ -333,28 +333,130 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
     root.add(top, BorderLayout.NORTH);
 
-    String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status", "Technician"};
+    String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status", "Type", "Technician"};
 
     DefaultTableModel model = new DefaultTableModel(columns, 0) {
-        @Override public boolean isCellEditable(int r, int c) { return false; }
+        @Override public boolean isCellEditable(int r, int c) { return c == 6; }
     };
 
+    service_layer.ServiceService serviceSvc = new service_layer.ServiceService();
     for (model.appointment.Appointment a : list) {
+        String serviceDisplay = a.getServiceId();
+        if (serviceDisplay != null && !serviceDisplay.trim().isEmpty()) {
+            String[] parts = serviceDisplay.split(",");
+            java.util.List<String> names = new java.util.ArrayList<>();
+            for (String p : parts) {
+                model.service.Service svc = serviceSvc.findById(p.trim());
+                names.add(svc != null ? svc.getServiceName() : p.trim());
+            }
+            serviceDisplay = String.join(", ", names);
+        }
         model.addRow(new Object[]{
                 a.getAppointmentId(),
                 a.getCustomerId(),
                 a.getVehicleId(),
-                a.getServiceId(),
+                serviceDisplay,
                 a.getDate(),
                 a.getTime(),
                 a.getStatus(),
+                a.getAppointmentType(),
                 a.getTechnicianId()
-
         });
     }
 
     JTable table = new JTable(model);
     SharedStyles.applyTableStyle(table);
+
+    String[] statuses = {"PENDING", "CONFIRMED", "IN PROGRESS", "COMPLETED", "CANCELLED"};
+    JComboBox<String> comboEditor = new JComboBox<>();
+    comboEditor.setFont(new Font("SansSerif", Font.PLAIN, 13));
+
+    DefaultCellEditor customEditor = new DefaultCellEditor(comboEditor) {
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            comboEditor.removeAllItems();
+            String currentStatus = table.getValueAt(row, 6).toString();
+            
+            if ("PENDING".equalsIgnoreCase(currentStatus)) {
+                comboEditor.addItem("PENDING");
+                comboEditor.addItem("CONFIRMED");
+                comboEditor.addItem("IN PROGRESS");
+                comboEditor.addItem("COMPLETED");
+                comboEditor.addItem("CANCELLED");
+            } else {
+                comboEditor.addItem("PENDING");
+                comboEditor.addItem("CONFIRMED");
+                comboEditor.addItem("IN PROGRESS");
+                comboEditor.addItem("COMPLETED");
+            }
+            
+            comboEditor.setSelectedItem(currentStatus);
+            return super.getTableCellEditorComponent(table, value, isSelected, row, column);
+        }
+    };
+    table.getColumnModel().getColumn(6).setCellEditor(customEditor);
+
+    table.getColumnModel().getColumn(6).setCellRenderer(new javax.swing.table.TableCellRenderer() {
+        private final JComboBox<String> combo = new JComboBox<>(statuses);
+        {
+            combo.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        }
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            combo.setSelectedItem(value != null ? value.toString() : "");
+            if (isSelected) {
+                combo.setBackground(table.getSelectionBackground());
+            } else {
+                combo.setBackground(Color.WHITE);
+            }
+            return combo;
+        }
+    });
+
+    model.addTableModelListener(e -> {
+        if (e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
+            int row = e.getFirstRow();
+            int col = e.getColumn();
+            if (col == 6) {
+                String id = model.getValueAt(row, 0).toString();
+                String newStatus = model.getValueAt(row, 6).toString();
+
+                for (model.appointment.Appointment a : list) {
+                    if (a.getAppointmentId().equals(id)) {
+                        if (a.getStatus().equalsIgnoreCase(newStatus)) {
+                            return; // No actual change, skip update
+                        }
+                        if ("CANCELLED".equalsIgnoreCase(newStatus) && "CONFIRMED".equalsIgnoreCase(a.getStatus())) {
+                            JOptionPane.showMessageDialog(this, "Cannot change status to CANCELLED once it is CONFIRMED.");
+                            SwingUtilities.invokeLater(() -> refresh());
+                            return;
+                        }
+                        if ("CONFIRMED".equalsIgnoreCase(newStatus) &&
+                            (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
+                            
+                            openAssignTechnicianDialog(a, list);
+                            
+                            if (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId())) {
+                                SwingUtilities.invokeLater(() -> refresh());
+                                return;
+                            }
+                        }
+                        if (("CONFIRMED".equalsIgnoreCase(newStatus) || "COMPLETED".equalsIgnoreCase(newStatus) || "IN PROGRESS".equalsIgnoreCase(newStatus)) &&
+                            (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
+                            JOptionPane.showMessageDialog(this, "Cannot change status to " + newStatus + " without an assigned technician.");
+                            SwingUtilities.invokeLater(() -> refresh());
+                            return;
+                        }
+                        a.setStatus(newStatus);
+                        new repository.AppointmentRepository().update(a);
+                        SwingUtilities.invokeLater(() -> refresh());
+                        break;
+                    }
+                }
+            }
+        }
+    });
+
     root.add(new JScrollPane(table), BorderLayout.CENTER);
 
     // ADD
@@ -390,19 +492,35 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
                 "Update",
                 JOptionPane.QUESTION_MESSAGE,
                 null,
-                new String[]{"PENDING", "COMPLETED", "CANCELLED"},
+                new String[]{"PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"},
                 "PENDING"
         );
 
         if (status != null) {
             for (model.appointment.Appointment a : list) {
                 if (a.getAppointmentId().equals(id)) {
+                    if ("CANCELLED".equalsIgnoreCase(status) && "CONFIRMED".equalsIgnoreCase(a.getStatus())) {
+                        JOptionPane.showMessageDialog(this, "Cannot change status to CANCELLED once it is CONFIRMED.");
+                        return;
+                    }
+                    if ("CONFIRMED".equalsIgnoreCase(status) &&
+                        (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
+                        
+                        openAssignTechnicianDialog(a, list);
+                        if (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId())) {
+                            return;
+                        }
+                    }
+                    if (("CONFIRMED".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) &&
+                        (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
+                        JOptionPane.showMessageDialog(this, "Cannot change status to " + status + " without an assigned technician.");
+                        return;
+                    }
                     a.setStatus(status);
                     new repository.AppointmentRepository().update(a);
                     break;
                 }
             }
-            JOptionPane.showMessageDialog(this, "Status updated");
             refresh();
         }
     });
@@ -417,48 +535,56 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         }
 
         String appointmentId = table.getValueAt(row, 0).toString();
-
-        service_layer.UserService userService = new service_layer.UserService();
-        List<model.users.User> allUsers = userService.listAllUsers();
-
-        java.util.List<String> technicians = new java.util.ArrayList<>();
-
-        for (model.users.User u : allUsers) {
-            if ("Technician".equals(u.getRole())) {
-                technicians.add(u.getUserId());
+        model.appointment.Appointment selectedAppt = null;
+        for (model.appointment.Appointment a : list) {
+            if (a.getAppointmentId().equals(appointmentId)) {
+                selectedAppt = a;
+                break;
             }
         }
 
-        if (technicians.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No technicians available");
+        if (selectedAppt == null) {
+            JOptionPane.showMessageDialog(this, "Appointment not found");
             return;
         }
 
-        String selectedTech = (String) JOptionPane.showInputDialog(
-                this,
-                "Select Technician:",
-                "Assign Technician",
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                technicians.toArray(),
-                technicians.get(0)
-        );
-
-        if (selectedTech != null) {
-            for (model.appointment.Appointment a : list) {
-                if (a.getAppointmentId().equals(appointmentId)) {
-                    a.setTechnicianId(selectedTech);
-                    new repository.AppointmentRepository().update(a);
-                    break;
-                }
-            }
-
-            JOptionPane.showMessageDialog(this, "Technician assigned!");
-            refresh();
-        }
+        openAssignTechnicianDialog(selectedAppt, list);
     });
 
     return root;
+}
+
+private void openAssignTechnicianDialog(model.appointment.Appointment a, List<model.appointment.Appointment> list) {
+    service_layer.UserService userService = new service_layer.UserService();
+    List<model.users.User> allUsers = userService.listAllUsers();
+
+    java.util.List<String> technicians = new java.util.ArrayList<>();
+    for (model.users.User u : allUsers) {
+        if (a.canBeAssignedTo(u)) {
+            technicians.add(u.getUserId());
+        }
+    }
+
+    if (technicians.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "No technicians available");
+        return;
+    }
+
+    String selectedTech = (String) JOptionPane.showInputDialog(
+            this,
+            "Select Technician:",
+            "Assign Technician",
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            technicians.toArray(),
+            technicians.get(0)
+    );
+
+    if (selectedTech != null) {
+        a.setTechnicianId(selectedTech);
+        new repository.AppointmentRepository().update(a);
+        refresh();
+    }
 }
 
     private JPanel buildMyProfilePanel() {

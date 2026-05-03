@@ -1,4 +1,4 @@
-package model.review;
+package model.feedback;
 
 public class Review {
     private String reviewId;
