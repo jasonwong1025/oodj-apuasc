@@ -394,83 +394,145 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             return super.getTableCellEditorComponent(table, value, isSelected, row, column);
         }
     };
-    table.getColumnModel().getColumn(6).setCellEditor(customEditor);
 
-    table.getColumnModel().getColumn(6).setCellRenderer(new javax.swing.table.TableCellRenderer() {
-        private final JComboBox<String> combo = new JComboBox<>(statuses);
-        {
-            combo.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        }
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            combo.setSelectedItem(value != null ? value.toString() : "");
-            if (isSelected) {
-                combo.setBackground(table.getSelectionBackground());
-            } else {
-                combo.setBackground(Color.WHITE);
-            }
-            return combo;
-        }
-    });
 
-    model.addTableModelListener(e -> {
-        if (e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
-            int row = e.getFirstRow();
-            int col = e.getColumn();
-            if (col == 6) {
-                String id = model.getValueAt(row, 0).toString();
-                String newStatus = model.getValueAt(row, 6).toString();
 
-                for (model.appointment.Appointment a : list) {
-                    if (a.getAppointmentId().equals(id)) {
-                        if (a.getStatus().equalsIgnoreCase(newStatus)) {
-                            return; // No actual change, skip update
-                        }
-                        if ("CANCELLED".equalsIgnoreCase(newStatus) && "CONFIRMED".equalsIgnoreCase(a.getStatus())) {
-                            JOptionPane.showMessageDialog(this, "Cannot change status to CANCELLED once it is CONFIRMED.");
-                            SwingUtilities.invokeLater(() -> refresh());
-                            return;
-                        }
-                        if ("CONFIRMED".equalsIgnoreCase(newStatus) &&
-                            (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
-                            
-                            openAssignTechnicianDialog(a, list);
-                            
-                            if (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId())) {
-                                SwingUtilities.invokeLater(() -> refresh());
-                                return;
-                            }
-                        }
-                        if (("CONFIRMED".equalsIgnoreCase(newStatus) || "COMPLETED".equalsIgnoreCase(newStatus) || "IN PROGRESS".equalsIgnoreCase(newStatus)) &&
-                            (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
-                            JOptionPane.showMessageDialog(this, "Cannot change status to " + newStatus + " without an assigned technician.");
-                            SwingUtilities.invokeLater(() -> refresh());
-                            return;
-                        }
-                        a.setStatus(newStatus);
-                        new repository.AppointmentRepository().update(a);
-                        SwingUtilities.invokeLater(() -> refresh());
-                        break;
-                    }
-                }
-            }
-        }
-    });
 
     root.add(new JScrollPane(table), BorderLayout.CENTER);
 
     // ADD
     addBtn.addActionListener(e -> {
         JTextField c = SharedStyles.createFilterField(20);
-        JTextField v = SharedStyles.createFilterField(20);
-        JTextField s = SharedStyles.createFilterField(20);
-        JTextField d = SharedStyles.createFilterField(20);
-        JTextField t = SharedStyles.createFilterField(20);
+        JComboBox<String> vehicleBox = new JComboBox<>();
+        vehicleBox.setPreferredSize(new Dimension(200, 30));
+            c.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
 
-        Object[] fields = {"Customer ID:", c, "Vehicle ID:", v, "Service ID:", s, "Date:", d, "Time:", t};
+                vehicleBox.removeAllItems();
+
+                String customerId = c.getText().trim();
+
+                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("data/vehicles.txt"))) {
+
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        String[] parts = line.split("\\|");
+
+                        // parts[1] = customerId
+                        if (parts[1].equalsIgnoreCase(customerId)) {
+                            String vehicleId = parts[0];
+                            String plate = parts[2];
+
+                            vehicleBox.addItem(vehicleId + " - " + plate);
+                        }
+                    }
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        DefaultListModel<String> serviceModel = new DefaultListModel<>();
+
+        try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("data/services.txt"))) {
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split("\\|");
+
+                String id = parts[0];
+                String name = parts[1];
+                String price = parts[3];
+
+                serviceModel.addElement(id + " - " + name + " (RM " + price + ")");
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+
+        JList<String> serviceList = new JList<>(serviceModel);
+        serviceList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        JScrollPane serviceScroll = new JScrollPane(serviceList);
+        serviceScroll.setPreferredSize(new Dimension(250, 100));
+        JComboBox<String> dayBox = new JComboBox<>();
+        JComboBox<String> monthBox = new JComboBox<>();
+        JComboBox<String> yearBox = new JComboBox<>();
+
+        // Day
+        for (int i = 1; i <= 31; i++) {
+            dayBox.addItem(String.format("%02d", i));
+        }
+
+        // Month
+        for (int i = 1; i <= 12; i++) {
+            monthBox.addItem(String.format("%02d", i));
+        }
+
+        // Year (adjust as needed)
+        for (int i = 2025; i <= 2030; i++) {
+            yearBox.addItem(String.valueOf(i));
+        }
+
+        dayBox.setPreferredSize(new Dimension(60, 30));
+        monthBox.setPreferredSize(new Dimension(60, 30));
+        yearBox.setPreferredSize(new Dimension(80, 30));
+        String[] timeSlots = {
+        "08:30", "09:30", "10:30", "11:30",
+        "12:30", "13:30", "14:30", "15:30",
+        "16:30"
+    };
+
+        JComboBox<String> timeBox = new JComboBox<>(timeSlots);
+        timeBox.setPreferredSize(new Dimension(200, 30));
+
+        Object[] fields = {
+            "Customer ID:", c,
+            "Vehicle:", vehicleBox,
+            "Select Services:", serviceScroll,
+            "Date:", new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0)) {{
+            add(dayBox);
+            add(monthBox);
+            add(yearBox);
+        }},
+            "Time Slot:", timeBox
+        };
 
         if (JOptionPane.showConfirmDialog(this, fields, "Add Appointment", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            String result = service.bookAppointment(c.getText(), v.getText(), java.util.Arrays.asList(s.getText()), d.getText(), t.getText());
+
+            java.util.List<String> selectedServices = new java.util.ArrayList<>();
+
+            for (String selected : serviceList.getSelectedValuesList()) {
+                String id = selected.split(" - ")[0]; // extract SV001
+                selectedServices.add(id);
+            }
+
+            if (selectedServices.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please select at least one service!");
+                return;
+            }
+
+            String selectedVehicle = vehicleBox.getSelectedItem() != null
+                    ? vehicleBox.getSelectedItem().toString().split(" - ")[0]
+                    : "";
+
+            if (selectedVehicle.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please select a vehicle!");
+                return;
+            }
+            String date = yearBox.getSelectedItem() + "-"
+            + monthBox.getSelectedItem() + "-"
+            + dayBox.getSelectedItem();
+
+            String result = service.bookAppointment(
+                    c.getText(),
+                    selectedVehicle,
+                    selectedServices,
+                    date,
+                    timeBox.getSelectedItem().toString()
+            );
+
             JOptionPane.showMessageDialog(this, result);
             refresh();
         }
