@@ -905,9 +905,12 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 SharedStyles.showSelectionError(this);
                 return;
             }
-            String status = table.getValueAt(row, 3).toString();
-            if (status.equals("Available")) showReviewDialog(table.getValueAt(row, 0).toString());
-            else JOptionPane.showMessageDialog(this, "System: " + status);
+            String status = table.getValueAt(row, 4).toString();
+            if (status.equals("Available")) {
+                showReviewDialog(table.getValueAt(row, 0).toString());
+            } else {
+                JOptionPane.showMessageDialog(this, "System: " + status);
+            }
         });
         return root;
     }
@@ -1029,8 +1032,13 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         Object[] msg = {"Rating:", rating, "Comment:", new JScrollPane(comment)};
         if (JOptionPane.showConfirmDialog(this, msg, "Submit Review", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
             int score = Integer.parseInt(rating.getSelectedItem().toString());
-            reviewService.submitReview(currentUser.getUserId(), aptId, score, comment.getText().trim());
-            refresh();
+            String result = reviewService.submitReview(currentUser.getUserId(), aptId, score, comment.getText().trim());
+            if (result != null && result.startsWith("Success")) {
+                SharedStyles.showMessage(this, result);
+                refresh();
+            } else {
+                SharedStyles.showWarning(this, result == null ? "Unable to submit review." : result);
+            }
         }
     }
 
