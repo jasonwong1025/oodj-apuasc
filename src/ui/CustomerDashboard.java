@@ -833,32 +833,158 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new BorderLayout(0, 10));
+
+        JLabel title = new JLabel("Service History");
+        title.setFont(new Font("SansSerif", Font.BOLD, 18));
+        title.setBorder(new EmptyBorder(0, 0, 4, 0));
+        card.add(title, BorderLayout.NORTH);
+
         String[] cols = {"Apt ID", "Vehicle", "Service Name(s)", "Date", "Status", "Payment", "Tech Feedback"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         List<Appointment> list = appointmentService.getCustomerAppointments(currentUser.getUserId());
         repository.FeedbackRepository fbRepo = new repository.FeedbackRepository();
-        for (Appointment a : list) {
-            if (!a.getStatus().equals("PENDING")) {
+
+        JTable table = new JTable(model);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setRowHeight(28);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        table.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
+        table.setGridColor(new Color(220, 220, 225));
+        table.setShowGrid(true);
+        table.setFillsViewportHeight(true);
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    String status = String.valueOf(tbl.getValueAt(row, 4));
+                    if ("CONFIRMED".equalsIgnoreCase(status)) c.setBackground(new Color(235, 243, 255));
+                    else if ("IN PROGRESS".equalsIgnoreCase(status)) c.setBackground(new Color(255, 253, 235));
+                    else if ("COMPLETED".equalsIgnoreCase(status)) c.setBackground(new Color(236, 253, 242));
+                    else if ("CANCELLED".equalsIgnoreCase(status)) c.setBackground(new Color(255, 242, 242));
+                    else c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
+                }
+                return c;
+            }
+        });
+
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        filterRow.setOpaque(false);
+        filterRow.add(new JLabel("Search:"));
+        JTextField searchField = SharedStyles.createFilterField(14);
+        filterRow.add(searchField);
+        filterRow.add(new JLabel("Status:"));
+        JComboBox<String> statusFilter = SharedStyles.createFilterCombo(
+                new String[]{"ALL", "CONFIRMED", "IN PROGRESS", "COMPLETED", "CANCELLED"});
+        filterRow.add(statusFilter);
+        filterRow.add(new JLabel("Payment:"));
+        JComboBox<String> paymentFilter = SharedStyles.createFilterCombo(new String[]{"ALL", "PAID", "UNPAID"});
+        filterRow.add(paymentFilter);
+        final String[] fromDateValue = {""};
+        final String[] toDateValue = {""};
+        JButton rangeBtn = SharedStyles.createActionButton("Select Date Range", SharedStyles.BTN_BLUE);
+        rangeBtn.setPreferredSize(new Dimension(110, 28));
+        filterRow.add(new JLabel("Date:"));
+        filterRow.add(rangeBtn);
+        JCheckBox completedOnly = new JCheckBox("Completed only");
+        completedOnly.setOpaque(false);
+        filterRow.add(completedOnly);
+
+        Runnable applyFilter = () -> {
+            String keyword = searchField.getText().trim().toLowerCase();
+            String status = String.valueOf(statusFilter.getSelectedItem());
+            String payment = String.valueOf(paymentFilter.getSelectedItem());
+            java.time.LocalDate fromDate = null;
+            java.time.LocalDate toDate = null;
+            try {
+                if (!fromDateValue[0].isEmpty()) {
+                    fromDate = java.time.LocalDate.parse(fromDateValue[0], AppointmentService.DATE_FORMATTER);
+                }
+            } catch (java.time.format.DateTimeParseException ignore) {
+                fromDate = null;
+            }
+            try {
+                if (!toDateValue[0].isEmpty()) {
+                    toDate = java.time.LocalDate.parse(toDateValue[0], AppointmentService.DATE_FORMATTER);
+                }
+            } catch (java.time.format.DateTimeParseException ignore) {
+                toDate = null;
+            }
+            model.setRowCount(0);
+            for (Appointment a : list) {
+                if ("PENDING".equalsIgnoreCase(a.getStatus())) continue;
+                if (completedOnly.isSelected() && !"COMPLETED".equalsIgnoreCase(a.getStatus())) continue;
+                if (!"ALL".equals(status) && !status.equalsIgnoreCase(a.getStatus())) continue;
+                if (fromDate != null || toDate != null) {
+                    try {
+                        java.time.LocalDate apptDate = java.time.LocalDate.parse(a.getDate(), AppointmentService.DATE_FORMATTER);
+                        if (fromDate != null && apptDate.isBefore(fromDate)) continue;
+                        if (toDate != null && apptDate.isAfter(toDate)) continue;
+                    } catch (java.time.format.DateTimeParseException ignore) {
+                        continue;
+                    }
+                }
                 boolean isPaid = paymentService.isPaid(a.getAppointmentId());
+                String paymentValue = isPaid ? "PAID" : "UNPAID";
+                if (!"ALL".equals(payment) && !payment.equalsIgnoreCase(paymentValue)) continue;
                 model.feedback.Feedback fbObj = fbRepo.findByAppointmentId(a.getAppointmentId());
                 String existingFb = (fbObj == null || fbObj.getDescription().trim().isEmpty() || "NONE".equalsIgnoreCase(fbObj.getDescription())) ? "-" : fbObj.getDescription();
+                String rowText = (a.getAppointmentId()
+                        + resolveVehicleInfo(a.getVehicleId())
+                        + resolveServiceNames(a.getServiceId())
+                        + a.getDate()
+                        + a.getStatus()
+                        + paymentValue
+                        + existingFb).toLowerCase();
+                if (!keyword.isEmpty() && !rowText.contains(keyword)) continue;
                 model.addRow(new Object[]{
                     a.getAppointmentId(),
                     resolveVehicleInfo(a.getVehicleId()),
                     resolveServiceNames(a.getServiceId()),
                     a.getDate(),
                     a.getStatus(),
-                    isPaid ? "PAID" : "UNPAID",
+                    paymentValue,
                     existingFb
                 });
             }
-        }
+        };
+        javax.swing.event.DocumentListener autoFilter = new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter.run(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter.run(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter.run(); }
+        };
+        searchField.getDocument().addDocumentListener(autoFilter);
+        statusFilter.addActionListener(e -> applyFilter.run());
+        paymentFilter.addActionListener(e -> applyFilter.run());
+        completedOnly.addActionListener(e -> applyFilter.run());
 
-        JTable table = new JTable(model);
-        SharedStyles.applyTableStyle(table);
-        root.add(new JScrollPane(table), BorderLayout.CENTER);
+        rangeBtn.addActionListener(e -> {
+            String[] picked = showDateRangePicker(this, fromDateValue[0], toDateValue[0]);
+            if (picked == null) return;
+            fromDateValue[0] = picked[0] == null ? "" : picked[0];
+            toDateValue[0] = picked[1] == null ? "" : picked[1];
+            applyFilter.run();
+        });
+
+        applyFilter.run();
+
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 205)));
+        JPanel body = new JPanel(new BorderLayout(0, 6));
+        body.setOpaque(false);
+        body.add(filterRow, BorderLayout.NORTH);
+        body.add(tableScroll, BorderLayout.CENTER);
+        JScrollPane outerScroll = new JScrollPane(body, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        outerScroll.setBorder(null);
+        outerScroll.getVerticalScrollBar().setUnitIncrement(16);
+        card.add(outerScroll, BorderLayout.CENTER);
+        root.add(card, BorderLayout.CENTER);
         return root;
     }
 
@@ -1211,6 +1337,198 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             if (appointmentId.equals(a.getAppointmentId())) return a;
         }
         return null;
+    }
+
+    private String[] showDateRangePicker(Frame parent, String currentFrom, String currentTo) {
+        DateRangePickerDialog dialog = new DateRangePickerDialog(parent, currentFrom, currentTo);
+        dialog.setVisible(true);
+        if (!dialog.isConfirmed()) return null;
+        return new String[]{dialog.getStartDate(), dialog.getEndDate()};
+    }
+
+    private static final class DateRangePickerDialog extends JDialog {
+        private LocalDate startDate;
+        private LocalDate endDate;
+        private LocalDate displayedMonth;
+        private JLabel monthLabel;
+        private JPanel calendarGrid;
+        private boolean confirmed = false;
+        private JButton confirmBtn;
+
+        private DateRangePickerDialog(Frame parent, String startValue, String endValue) {
+            super(parent, "Select Date Range", true);
+            setLayout(new BorderLayout());
+            setResizable(false);
+
+            LocalDate today = LocalDate.now();
+            displayedMonth = today.withDayOfMonth(1);
+            startDate = parseDateSafe(startValue);
+            endDate = parseDateSafe(endValue);
+            if (startDate == null && endDate != null) {
+                startDate = endDate;
+                endDate = null;
+            }
+            if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+                LocalDate tmp = startDate;
+                startDate = endDate;
+                endDate = tmp;
+            }
+
+            JPanel p = new JPanel(new GridBagLayout());
+            p.setBackground(Color.WHITE);
+            p.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(5, 5, 5, 5);
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+
+            JPanel calendarHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+            calendarHeader.setOpaque(false);
+            JButton prevMonth = SharedStyles.createActionButton("<", SharedStyles.BTN_BLUE);
+            JButton nextMonth = SharedStyles.createActionButton(">", SharedStyles.BTN_BLUE);
+            monthLabel = new JLabel();
+            monthLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+            calendarHeader.add(prevMonth);
+            calendarHeader.add(monthLabel);
+            calendarHeader.add(nextMonth);
+
+            calendarGrid = new JPanel(new GridLayout(0, 7, 4, 4));
+            calendarGrid.setOpaque(false);
+
+            prevMonth.addActionListener(e -> {
+                displayedMonth = displayedMonth.minusMonths(1);
+                updateCalendar();
+            });
+            nextMonth.addActionListener(e -> {
+                displayedMonth = displayedMonth.plusMonths(1);
+                updateCalendar();
+            });
+
+            JLabel hint = new JLabel("Select a start date, then an end date.");
+            hint.setFont(new Font("SansSerif", Font.PLAIN, 12));
+            hint.setForeground(Color.GRAY);
+
+            int y = 0;
+            gbc.gridx = 0; gbc.gridy = y; gbc.gridwidth = 6; p.add(calendarHeader, gbc);
+            y++;
+            gbc.gridx = 0; gbc.gridy = y; gbc.gridwidth = 6; p.add(calendarGrid, gbc);
+            y++;
+            gbc.gridx = 0; gbc.gridy = y; gbc.gridwidth = 6; p.add(hint, gbc);
+            gbc.gridwidth = 1;
+
+            add(p, BorderLayout.CENTER);
+
+            JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            btnPanel.setBackground(Color.WHITE);
+            confirmBtn = SharedStyles.createActionButton("Confirm", SharedStyles.BTN_GREEN);
+            JButton cancel = SharedStyles.createActionButton("Cancel", SharedStyles.BTN_RED);
+
+            confirmBtn.addActionListener(e -> {
+                if (startDate == null || endDate == null) {
+                    SharedStyles.showWarning(this, "Please select a date range.");
+                    return;
+                }
+                confirmed = true;
+                dispose();
+            });
+            cancel.addActionListener(e -> dispose());
+
+            btnPanel.add(cancel);
+            btnPanel.add(confirmBtn);
+            add(btnPanel, BorderLayout.SOUTH);
+
+            updateCalendar();
+            pack();
+            setLocationRelativeTo(parent);
+        }
+
+        private void updateCalendar() {
+            calendarGrid.removeAll();
+
+            YearMonth ym = YearMonth.of(displayedMonth.getYear(), displayedMonth.getMonth());
+            monthLabel.setText(ym.getMonth() + " " + ym.getYear());
+
+            String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+            for (String d : days) {
+                JLabel lbl = new JLabel(d, SwingConstants.CENTER);
+                lbl.setFont(new Font("SansSerif", Font.BOLD, 12));
+                calendarGrid.add(lbl);
+            }
+
+            LocalDate firstDay = displayedMonth;
+            int startOffset = firstDay.getDayOfWeek().getValue();
+            for (int i = 1; i < startOffset; i++) {
+                calendarGrid.add(new JLabel(""));
+            }
+
+            int maxDay = ym.lengthOfMonth();
+            for (int day = 1; day <= maxDay; day++) {
+                LocalDate date = LocalDate.of(ym.getYear(), ym.getMonth(), day);
+                JButton btn = new JButton(String.valueOf(day));
+                btn.setMargin(new Insets(2, 2, 2, 2));
+                btn.setFocusPainted(false);
+                styleRangeButton(btn, date);
+                btn.addActionListener(e -> {
+                    if (startDate == null || endDate != null) {
+                        startDate = date;
+                        endDate = null;
+                    } else {
+                        if (date.isBefore(startDate)) {
+                            endDate = startDate;
+                            startDate = date;
+                        } else {
+                            endDate = date;
+                        }
+                    }
+                    updateCalendar();
+                });
+                calendarGrid.add(btn);
+            }
+
+            confirmBtn.setEnabled(startDate != null && endDate != null);
+            calendarGrid.revalidate();
+            calendarGrid.repaint();
+        }
+
+        private void styleRangeButton(JButton btn, LocalDate date) {
+            if (startDate != null && date.equals(startDate)) {
+                btn.setBackground(SharedStyles.NAV_ACTIVE_TOP);
+                btn.setForeground(Color.WHITE);
+                return;
+            }
+            if (endDate != null && date.equals(endDate)) {
+                btn.setBackground(SharedStyles.NAV_ACTIVE_TOP);
+                btn.setForeground(Color.WHITE);
+                return;
+            }
+            if (startDate != null && endDate != null && !date.isBefore(startDate) && !date.isAfter(endDate)) {
+                btn.setBackground(new Color(220, 234, 255));
+                btn.setForeground(Color.BLACK);
+                return;
+            }
+            btn.setBackground(null);
+            btn.setForeground(Color.BLACK);
+        }
+
+        private LocalDate parseDateSafe(String raw) {
+            if (raw == null || raw.isBlank()) return null;
+            try {
+                return LocalDate.parse(raw, AppointmentService.DATE_FORMATTER);
+            } catch (java.time.format.DateTimeParseException ex) {
+                return null;
+            }
+        }
+
+        private boolean isConfirmed() {
+            return confirmed;
+        }
+
+        private String getStartDate() {
+            return startDate == null ? "" : startDate.format(AppointmentService.DATE_FORMATTER);
+        }
+
+        private String getEndDate() {
+            return endDate == null ? "" : endDate.format(AppointmentService.DATE_FORMATTER);
+        }
     }
 
     private void updateStarButtons(List<JToggleButton> buttons, int rating) {
