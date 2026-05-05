@@ -223,7 +223,9 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         recentCard.add(recentTitle, BorderLayout.NORTH);
 
         String[] cols = {"Apt ID", "Vehicle", "Service(s)", "Date & Time", "Status"};
-        DefaultTableModel model = new DefaultTableModel(cols, 0);
+        DefaultTableModel model = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
         List<Appointment> upcoming = appointments.stream()
                 .filter(a -> a.getStatus().equals("PENDING"))
             .collect(Collectors.toList());
@@ -238,7 +240,31 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         }
         
         JTable table = new JTable(model);
-        SharedStyles.applyTableStyle(table);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setRowHeight(28);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        table.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
+        table.setGridColor(new Color(220, 220, 225));
+        table.setShowGrid(true);
+        table.setFillsViewportHeight(true);
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    String status = String.valueOf(tbl.getValueAt(row, 4));
+                    if ("CONFIRMED".equalsIgnoreCase(status)) c.setBackground(new Color(235, 243, 255));
+                    else if ("IN PROGRESS".equalsIgnoreCase(status)) c.setBackground(new Color(255, 253, 235));
+                    else if ("PENDING".equalsIgnoreCase(status)) c.setBackground(new Color(255, 253, 235));
+                    else if ("COMPLETED".equalsIgnoreCase(status)) c.setBackground(new Color(236, 253, 242));
+                    else if ("CANCELLED".equalsIgnoreCase(status)) c.setBackground(new Color(255, 242, 242));
+                    else c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
+                }
+                return c;
+            }
+        });
         recentCard.add(new JScrollPane(table), BorderLayout.CENTER);
         contentRow.add(recentCard);
 
