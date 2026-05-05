@@ -237,14 +237,52 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             JTextField contact = SharedStyles.createFilterField(20);
             JTextField password = SharedStyles.createFilterField(20);
 
-            Object[] fields = {"Name:", name, "Email:", email, "Contact:", contact, "Password:", password};
+            JTextField plate = SharedStyles.createFilterField(20);
+            JTextField brand = SharedStyles.createFilterField(20);
+            JTextField modelF = SharedStyles.createFilterField(20);
+
+            Object[] fields = {
+            "Name:", name,
+            "Email:", email,
+            "Contact:", contact,
+            "Password:", password,
+            "----- Vehicle Info -----",
+            "Plate Number:", plate,
+            "Brand:", brand,
+            "Model:", modelF
+    };
 
             if (JOptionPane.showConfirmDialog(this, fields, "Add Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-                String id = IdGenerator.generateId("C", "data/users.txt");
-                userService.addCustomer(new Customer(id, name.getText(), email.getText(), contact.getText(), password.getText()));
-                refresh();
-            }
-        });
+
+        // CREATE CUSTOMER
+        String customerId = IdGenerator.generateId("C", "data/users.txt");
+
+        userService.addCustomer(new Customer(
+                customerId,
+                name.getText(),
+                email.getText(),
+                contact.getText(),
+                password.getText()
+        ));
+
+        // CREATE VEHICLE
+        String vehicleId = IdGenerator.generateId("VEH", "data/vehicles.txt");
+
+        model.vehicle.Vehicle v = new model.vehicle.Vehicle(
+                vehicleId,
+                customerId,
+                plate.getText(),
+                brand.getText(),
+                modelF.getText()
+        );
+
+        //SAVE VEHICLE
+        new repository.VehicleRepository().save(v);
+
+        JOptionPane.showMessageDialog(this, "Customer + Vehicle added successfully!");
+        refresh();
+    }
+});
         editBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
 
@@ -396,7 +434,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         loadTable.run();
         filterBox.addActionListener(e -> loadTable.run());
 
-        // ================= ADD APPOINTMENT =================
+        // ADD APPOINTMENT 
         addBtn.addActionListener(e -> {
 
             JTextField c = SharedStyles.createFilterField(20);
@@ -451,7 +489,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
             for (int i = 1; i <= 31; i++) dayBox.addItem(String.format("%02d", i));
             for (int i = 1; i <= 12; i++) monthBox.addItem(String.format("%02d", i));
-            for (int i = 2025; i <= 2030; i++) yearBox.addItem(String.valueOf(i));
+            for (int i = 2026; i <= 2031; i++) yearBox.addItem(String.valueOf(i));
 
             // TIME SLOTS
             String[] timeSlots = {
@@ -813,7 +851,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                     remaining = found.getRemainingAmount();
                 }
 
-                // ---- FILTER ----
+                // FILTER 
                 String filter = filterBox.getSelectedItem().toString();
 
                 if (filter.equals("Unpaid") && !paymentStatus.equalsIgnoreCase("UNPAID")) continue;
@@ -834,7 +872,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
         loadTable.run();
         filterBox.addActionListener(e -> loadTable.run());
 
-        // ---- PROCESS PAYMENT ----
+        // PROCESS PAYMENT
         payBtn.addActionListener(e -> {
 
             int row = table.getSelectedRow();
@@ -888,7 +926,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
             }
         });
 
-        // ---- DELETE PAYMENT (WORKING) ----
+        // DELETE PAYMENT
         deleteBtn.addActionListener(e -> {
 
             int row = table.getSelectedRow();
@@ -931,7 +969,6 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                 while ((line = br.readLine()) != null) {
                     String[] parts = line.split("\\|");
 
-                    // parts[0] = appointmentId
                     if (!parts[0].equals(appointmentId)) {
                         updatedAppointments.add(line);
                     }
@@ -952,7 +989,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                 ex.printStackTrace();
             }
         });
-        // ---- PRINT RECEIPT ----
+        // PRINT RECEIPT 
     receiptBtn.addActionListener(e -> {
 
         int row = table.getSelectedRow();

@@ -7,3 +7,4 @@ C002|Lee Zii Qing|leezq@mail.com|0129783813|leezq123|Customer|-|ACTIVE
 C003|Ong Jia Sen|ongjs@gmail.com|0129182000|ongjs123|Customer|-|ACTIVE
 T003|qwe|qweqwe@qweqwe.com|0123456789|Qwe123.|Technician|Normal Service|ACTIVE
 C004|Lee Sang Yew|sangyewlee@gmail.com|0126388765|Lsy@050915|Customer|-|ACTIVE
+C005|Muhammad Ali|muhdali@gmail.com|01298271281|1|Customer|-|ACTIVE

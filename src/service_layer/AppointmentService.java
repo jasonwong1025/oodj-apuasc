@@ -178,7 +178,6 @@ public class AppointmentService {
                 if (norm.contains("normal")) count++;
             }
         }
-        // Fallback to at least 1 to avoid blocking all bookings accidentally
         return Math.max(1, count);
     }
 
