@@ -977,22 +977,24 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
         filterRow.setOpaque(false);
         filterRow.add(new JLabel("Search:"));
-        JTextField searchField = SharedStyles.createFilterField(14);
+        JTextField searchField = SharedStyles.createFilterField(10);
         filterRow.add(searchField);
         filterRow.add(new JLabel("Status:"));
         JComboBox<String> statusFilter = SharedStyles.createFilterCombo(
-                new String[]{"ALL", "CONFIRMED", "IN PROGRESS", "COMPLETED", "CANCELLED"});
+            new String[]{"ALL", "CONFIRMED", "IN PROGRESS", "COMPLETED", "CANCELLED"});
+        statusFilter.setPreferredSize(new Dimension(95, 28));
         filterRow.add(statusFilter);
-        filterRow.add(new JLabel("Payment:"));
+        filterRow.add(new JLabel("Pay:"));
         JComboBox<String> paymentFilter = SharedStyles.createFilterCombo(new String[]{"ALL", "PAID", "UNPAID"});
+        paymentFilter.setPreferredSize(new Dimension(80, 28));
         filterRow.add(paymentFilter);
         final String[] fromDateValue = {""};
         final String[] toDateValue = {""};
-        JButton rangeBtn = SharedStyles.createActionButton("Select Date Range", SharedStyles.BTN_BLUE);
-        rangeBtn.setPreferredSize(new Dimension(110, 28));
+        JButton rangeBtn = SharedStyles.createActionButton("Select Date", SharedStyles.BTN_BLUE);
+        rangeBtn.setPreferredSize(new Dimension(80, 28));
         filterRow.add(new JLabel("Date:"));
         filterRow.add(rangeBtn);
-        JCheckBox completedOnly = new JCheckBox("Completed only");
+        JCheckBox completedOnly = new JCheckBox("Completed");
         completedOnly.setOpaque(false);
         filterRow.add(completedOnly);
 
@@ -1093,18 +1095,20 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
+        JPanel card = SharedStyles.createCardPanel();
+        card.setLayout(new BorderLayout(0, 10));
+
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        JLabel hint = new JLabel("Select a Pending appointment to write a review.");
-        hint.setFont(new Font("SansSerif", Font.ITALIC, 12));
-        hint.setForeground(Color.GRAY);
+        JLabel title = new JLabel("Reviews");
+        title.setFont(new Font("SansSerif", Font.BOLD, 18));
         JButton reviewBtn = SharedStyles.createActionButton("Write Review", SharedStyles.BTN_BLUE);
         JPanel topRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         topRight.setOpaque(false);
         topRight.add(reviewBtn);
-        top.add(hint, BorderLayout.WEST);
+        top.add(title, BorderLayout.WEST);
         top.add(topRight, BorderLayout.EAST);
-        root.add(top, BorderLayout.NORTH);
+        card.add(top, BorderLayout.NORTH);
 
         String[] cols = {"Apt ID", "Vehicle", "Service Name(s)", "Date", "Status", "Rating", "Comment", "Review Date"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
@@ -1117,35 +1121,153 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             reviewByAppointment.put(r.getAppointmentId(), r);
         }
 
-        for (Appointment a : list) {
-            if (a.getStatus().equals("COMPLETED")) {
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 4));
+        filterRow.setOpaque(false);
+        filterRow.add(new JLabel("Search:"));
+        JTextField searchField = SharedStyles.createFilterField(10);
+        filterRow.add(searchField);
+        filterRow.add(new JLabel("Status:"));
+        JComboBox<String> statusFilter = SharedStyles.createFilterCombo(new String[]{"ALL", "PENDING", "REVIEWED"});
+        statusFilter.setPreferredSize(new Dimension(90, 28));
+        filterRow.add(statusFilter);
+        filterRow.add(new JLabel("Rating:"));
+        JComboBox<String> ratingFilter = SharedStyles.createFilterCombo(new String[]{"ALL", "1", "2", "3", "4", "5", "UNRATED"});
+        ratingFilter.setPreferredSize(new Dimension(80, 28));
+        filterRow.add(ratingFilter);
+
+        final String[] fromDateValue = {""};
+        final String[] toDateValue = {""};
+        JButton rangeBtn = SharedStyles.createActionButton("Date", SharedStyles.BTN_BLUE);
+        rangeBtn.setPreferredSize(new Dimension(80, 28));
+        filterRow.add(new JLabel("Date:"));
+        filterRow.add(rangeBtn);
+
+        Runnable applyFilter = () -> {
+            String keyword = searchField.getText().trim().toLowerCase();
+            String status = String.valueOf(statusFilter.getSelectedItem());
+            String rating = String.valueOf(ratingFilter.getSelectedItem());
+            java.time.LocalDate fromDate = null;
+            java.time.LocalDate toDate = null;
+            try {
+                if (!fromDateValue[0].isEmpty()) {
+                    fromDate = java.time.LocalDate.parse(fromDateValue[0], AppointmentService.DATE_FORMATTER);
+                }
+            } catch (java.time.format.DateTimeParseException ignore) {
+                fromDate = null;
+            }
+            try {
+                if (!toDateValue[0].isEmpty()) {
+                    toDate = java.time.LocalDate.parse(toDateValue[0], AppointmentService.DATE_FORMATTER);
+                }
+            } catch (java.time.format.DateTimeParseException ignore) {
+                toDate = null;
+            }
+
+            model.setRowCount(0);
+            for (Appointment a : list) {
+                if (!"COMPLETED".equalsIgnoreCase(a.getStatus())) continue;
                 Review review = reviewByAppointment.get(a.getAppointmentId());
                 boolean reviewed = review != null;
-                boolean paid = paymentService.isPaid(a.getAppointmentId());
-                String status = reviewed ? "Reviewed" : (paid ? "Pending" : "Payment Pending");
-                String rating = reviewed ? String.valueOf(review.getRating()) : "-";
+                String rowStatus = reviewed ? "Reviewed" : "Pending";
+                String ratingValue = reviewed ? String.valueOf(review.getRating()) : "-";
                 String comment = reviewed
                         ? ((review.getDescription() == null || review.getDescription().trim().isEmpty()) ? "-" : review.getDescription())
                         : "-";
                 String reviewDate = reviewed ? review.getDate() : "-";
+
+                if (!"ALL".equals(status) && !status.equalsIgnoreCase(rowStatus)) continue;
+                if (!"ALL".equals(rating)) {
+                    if ("UNRATED".equalsIgnoreCase(rating)) {
+                        if (reviewed) continue;
+                    } else if (!rating.equals(ratingValue)) {
+                        continue;
+                    }
+                }
+
+                if (fromDate != null || toDate != null) {
+                    try {
+                        java.time.LocalDate apptDate = java.time.LocalDate.parse(a.getDate(), AppointmentService.DATE_FORMATTER);
+                        if (fromDate != null && apptDate.isBefore(fromDate)) continue;
+                        if (toDate != null && apptDate.isAfter(toDate)) continue;
+                    } catch (java.time.format.DateTimeParseException ignore) {
+                        continue;
+                    }
+                }
+
+                String rowText = (a.getAppointmentId()
+                        + resolveVehicleInfo(a.getVehicleId())
+                        + resolveServiceNames(a.getServiceId())
+                        + a.getDate()
+                        + rowStatus
+                        + ratingValue
+                        + comment
+                        + reviewDate).toLowerCase();
+                if (!keyword.isEmpty() && !rowText.contains(keyword)) continue;
+
                 model.addRow(new Object[]{
                     a.getAppointmentId(),
                     resolveVehicleInfo(a.getVehicleId()),
                     resolveServiceNames(a.getServiceId()),
                     a.getDate(),
-                    status,
-                    rating,
+                    rowStatus,
+                    ratingValue,
                     comment,
                     reviewDate
                 });
             }
-        }
+        };
+
+        javax.swing.event.DocumentListener autoFilter = new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter.run(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter.run(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { applyFilter.run(); }
+        };
+        searchField.getDocument().addDocumentListener(autoFilter);
+        statusFilter.addActionListener(e -> applyFilter.run());
+        ratingFilter.addActionListener(e -> applyFilter.run());
+
+        rangeBtn.addActionListener(e -> {
+            String[] picked = showDateRangePicker(this, fromDateValue[0], toDateValue[0]);
+            if (picked == null) return;
+            fromDateValue[0] = picked[0] == null ? "" : picked[0];
+            toDateValue[0] = picked[1] == null ? "" : picked[1];
+            applyFilter.run();
+        });
+
+        applyFilter.run();
 
         JTable table = new JTable(model);
-        SharedStyles.applyTableStyle(table);
+        table.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        table.setRowHeight(28);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
+        table.getTableHeader().setBackground(SharedStyles.TABLE_HEADER_BG);
+        table.setGridColor(new Color(220, 220, 225));
+        table.setShowGrid(true);
+        table.setFillsViewportHeight(true);
+        table.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    String status = String.valueOf(tbl.getValueAt(row, 4));
+                    if ("PENDING".equalsIgnoreCase(status)) c.setBackground(new Color(255, 253, 235));
+                    else if ("REVIEWED".equalsIgnoreCase(status)) c.setBackground(new Color(236, 253, 242));
+                    else c.setBackground(row % 2 == 0 ? Color.WHITE : SharedStyles.TABLE_ZEBRA);
+                }
+                return c;
+            }
+        });
         JScrollPane tableScroll = new JScrollPane(table);
-        tableScroll.setBorder(BorderFactory.createTitledBorder("Appointments & Reviews"));
-        root.add(tableScroll, BorderLayout.CENTER);
+        tableScroll.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 205)));
+
+        JPanel body = new JPanel(new BorderLayout(0, 6));
+        body.setOpaque(false);
+        body.add(filterRow, BorderLayout.NORTH);
+        body.add(tableScroll, BorderLayout.CENTER);
+        card.add(body, BorderLayout.CENTER);
+        root.add(card, BorderLayout.CENTER);
 
         reviewBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
