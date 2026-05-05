@@ -977,7 +977,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
         String remaining = table.getValueAt(row, 5).toString();
 
         try {
-            String fileName = "receipt_" + appointmentId + ".html";
+            String fileName = "data/receipts/receipt_" + appointmentId + ".html"; //Saving to data/receipts folder NEW
 
             java.io.BufferedWriter writer = new java.io.BufferedWriter(new java.io.FileWriter(fileName));
 
