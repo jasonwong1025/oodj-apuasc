@@ -14,6 +14,9 @@ public class PaymentService {
     public List<Payment> getCustomerPayments(String customerId) {
         return paymentRepository.getPaymentsByCustomer(customerId);
     }
+    public java.util.List<model.payment.Payment> getAllPayments() {
+    return new repository.PaymentRepository().getAllPayments();
+}
     
     public boolean isPaid(String appointmentId) {
         List<Payment> all = paymentRepository.getAllPayments();

@@ -183,7 +183,7 @@ public class AppointmentService {
     }
 
     public int getTotalCapacityLimit() {
-        return getCapacityLimitForSlotType(SlotType.MAJOR) + getCapacityLimitForSlotType(SlotType.NORMAL);
+        return 1;
     }
 
     public String validateSchedule(String date, String time) {
