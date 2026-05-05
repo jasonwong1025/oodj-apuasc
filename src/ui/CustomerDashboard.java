@@ -867,37 +867,59 @@ public class CustomerDashboard extends JFrame implements Refreshable {
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 8));
+        JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
+        JLabel hint = new JLabel("Select a Pending appointment to write a review.");
+        hint.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        hint.setForeground(Color.GRAY);
         JButton reviewBtn = SharedStyles.createActionButton("Write Review", SharedStyles.BTN_BLUE);
-        top.add(reviewBtn);
+        JPanel topRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        topRight.setOpaque(false);
+        topRight.add(reviewBtn);
+        top.add(hint, BorderLayout.WEST);
+        top.add(topRight, BorderLayout.EAST);
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"Apt ID", "Vehicle", "Service Name(s)", "Date", "Status"};
+        String[] cols = {"Apt ID", "Vehicle", "Service Name(s)", "Date", "Status", "Rating", "Comment", "Review Date"};
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         List<Appointment> list = appointmentService.getCustomerAppointments(currentUser.getUserId());
         List<Review> reviews = reviewService.getCustomerReviews(currentUser.getUserId());
+        java.util.Map<String, Review> reviewByAppointment = new java.util.HashMap<>();
+        for (Review r : reviews) {
+            reviewByAppointment.put(r.getAppointmentId(), r);
+        }
 
         for (Appointment a : list) {
             if (a.getStatus().equals("COMPLETED")) {
-                boolean reviewed = reviews.stream().anyMatch(r -> r.getAppointmentId().equals(a.getAppointmentId()));
+                Review review = reviewByAppointment.get(a.getAppointmentId());
+                boolean reviewed = review != null;
                 boolean paid = paymentService.isPaid(a.getAppointmentId());
-                String status = reviewed ? "Reviewed" : (paid ? "Available" : "Payment Pending");
+                String status = reviewed ? "Reviewed" : (paid ? "Pending" : "Payment Pending");
+                String rating = reviewed ? String.valueOf(review.getRating()) : "-";
+                String comment = reviewed
+                        ? ((review.getDescription() == null || review.getDescription().trim().isEmpty()) ? "-" : review.getDescription())
+                        : "-";
+                String reviewDate = reviewed ? review.getDate() : "-";
                 model.addRow(new Object[]{
                     a.getAppointmentId(),
                     resolveVehicleInfo(a.getVehicleId()),
                     resolveServiceNames(a.getServiceId()),
                     a.getDate(),
-                    status
+                    status,
+                    rating,
+                    comment,
+                    reviewDate
                 });
             }
         }
 
         JTable table = new JTable(model);
         SharedStyles.applyTableStyle(table);
-        root.add(new JScrollPane(table), BorderLayout.CENTER);
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setBorder(BorderFactory.createTitledBorder("Appointments & Reviews"));
+        root.add(tableScroll, BorderLayout.CENTER);
 
         reviewBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
@@ -906,7 +928,7 @@ public class CustomerDashboard extends JFrame implements Refreshable {
                 return;
             }
             String status = table.getValueAt(row, 4).toString();
-            if (status.equals("Available")) {
+            if (status.equals("Pending")) {
                 showReviewDialog(table.getValueAt(row, 0).toString());
             } else {
                 JOptionPane.showMessageDialog(this, "System: " + status);
@@ -1027,19 +1049,184 @@ public class CustomerDashboard extends JFrame implements Refreshable {
     }
 
     private void showReviewDialog(String aptId) {
-        JComboBox<String> rating = SharedStyles.createFilterCombo(new String[]{"1", "2", "3", "4", "5"});
-        JTextArea comment = new JTextArea(5, 20);
-        Object[] msg = {"Rating:", rating, "Comment:", new JScrollPane(comment)};
-        if (JOptionPane.showConfirmDialog(this, msg, "Submit Review", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            int score = Integer.parseInt(rating.getSelectedItem().toString());
-            String result = reviewService.submitReview(currentUser.getUserId(), aptId, score, comment.getText().trim());
+        Appointment appointment = findAppointmentById(
+                appointmentService.getCustomerAppointments(currentUser.getUserId()),
+                aptId);
+
+        String vehicle = appointment == null ? "N/A" : resolveVehicleInfo(appointment.getVehicleId());
+        String services = appointment == null ? "N/A" : resolveServiceNames(appointment.getServiceId());
+        String date = appointment == null ? "N/A" : appointment.getDate();
+
+        JDialog dialog = new JDialog(this, "Submit Review", true);
+        dialog.setLayout(new BorderLayout(0, 12));
+
+        JLabel header = new JLabel("Share your experience");
+        header.setFont(new Font("SansSerif", Font.BOLD, 16));
+
+        JPanel infoPanel = new JPanel(new GridLayout(0, 1, 0, 2));
+        infoPanel.setOpaque(false);
+        infoPanel.add(new JLabel("Appointment: " + aptId));
+        infoPanel.add(new JLabel("Vehicle: " + vehicle));
+        infoPanel.add(new JLabel("Services: " + services));
+        infoPanel.add(new JLabel("Date: " + date));
+
+        JPanel infoCard = new JPanel(new BorderLayout());
+        infoCard.setOpaque(false);
+        infoCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(230, 230, 230)),
+                new EmptyBorder(8, 10, 8, 10)
+        ));
+        infoCard.add(infoPanel, BorderLayout.CENTER);
+
+        int[] selectedRating = {0};
+        JLabel ratingValueLabel = new JLabel("No rating");
+        ratingValueLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        ratingValueLabel.setForeground(Color.GRAY);
+
+        JPanel starPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        starPanel.setOpaque(false);
+        List<JToggleButton> starButtons = new ArrayList<>();
+        ButtonGroup starGroup = new ButtonGroup();
+        for (int i = 1; i <= 5; i++) {
+            JToggleButton btn = new JToggleButton("☆");
+            btn.setFont(new Font("SansSerif", Font.PLAIN, 22));
+            btn.setBorderPainted(false);
+            btn.setContentAreaFilled(false);
+            btn.setFocusPainted(false);
+            btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            final int rating = i;
+            btn.addActionListener(e -> {
+                selectedRating[0] = rating;
+                updateStarButtons(starButtons, rating);
+                ratingValueLabel.setText(rating + "/5");
+                ratingValueLabel.setForeground(Color.DARK_GRAY);
+            });
+            btn.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent e) {
+                    updateStarButtons(starButtons, rating);
+                    ratingValueLabel.setText(rating + "/5");
+                    ratingValueLabel.setForeground(Color.DARK_GRAY);
+                }
+
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent e) {
+                    int current = selectedRating[0];
+                    updateStarButtons(starButtons, current);
+                    if (current == 0) {
+                        ratingValueLabel.setText("No rating");
+                        ratingValueLabel.setForeground(Color.GRAY);
+                    } else {
+                        ratingValueLabel.setText(current + "/5");
+                        ratingValueLabel.setForeground(Color.DARK_GRAY);
+                    }
+                }
+            });
+            starGroup.add(btn);
+            starButtons.add(btn);
+            starPanel.add(btn);
+        }
+
+        JTextArea comment = new JTextArea(5, 28);
+        comment.setLineWrap(true);
+        comment.setWrapStyleWord(true);
+        JScrollPane commentScroll = new JScrollPane(comment);
+        JLabel wordCountLabel = new JLabel("0/50 words");
+        wordCountLabel.setFont(new Font("SansSerif", Font.ITALIC, 12));
+        wordCountLabel.setForeground(Color.GRAY);
+
+        Runnable updateWordCount = () -> {
+            int words = countWords(comment.getText());
+            wordCountLabel.setText(words + "/50 words");
+            wordCountLabel.setForeground(words > 50 ? Color.RED : Color.GRAY);
+        };
+        comment.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { updateWordCount.run(); }
+            @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { updateWordCount.run(); }
+            @Override public void changedUpdate(javax.swing.event.DocumentEvent e) { updateWordCount.run(); }
+        });
+
+        JPanel form = new JPanel();
+        form.setOpaque(false);
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.add(header);
+        form.add(Box.createVerticalStrut(8));
+        form.add(infoCard);
+        form.add(Box.createVerticalStrut(12));
+        form.add(new JLabel("Rating *"));
+        JPanel ratingRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        ratingRow.setOpaque(false);
+        ratingRow.add(starPanel);
+        ratingRow.add(ratingValueLabel);
+        form.add(ratingRow);
+        form.add(Box.createVerticalStrut(8));
+        form.add(new JLabel("Comment (optional, max 50 words)"));
+        form.add(commentScroll);
+        form.add(Box.createVerticalStrut(4));
+        form.add(wordCountLabel);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        actions.setOpaque(false);
+        JButton submit = SharedStyles.createActionButton("Submit", SharedStyles.BTN_GREEN);
+        JButton cancel = SharedStyles.createActionButton("Cancel", SharedStyles.BTN_RED);
+        actions.add(cancel);
+        actions.add(submit);
+
+        submit.addActionListener(e -> {
+            int words = countWords(comment.getText());
+            if (selectedRating[0] == 0) {
+                SharedStyles.showWarning(dialog, "Please select a rating.");
+                return;
+            }
+            if (words > 50) {
+                SharedStyles.showWarning(dialog, "Comment must be 50 words or fewer.");
+                return;
+            }
+            String result = reviewService.submitReview(currentUser.getUserId(), aptId, selectedRating[0], comment.getText().trim());
             if (result != null && result.startsWith("Success")) {
-                SharedStyles.showMessage(this, result);
+                SharedStyles.showMessage(dialog, result);
+                dialog.dispose();
                 refresh();
             } else {
-                SharedStyles.showWarning(this, result == null ? "Unable to submit review." : result);
+                SharedStyles.showWarning(dialog, result == null ? "Unable to submit review." : result);
             }
+        });
+        cancel.addActionListener(e -> dialog.dispose());
+
+        JPanel body = new JPanel(new BorderLayout(0, 10));
+        body.setOpaque(false);
+        body.setBorder(new EmptyBorder(12, 12, 12, 12));
+        body.add(form, BorderLayout.CENTER);
+        body.add(actions, BorderLayout.SOUTH);
+
+        dialog.add(body, BorderLayout.CENTER);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private Appointment findAppointmentById(List<Appointment> list, String appointmentId) {
+        if (list == null || appointmentId == null) return null;
+        for (Appointment a : list) {
+            if (appointmentId.equals(a.getAppointmentId())) return a;
         }
+        return null;
+    }
+
+    private void updateStarButtons(List<JToggleButton> buttons, int rating) {
+        for (int i = 0; i < buttons.size(); i++) {
+            JToggleButton btn = buttons.get(i);
+            boolean filled = i < rating;
+            btn.setText(filled ? "★" : "☆");
+            btn.setForeground(filled ? new Color(245, 166, 35) : Color.GRAY);
+        }
+    }
+
+    private int countWords(String text) {
+        if (text == null) return 0;
+        String trimmed = text.trim();
+        if (trimmed.isEmpty()) return 0;
+        return trimmed.split("\\s+").length;
     }
 
     private String resolveServiceNames(String serviceIds) {
