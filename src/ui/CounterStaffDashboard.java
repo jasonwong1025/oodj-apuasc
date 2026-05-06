@@ -369,19 +369,28 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         JComboBox<String> filterBox = new JComboBox<>(new String[]{
                 "All", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"
         });
+        JComboBox<String> sortBox = new JComboBox<>(new String[]{
+        "Newest Date",
+        "Oldest Date"
+        });
+
+sortBox.setPreferredSize(new Dimension(140, 25));
         filterBox.setPreferredSize(new Dimension(120, 25));
 
         top.add(new JLabel("Filter:"));
         top.add(filterBox);
+        top.add(new JLabel("Sort:"));
+        top.add(sortBox);
 
         JButton addBtn = SharedStyles.createActionButton("Add Appointment", SharedStyles.BTN_GREEN);
-        JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_RED);
+        JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_ORANGE);
         JButton assignBtn = SharedStyles.createActionButton("Assign Technician", SharedStyles.BTN_BLUE);
+        JButton deleteBtn = SharedStyles.createActionButton("Delete Appointment", SharedStyles.BTN_RED);
 
         top.add(addBtn);
         top.add(updateBtn);
         top.add(assignBtn);
-
+        top.add(deleteBtn);
         root.add(top, BorderLayout.NORTH);
 
         String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status", "Type", "Technician", "Staff"};
@@ -398,6 +407,17 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         Runnable loadTable = () -> {
             model.setRowCount(0);
+            list.sort((a1, a2) -> {
+
+            String d1 = a1.getDate() + " " + a1.getTime();
+            String d2 = a2.getDate() + " " + a2.getTime();
+
+            if (sortBox.getSelectedItem().equals("Newest Date")) {
+                return d2.compareTo(d1);
+            } else {
+                return d1.compareTo(d2);
+            }
+        });
 
             for (model.appointment.Appointment a : list) {
 
@@ -437,6 +457,84 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         loadTable.run();
         filterBox.addActionListener(e -> loadTable.run());
+        sortBox.addActionListener(e -> loadTable.run());
+//delete button
+        deleteBtn.addActionListener(e -> {
+
+            int row = table.getSelectedRow();
+
+            if (row == -1) {
+                JOptionPane.showMessageDialog(this,
+                        "Please select an appointment.");
+                return;
+            }
+
+            String appointmentId =
+                    table.getValueAt(row, 0).toString();
+
+            String staffId =
+                    table.getValueAt(row, 9).toString();
+
+            if (!staffId.equals(currentUser.getUserId())) {
+                JOptionPane.showMessageDialog(this,
+                        "You can only delete appointments handled by yourself.");
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Delete this appointment?",
+                    "Confirm Delete",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+
+            try {
+
+                java.util.List<String> lines =
+                        new java.util.ArrayList<>();
+
+                try (java.io.BufferedReader br =
+                            new java.io.BufferedReader(
+                                    new java.io.FileReader("data/appointments.txt"))) {
+
+                    String line;
+
+                    while ((line = br.readLine()) != null) {
+
+                        String[] parts = line.split("\\|");
+
+                        if (!parts[0].equals(appointmentId)) {
+                            lines.add(line);
+                        }
+                    }
+                }
+
+                try (java.io.BufferedWriter bw =
+                            new java.io.BufferedWriter(
+                                    new java.io.FileWriter("data/appointments.txt"))) {
+
+                    for (String l : lines) {
+                        bw.write(l);
+                        bw.newLine();
+                    }
+                }
+
+                JOptionPane.showMessageDialog(this,
+                        "Appointment deleted successfully!");
+
+                refresh();
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+
+                JOptionPane.showMessageDialog(this,
+                        "Failed to delete appointment.");
+            }
+        });
 
         // ADD APPOINTMENT 
         addBtn.addActionListener(e -> {
@@ -483,6 +581,25 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
             JList<String> serviceList = new JList<>(serviceModel);
             serviceList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+            serviceList.addListSelectionListener(ev -> {
+
+            if (!ev.getValueIsAdjusting()) {
+
+                if (serviceList.getSelectedIndices().length > 8) {
+
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Maximum 8 services allowed."
+                    );
+
+                    int[] selected = serviceList.getSelectedIndices();
+
+                    serviceList.setSelectedIndices(
+                            java.util.Arrays.copyOf(selected, 8)
+                    );
+                }
+            }
+        });
             JScrollPane serviceScroll = new JScrollPane(serviceList);
             serviceScroll.setPreferredSize(new Dimension(250, 100));
 
@@ -601,6 +718,24 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         String id = table.getValueAt(row, 0).toString();
         String staffId = table.getValueAt(row, 9).toString();
+
+        if ("NONE".equalsIgnoreCase(staffId)
+                || "CUSTOMER".equalsIgnoreCase(staffId)) {
+
+            for (model.appointment.Appointment ap : list) {
+
+                if (ap.getAppointmentId().equals(id)) {
+
+                    ap.setCounterStaffId(currentUser.getUserId());
+
+                    new repository.AppointmentRepository().update(ap);
+
+                    staffId = currentUser.getUserId();
+
+                    break;
+                }
+            }
+        }
 
         if (!staffId.equals(currentUser.getUserId())) {
             JOptionPane.showMessageDialog(this,
@@ -824,6 +959,8 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
         root.add(new JScrollPane(table), BorderLayout.CENTER);
 
+        
+
         return root;
     }
 
@@ -896,18 +1033,16 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         top.setOpaque(false);
 
-        JComboBox<String> filterBox = new JComboBox<>(new String[]{"All", "Unpaid", "Partial"});
+        JComboBox<String> filterBox = new JComboBox<>(new String[]{"All", "Unpaid", "Paid"});
         filterBox.setPreferredSize(new Dimension(120, 25));
 
         top.add(new JLabel("Filter:"));
         top.add(filterBox);
 
         JButton payBtn = SharedStyles.createActionButton("Process Payment", SharedStyles.BTN_GREEN);
-        JButton deleteBtn = SharedStyles.createActionButton("Delete Payment", SharedStyles.BTN_RED);
         JButton receiptBtn = SharedStyles.createActionButton("Print Receipt", SharedStyles.BTN_BLUE);
 
         top.add(payBtn);
-        top.add(deleteBtn);
         top.add(receiptBtn);
 
         root.add(top, BorderLayout.NORTH);
@@ -986,7 +1121,6 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                 String filter = filterBox.getSelectedItem().toString();
 
                 if (filter.equals("Unpaid") && !paymentStatus.equalsIgnoreCase("UNPAID")) continue;
-                if (filter.equals("Partial") && !paymentStatus.equalsIgnoreCase("PARTIAL")) continue;
 
                 model.addRow(new Object[]{
                         a.getAppointmentId(),
@@ -1023,103 +1157,33 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
             double total = Double.parseDouble(table.getValueAt(row, 3).toString());
 
-            JTextField amountField = SharedStyles.createFilterField(20);
-            amountField.setText(String.valueOf(total));
+            int confirm = JOptionPane.showConfirmDialog(
+                this,
+                "Confirm full payment of RM " + total + " ?",
+                "Process Payment",
+                JOptionPane.YES_NO_OPTION
+        );
 
-            if (JOptionPane.showConfirmDialog(this, new Object[]{"Amount:", amountField},
-                    "Process Payment", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+        if (confirm == JOptionPane.YES_OPTION) {
 
-                try {
-                    double entered = Double.parseDouble(amountField.getText());
-                    double remaining = total - entered;
+            model.payment.Payment payment = new model.payment.Payment(
+                    utils.IdGenerator.generateId("PAY", "data/payments.txt"),
+                    appointmentId,
+                    customerId,
+                    total,
+                    0,
+                    java.time.LocalDate.now().toString(),
+                    "PAID"
+            );
 
-                    String newStatus = remaining <= 0 ? "PAID" : "PARTIAL";
-                    if (remaining < 0) remaining = 0;
+            paymentService.processPayment(payment);
 
-                    model.payment.Payment payment = new model.payment.Payment(
-                            utils.IdGenerator.generateId("PAY", "data/payments.txt"),
-                            appointmentId,
-                            customerId,
-                            entered,
-                            remaining,
-                            java.time.LocalDate.now().toString(),
-                            newStatus
-                    );
-
-                    paymentService.processPayment(payment);
-
-                    JOptionPane.showMessageDialog(this, "Payment recorded!");
-                    loadTable.run();
-
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Invalid amount!");
-                }
-            }
+            JOptionPane.showMessageDialog(this, "Full payment recorded!");
+            loadTable.run();
+        }
         });
 
         // DELETE PAYMENT
-        deleteBtn.addActionListener(e -> {
-
-            int row = table.getSelectedRow();
-            if (row == -1) {
-                JOptionPane.showMessageDialog(this, "Select a row!");
-                return;
-            }
-
-            String appointmentId = table.getValueAt(row, 0).toString();
-
-            if (JOptionPane.showConfirmDialog(this,
-                    "Delete payment?", "Confirm",
-                    JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
-
-            try {
-                java.util.List<String> lines = new java.util.ArrayList<>();
-
-                try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("data/payments.txt"))) {
-                    String line;
-
-                    while ((line = br.readLine()) != null) {
-                        if (!line.split("\\|")[1].equals(appointmentId)) {
-                            lines.add(line);
-                        }
-                    }
-                }
-
-                try (java.io.BufferedWriter bw = new java.io.BufferedWriter(new java.io.FileWriter("data/payments.txt"))) {
-                    for (String l : lines) {
-                        bw.write(l);
-                        bw.newLine();
-                    }
-                }
-
-            java.util.List<String> updatedAppointments = new java.util.ArrayList<>();
-
-            try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader("data/appointments.txt"))) {
-                String line;
-
-                while ((line = br.readLine()) != null) {
-                    String[] parts = line.split("\\|");
-
-                    if (!parts[0].equals(appointmentId)) {
-                        updatedAppointments.add(line);
-                    }
-                }
-            }
-
-            try (java.io.BufferedWriter bw = new java.io.BufferedWriter(new java.io.FileWriter("data/appointments.txt"))) {
-                for (String l : updatedAppointments) {
-                    bw.write(l);
-                    bw.newLine();
-                }
-            }
-
-                JOptionPane.showMessageDialog(this, "Deleted!");
-                loadTable.run();
-
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
         // PRINT RECEIPT 
     receiptBtn.addActionListener(e -> {
 
