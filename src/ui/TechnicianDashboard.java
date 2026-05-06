@@ -8,6 +8,11 @@ import model.users.User;
 import service_layer.UserService;
 
 import javax.swing.table.DefaultTableModel;
+import model.feedback.Review;
+import model.appointment.Appointment;
+import service_layer.ReviewService;
+import service_layer.AppointmentService;
+import java.util.List;
 
 public class TechnicianDashboard extends JFrame implements Refreshable {
 
@@ -23,6 +28,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
             "My Tasks",
             "Task History",
             "Provide Feedback",
+            "Customer Reviews",
             "My Profile"
     };
 
@@ -50,7 +56,12 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         brand.setFont(new Font("SansSerif", Font.BOLD, 18));
         header.add(brand, BorderLayout.WEST);
 
-        JLabel who = new JLabel(currentUser.getFullName() + "  |  Technician");
+        String serviceType = currentUser.getTechnicianServiceType();
+        String displayRole = "Technician";
+        if (serviceType != null && !serviceType.trim().isEmpty() && !serviceType.equals("-")) {
+            displayRole += " (" + serviceType + ")";
+        }
+        JLabel who = new JLabel(currentUser.getFullName() + "  |  " + displayRole);
         who.setFont(new Font("SansSerif", Font.PLAIN, 14));
         JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
         logout.addActionListener(e -> {
@@ -132,6 +143,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
             case "My Tasks": panel = buildMyTasksPanel(); break;
             case "Task History": panel = buildTaskHistoryPanel(); break;
             case "Provide Feedback": panel = buildProvideFeedbackPanel(); break;
+            case "Customer Reviews": panel = buildCustomerReviewsPanel(); break;
             case "My Profile": panel = buildMyProfilePanel(); break;
             default: panel = buildPlaceholderPanel(selected);
         }
@@ -297,7 +309,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status"};
 
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return c == 6; }
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
         service_layer.ServiceService serviceSvc = new service_layer.ServiceService();
@@ -325,6 +337,8 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
 
         JTable table = new JTable(model);
         SharedStyles.applyTableStyle(table);
+        table.getTableHeader().setResizingAllowed(false);
+        table.getTableHeader().setReorderingAllowed(false);
 
         // Filter Controls Panel
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
@@ -339,10 +353,15 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         JComboBox<String> statusFilter = new JComboBox<>(new String[]{"All", "CONFIRMED", "IN PROGRESS", "COMPLETED"});
         statusFilter.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
+        JButton updateStatusBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_ORANGE);
+        updateStatusBtn.setFont(new Font("SansSerif", Font.BOLD, 13));
+
         filterPanel.add(searchLbl);
         filterPanel.add(searchField);
         filterPanel.add(statusLbl);
         filterPanel.add(statusFilter);
+        filterPanel.add(Box.createHorizontalStrut(20));
+        filterPanel.add(updateStatusBtn);
 
         root.add(filterPanel, BorderLayout.NORTH);
 
@@ -375,47 +394,36 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         });
         statusFilter.addActionListener(filterAction);
 
-        // Explicitly override column 6 renderer and editor to use JComboBox
-        String[] statuses = {"CONFIRMED", "IN PROGRESS", "COMPLETED"};
-        JComboBox<String> comboEditor = new JComboBox<>(statuses);
-        comboEditor.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        table.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(comboEditor));
-
-        table.getColumnModel().getColumn(6).setCellRenderer(new javax.swing.table.TableCellRenderer() {
-            private final JComboBox<String> combo = new JComboBox<>(statuses);
-            {
-                combo.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        updateStatusBtn.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(this, "Please select an appointment to update.");
+                return;
             }
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                combo.setSelectedItem(value != null ? value.toString() : "");
-                if (isSelected) {
-                    combo.setBackground(table.getSelectionBackground());
-                } else {
-                    combo.setBackground(Color.WHITE);
-                }
-                return combo;
-            }
-        });
 
-        model.addTableModelListener(e -> {
-            if (e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
-                int row = e.getFirstRow();
-                int col = e.getColumn();
-                if (col == 6) {
-                    String id = model.getValueAt(row, 0).toString();
-                    String newStatus = model.getValueAt(row, 6).toString();
+            int modelRow = table.convertRowIndexToModel(selectedRow);
+            String id = model.getValueAt(modelRow, 0).toString();
+            String currentStatus = model.getValueAt(modelRow, 6).toString();
 
-                    for (model.appointment.Appointment a : myTasks) {
-                        if (a.getAppointmentId().equals(id)) {
-                            if (a.getStatus().equalsIgnoreCase(newStatus)) {
-                                return; // Skip if no change
-                            }
-                            a.setStatus(newStatus);
-                            new repository.AppointmentRepository().update(a);
-                            JOptionPane.showMessageDialog(this, "Status successfully updated to " + newStatus);
-                            break;
-                        }
+            String[] options = {"CONFIRMED", "IN PROGRESS", "COMPLETED"};
+            String newStatus = (String) JOptionPane.showInputDialog(
+                    this,
+                    "Select new status for " + id + ":",
+                    "Update Status",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    currentStatus
+            );
+
+            if (newStatus != null && !newStatus.equals(currentStatus)) {
+                for (model.appointment.Appointment a : myTasks) {
+                    if (a.getAppointmentId().equals(id)) {
+                        a.setStatus(newStatus);
+                        new repository.AppointmentRepository().update(a);
+                        JOptionPane.showMessageDialog(this, "Status successfully updated to " + newStatus);
+                        refresh();
+                        break;
                     }
                 }
             }
@@ -690,6 +698,87 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
             refresh();
         });
 
+        return root;
+    }
+
+    private JPanel buildCustomerReviewsPanel() {
+        JPanel root = new JPanel(new BorderLayout(0, 15));
+        root.setBackground(SharedStyles.MAIN_BG);
+        root.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        String[] columns = {
+                "Review ID",
+                "Appointment ID",
+                "Customer ID",
+                "Rating",
+                "Review",
+                "Date"
+        };
+
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        };
+
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
+        table.getTableHeader().setResizingAllowed(false);
+        table.getTableHeader().setReorderingAllowed(false);
+
+        javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+
+        JLabel searchLbl = new JLabel("Search Customer ID:");
+        JTextField searchField = SharedStyles.createFilterField(20);
+
+        topPanel.add(searchLbl);
+        topPanel.add(searchField);
+        root.add(topPanel, BorderLayout.NORTH);
+
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            private void filter() {
+                String text = searchField.getText().trim();
+                if (text.isEmpty()) {
+                    sorter.setRowFilter(null);
+                } else {
+                    sorter.setRowFilter(javax.swing.RowFilter.regexFilter("(?i)" + text, 2));
+                }
+            }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+        });
+
+        ReviewService reviewService = new ReviewService();
+        AppointmentService appointmentService = new AppointmentService();
+
+        List<Review> reviews = reviewService.getAllReviews();
+        List<Appointment> appointments = appointmentService.getAllAppointments();
+
+        for (Review r : reviews) {
+            for (Appointment a : appointments) {
+                if (a.getAppointmentId().equals(r.getAppointmentId()) && 
+                    currentUser.getUserId().equals(a.getTechnicianId())) {
+                    
+                    model.addRow(new Object[]{
+                            r.getReviewId(),
+                            r.getAppointmentId(),
+                            r.getCustomerId(),
+                            r.getRating() + " / 5",
+                            r.getDescription(),
+                            r.getDate()
+                    });
+                    break;
+                }
+            }
+        }
+
+        root.add(new JScrollPane(table), BorderLayout.CENTER);
         return root;
     }
 
