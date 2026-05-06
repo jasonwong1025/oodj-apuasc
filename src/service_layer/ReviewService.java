@@ -20,6 +20,25 @@ public class ReviewService {
         return reviewRepository.getReviewsByCustomer(customerId);
     }
 
+    public List<Review> getAllReviews() {
+        return reviewRepository.getAllReviews();
+    }
+
+    public List<String[]> getAllReviewRows() {
+        List<String[]> rows = new java.util.ArrayList<>();
+        for (Review review : reviewRepository.getAllReviews()) {
+            rows.add(new String[]{
+                    review.getReviewId(),
+                    review.getAppointmentId(),
+                    review.getCustomerId(),
+                    String.valueOf(review.getRating()),
+                    review.getDescription() == null ? "" : review.getDescription(),
+                    review.getDate() == null ? "" : review.getDate()
+            });
+        }
+        return rows;
+    }
+
     public String submitReview(String customerId, String appointmentId, int rating, String description) {
         if (!paymentService.isPaid(appointmentId)) {
             return "Error: You can only provide a review after payment is made.";
