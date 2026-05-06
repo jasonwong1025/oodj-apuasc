@@ -19,25 +19,14 @@ public class ReviewRepository {
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
                 String[] parts = line.split("\\|", -1);
-                if (parts.length == 6) {
-                    reviews.add(new Review(parts[0], parts[1], parts[2], Integer.parseInt(parts[3]), parts[4], parts[5]));
+                if (parts.length == 5) {
+                    reviews.add(new Review(parts[0], parts[1], Integer.parseInt(parts[2]), parts[3], parts[4]));
                 }
             }
         } catch (IOException | NumberFormatException e) {
             e.printStackTrace();
         }
         return reviews;
-    }
-
-    public List<Review> getReviewsByCustomer(String customerId) {
-        List<Review> all = getAllReviews();
-        List<Review> filtered = new ArrayList<>();
-        for (Review r : all) {
-            if (r.getCustomerId().equals(customerId)) {
-                filtered.add(r);
-            }
-        }
-        return filtered;
     }
 
     public void save(Review review) {
