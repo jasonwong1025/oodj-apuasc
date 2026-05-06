@@ -69,7 +69,7 @@ public class ServiceCatalogTabPanel extends JPanel implements Refreshable {
         top.add(row2);
         add(top, BorderLayout.NORTH);
 
-        String[] cols = {"Service ID", "Service Name", "Category", "Price (RM)", "In Normal Service"};
+        String[] cols = {"Service ID", "Service Name", "Category", "Price (RM)"};
         serviceTableModel = new DefaultTableModel(cols, 0) {@Override public boolean isCellEditable(int r, int c) { return false; }};
         serviceTable = new JTable(serviceTableModel);
         serviceTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
@@ -103,7 +103,7 @@ public class ServiceCatalogTabPanel extends JPanel implements Refreshable {
         serviceTableModel.setRowCount(0);
         for (Service s : rows) {
             String categoryName = categoryService.getCategoryNameById(s.getCategoryId());
-            serviceTableModel.addRow(new Object[]{s.getServiceId(), s.getServiceName(), categoryName != null ? categoryName : s.getCategoryId(), String.format("%.2f", s.getPrice()), s.isIncludedInNormalService() ? "YES" : "NO"});
+            serviceTableModel.addRow(new Object[]{s.getServiceId(), s.getServiceName(), categoryName != null ? categoryName : s.getCategoryId(), String.format("%.2f", s.getPrice())});
         }
     }
 
@@ -139,19 +139,15 @@ public class ServiceCatalogTabPanel extends JPanel implements Refreshable {
         String[] categoryItems = categories.stream().map(c -> c.getCategoryId() + " - " + c.getCategoryName()).toArray(String[]::new);
         JComboBox<String> categoryField = SharedStyles.createFilterCombo(categoryItems);
         JTextField priceField = SharedStyles.createFilterField(22);
-        JCheckBox includeInNormalService = new JCheckBox("Include in Normal Service");
-        includeInNormalService.setOpaque(false);
-
         int y = 0;
         addDialogRow(d, gbc, y++, "Service Name:", nameField);
         addDialogRow(d, gbc, y++, "Category:", categoryField);
         addDialogRow(d, gbc, y++, "Price (RM):", priceField);
-        addDialogRow(d, gbc, y++, "Normal Service:", includeInNormalService);
 
         JButton save = SharedStyles.createActionButton("Save", SharedStyles.BTN_GREEN);
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
         save.addActionListener(e -> {
-            String err = serviceService.addService(nameField.getText().trim(), extractCategoryId(String.valueOf(categoryField.getSelectedItem())), priceField.getText().trim(), includeInNormalService.isSelected());
+            String err = serviceService.addService(nameField.getText().trim(), extractCategoryId(String.valueOf(categoryField.getSelectedItem())), priceField.getText().trim());
             if (err != null) JOptionPane.showMessageDialog(d, err, "Add Service", JOptionPane.ERROR_MESSAGE);
             else { d.dispose(); refresh(); }
         });
@@ -182,21 +178,16 @@ public class ServiceCatalogTabPanel extends JPanel implements Refreshable {
         categoryField.setSelectedItem(selectedCategoryDisplay);
         JTextField priceField = SharedStyles.createFilterField(22);
         priceField.setText(String.format("%.2f", target.getPrice()));
-        JCheckBox includeInNormalService = new JCheckBox("Include in Normal Service");
-        includeInNormalService.setOpaque(false);
-        includeInNormalService.setSelected(target.isIncludedInNormalService());
-
         int y = 0;
         addDialogRow(d, gbc, y++, "Service ID:", idField);
         addDialogRow(d, gbc, y++, "Service Name:", nameField);
         addDialogRow(d, gbc, y++, "Category:", categoryField);
         addDialogRow(d, gbc, y++, "Price (RM):", priceField);
-        addDialogRow(d, gbc, y++, "Normal Service:", includeInNormalService);
 
         JButton save = SharedStyles.createActionButton("Update", SharedStyles.BTN_BLUE);
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
         save.addActionListener(e -> {
-            String err = serviceService.updateService(target.getServiceId(), nameField.getText().trim(), extractCategoryId(String.valueOf(categoryField.getSelectedItem())), priceField.getText().trim(), includeInNormalService.isSelected());
+            String err = serviceService.updateService(target.getServiceId(), nameField.getText().trim(), extractCategoryId(String.valueOf(categoryField.getSelectedItem())), priceField.getText().trim());
             if (err != null) JOptionPane.showMessageDialog(d, err, "Edit Service", JOptionPane.ERROR_MESSAGE);
             else { d.dispose(); refresh(); }
         });

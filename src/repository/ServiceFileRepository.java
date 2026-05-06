@@ -32,8 +32,7 @@ public class ServiceFileRepository {
         if (parts.length < 4) return null;
         try {
             double price = Double.parseDouble(parts[3].trim());
-            boolean inNormalService = parts.length >= 5 && "YES".equalsIgnoreCase(parts[4].trim());
-            return new Service(parts[0].trim(), parts[1].trim(), parts[2].trim(), price, inNormalService);
+            return new Service(parts[0].trim(), parts[1].trim(), parts[2].trim(), price, false);
         } catch (NumberFormatException e) {
             return null;
         }

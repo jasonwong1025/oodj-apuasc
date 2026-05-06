@@ -40,7 +40,7 @@ public class ServiceService {
     /**
      * @return null on success, otherwise error message.
      */
-    public String addService(String serviceName, String categoryId, String priceText, boolean includedInNormalService) {
+    public String addService(String serviceName, String categoryId, String priceText) {
         if (!ValidationUtil.isNotEmpty(serviceName)) return "Service name is required.";
         if (!ValidationUtil.isNotEmpty(categoryId)) return "Category is required.";
         double price;
@@ -53,7 +53,7 @@ public class ServiceService {
 
         List<Service> all = listAll();
         String newId = generateNextId(all);
-        all.add(new Service(newId, serviceName.trim(), categoryId, price, includedInNormalService));
+        all.add(new Service(newId, serviceName.trim(), categoryId, price, false));
         try {
             repo.writeAll(all);
         } catch (IOException e) {
@@ -65,8 +65,7 @@ public class ServiceService {
     /**
      * @return null on success, otherwise error message.
      */
-    public String updateService(String serviceId, String serviceName, String categoryId, String priceText,
-                                boolean includedInNormalService) {
+    public String updateService(String serviceId, String serviceName, String categoryId, String priceText) {
         if (!ValidationUtil.isNotEmpty(serviceName)) return "Service name is required.";
         if (!ValidationUtil.isNotEmpty(categoryId)) return "Category is required.";
         double price;
@@ -90,7 +89,7 @@ public class ServiceService {
         target.setServiceName(serviceName.trim());
         target.setCategoryId(categoryId);
         target.setPrice(price);
-        target.setIncludedInNormalService(includedInNormalService);
+        target.setIncludedInNormalService(false);
         try {
             repo.writeAll(all);
         } catch (IOException e) {
