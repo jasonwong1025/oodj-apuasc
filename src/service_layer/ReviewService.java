@@ -20,6 +20,10 @@ public class ReviewService {
         return reviewRepository.getReviewsByCustomer(customerId);
     }
 
+    public List<Review> getAllReviews() {
+        return reviewRepository.getAllReviews();
+    }
+
     public String submitReview(String customerId, String appointmentId, int rating, String description) {
         if (!paymentService.isPaid(appointmentId)) {
             return "Error: You can only provide a review after payment is made.";
