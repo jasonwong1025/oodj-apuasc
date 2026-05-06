@@ -13,6 +13,8 @@ import model.appointment.Appointment;
 import service_layer.ReviewService;
 import service_layer.AppointmentService;
 import java.util.List;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class TechnicianDashboard extends JFrame implements Refreshable {
 
@@ -302,7 +304,10 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         java.util.List<model.appointment.Appointment> myTasks = new java.util.ArrayList<>();
         for (model.appointment.Appointment a : allAppointments) {
             if (currentUser.getUserId().equals(a.getTechnicianId())) {
-                myTasks.add(a);
+                String status = a.getStatus();
+                if ("CONFIRMED".equalsIgnoreCase(status) || "IN PROGRESS".equalsIgnoreCase(status)) {
+                    myTasks.add(a);
+                }
             }
         }
 
@@ -350,7 +355,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
 
         JLabel statusLbl = new JLabel("Status:");
         statusLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        JComboBox<String> statusFilter = new JComboBox<>(new String[]{"All", "CONFIRMED", "IN PROGRESS", "COMPLETED"});
+        JComboBox<String> statusFilter = new JComboBox<>(new String[]{"All", "CONFIRMED", "IN PROGRESS"});
         statusFilter.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
         JButton updateStatusBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_ORANGE);
@@ -445,7 +450,10 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         java.util.List<model.appointment.Appointment> myTasks = new java.util.ArrayList<>();
         for (model.appointment.Appointment a : allAppointments) {
             if (currentUser.getUserId().equals(a.getTechnicianId())) {
-                myTasks.add(a);
+                String status = a.getStatus();
+                if ("COMPLETED".equalsIgnoreCase(status)) {
+                    myTasks.add(a);
+                }
             }
         }
 
@@ -491,9 +499,9 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
 
         JLabel statusLbl = new JLabel("Status:");
         statusLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        JComboBox<String> statusFilter = new JComboBox<>(new String[]{"All", "CONFIRMED", "IN PROGRESS", "COMPLETED", "CANCELLED"});
+        JComboBox<String> statusFilter = new JComboBox<>(new String[]{"All", "COMPLETED"});
         statusFilter.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        statusFilter.setSelectedItem("COMPLETED");
+        statusFilter.setSelectedItem("All");
 
         filterPanel.add(searchLbl);
         filterPanel.add(searchField);
@@ -550,12 +558,12 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         java.util.List<model.appointment.Appointment> myTasks = new java.util.ArrayList<>();
         for (model.appointment.Appointment a : allAppointments) {
             if (currentUser.getUserId().equals(a.getTechnicianId()) &&
-                ("IN PROGRESS".equalsIgnoreCase(a.getStatus()) || "COMPLETED".equalsIgnoreCase(a.getStatus()))) {
+                "COMPLETED".equalsIgnoreCase(a.getStatus())) {
                 myTasks.add(a);
             }
         }
 
-        String[] columns = {"ID", "Service", "Status", "Feedback"};
+        String[] columns = {"ID", "Service", "Feedback", "Date & Time"};
 
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -564,15 +572,27 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         service_layer.ServiceService serviceSvc = new service_layer.ServiceService();
         repository.FeedbackRepository fbRepo = new repository.FeedbackRepository();
         for (model.appointment.Appointment a : myTasks) {
-            model.service.Service svc = serviceSvc.findById(a.getServiceId());
-            String sName = svc != null ? svc.getServiceName() : a.getServiceId();
+            // Resolve Service Names
+            String serviceDisplay = a.getServiceId();
+            if (serviceDisplay != null && !serviceDisplay.trim().isEmpty()) {
+                String[] parts = serviceDisplay.split(",");
+                java.util.List<String> names = new java.util.ArrayList<>();
+                for (String p : parts) {
+                    model.service.Service svc = serviceSvc.findById(p.trim());
+                    names.add(svc != null ? svc.getServiceName() : p.trim());
+                }
+                serviceDisplay = String.join(", ", names);
+            }
+
             model.feedback.Feedback fbObj = fbRepo.findByAppointmentId(a.getAppointmentId());
             String existingFb = (fbObj == null || fbObj.getDescription().trim().isEmpty() || "NONE".equalsIgnoreCase(fbObj.getDescription())) ? "-" : fbObj.getDescription();
+            String fbTime = (fbObj == null || fbObj.getDateTime() == null) ? "-" : fbObj.getDateTime();
+            
             model.addRow(new Object[]{
                     a.getAppointmentId(),
-                    sName,
-                    a.getStatus(),
-                    existingFb
+                    serviceDisplay,
+                    existingFb,
+                    fbTime
             });
         }
 
@@ -660,7 +680,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
                 if (row != -1) {
                     String id = table.getValueAt(row, 0).toString();
                     String sName = table.getValueAt(row, 1).toString();
-                    String fb = table.getValueAt(row, 3).toString();
+                    String fb = table.getValueAt(row, 2).toString();
                     if ("-".equals(fb)) {
                         fb = "";
                     }
@@ -684,14 +704,16 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
                 return;
             }
 
+            String currentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+
             repository.FeedbackRepository fRepo = new repository.FeedbackRepository();
             model.feedback.Feedback fbObj = fRepo.findByAppointmentId(apptId);
             if (fbObj == null) {
                 String nextId = fRepo.generateNextId();
-                fbObj = new model.feedback.Feedback(nextId, apptId, fb, "Technician Feedback");
+                fbObj = new model.feedback.Feedback(nextId, apptId, fb, currentDateTime);
             } else {
                 fbObj.setDescription(fb);
-                fbObj.setType("Technician Feedback");
+                fbObj.setDateTime(currentDateTime);
             }
             fRepo.addOrUpdate(fbObj);
             JOptionPane.showMessageDialog(this, "Feedback saved successfully!");
@@ -712,7 +734,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
                 "Customer ID",
                 "Rating",
                 "Review",
-                "Date"
+                "Review Date & time"
         };
 
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -768,10 +790,10 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
                     model.addRow(new Object[]{
                             r.getReviewId(),
                             r.getAppointmentId(),
-                            r.getCustomerId(),
+                            a.getCustomerId(),
                             r.getRating() + " / 5",
                             r.getDescription(),
-                            r.getDate()
+                            r.getDateTime()
                     });
                     break;
                 }
