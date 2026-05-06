@@ -856,7 +856,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                 "Customer ID",
                 "Rating",
                 "Review",
-                "Date"
+                "Review Date & time"
         };
 
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -946,10 +946,10 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                     model.addRow(new Object[]{
                             r.getReviewId(),
                             r.getAppointmentId(),
-                            r.getCustomerId(),
+                            a.getCustomerId(),
                             r.getRating() + " / 5",
                             r.getDescription(),
-                            r.getDate()
+                            r.getDateTime()
                     });
 
                     break;
