@@ -27,6 +27,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             "Manage Customers",
             "Manage Appointments",
             "Process Payment",
+            "Customer Reviews",
             "My Profile"
     };
 
@@ -138,7 +139,9 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             case "Dashboard": panel = buildDashboardPanel(); break;
             case "Manage Customers": panel = buildCustomerManagementPanel(); break;
             case "Manage Appointments": panel = buildAppointmentPanel(); break;
-            case "Process Payment": panel = buildPaymentPanel(); break;            case "My Profile": panel = buildMyProfilePanel(); break;
+            case "Process Payment": panel = buildPaymentPanel(); break;
+            case "Customer Reviews": panel = buildCustomerReviewsPanel(); break;            
+            case "My Profile": panel = buildMyProfilePanel(); break;
             default: panel = new JPanel();
         }
 
@@ -705,6 +708,124 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
         refresh();
     }
 }
+
+    private JPanel buildCustomerReviewsPanel() {
+
+        JPanel root = new JPanel(new BorderLayout(0, 15));
+        root.setBackground(SharedStyles.MAIN_BG);
+        root.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        String[] columns = {
+                "Review ID",
+                "Appointment ID",
+                "Customer ID",
+                "Rating",
+                "Review",
+                "Date"
+        };
+
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int r, int c) {
+                return false;
+            }
+        };
+
+        JTable table = new JTable(model);
+        SharedStyles.applyTableStyle(table);
+
+        javax.swing.table.TableRowSorter<DefaultTableModel> sorter =
+        new javax.swing.table.TableRowSorter<>(model);
+
+        table.setRowSorter(sorter);
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+
+        JLabel searchLbl = new JLabel("Search Customer ID:");
+
+        JTextField searchField = SharedStyles.createFilterField(20);
+
+        topPanel.add(searchLbl);
+        topPanel.add(searchField);
+
+        root.add(topPanel, BorderLayout.NORTH);
+
+        searchField.getDocument().addDocumentListener(
+                new javax.swing.event.DocumentListener() {
+
+            private void filter() {
+
+                String text = searchField.getText().trim();
+
+                if (text.isEmpty()) {
+                    sorter.setRowFilter(null);
+                } else {
+
+                    sorter.setRowFilter(
+                            javax.swing.RowFilter.regexFilter(
+                                    "(?i)" + text,
+                                    2
+                            )
+                    );
+                }
+            }
+
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                filter();
+            }
+
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                filter();
+            }
+
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                filter();
+            }
+        });
+
+        repository.ReviewRepository reviewRepo =
+                new repository.ReviewRepository();
+
+        service_layer.AppointmentService appointmentService =
+                new service_layer.AppointmentService();
+
+        java.util.List<model.feedback.Review> reviews =
+                reviewRepo.getAllReviews();
+
+        java.util.List<model.appointment.Appointment> appointments =
+                appointmentService.getAllAppointments();
+
+        for (model.feedback.Review r : reviews) {
+
+            for (model.appointment.Appointment a : appointments) {
+
+                boolean sameAppointment =
+                        a.getAppointmentId().equals(r.getAppointmentId());
+
+                boolean myAppointment =
+                        currentUser.getUserId().equals(a.getCounterStaffId());
+
+                if (sameAppointment && myAppointment) {
+
+                    model.addRow(new Object[]{
+                            r.getReviewId(),
+                            r.getAppointmentId(),
+                            r.getCustomerId(),
+                            r.getRating() + " / 5",
+                            r.getDescription(),
+                            r.getDate()
+                    });
+
+                    break;
+                }
+            }
+        }
+
+        root.add(new JScrollPane(table), BorderLayout.CENTER);
+
+        return root;
+    }
 
     private JPanel buildMyProfilePanel() {
         JPanel root = new JPanel(new GridBagLayout());

@@ -19,10 +19,10 @@ import java.util.stream.Collectors;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.DefaultListCellRenderer;
+import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
@@ -484,7 +484,7 @@ public class BookingTabPanel extends CustomerTabPanel {
             if (SharedStyles.showConfirm(context.getOwner(), summary.toString())) {
                 String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
                 List<String> sIds = selected.stream().map(Service::getServiceId).collect(Collectors.toList());
-                String res = appointmentService().bookAppointment(currentUser().getUserId(), vId, sIds, dateValue, timeValue);
+                String res = appointmentService().bookAppointment(currentUser().getUserId(), vId, sIds, dateValue, timeValue, "CUSTOMER");
                 SharedStyles.showMessage(context.getOwner(), res);
                 if (res.startsWith("Success")) {
                     context.getNavigator().navigateTo("My Appointments");
