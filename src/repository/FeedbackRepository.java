@@ -38,7 +38,7 @@ public class FeedbackRepository {
         for (Feedback f : all) {
             if (f.getAppointmentId().equals(feedback.getAppointmentId())) {
                 f.setDescription(feedback.getDescription());
-                f.setType(feedback.getType());
+                f.setDateTime(feedback.getDateTime());
                 found = true;
                 break;
             }
