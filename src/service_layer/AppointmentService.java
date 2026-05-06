@@ -227,7 +227,7 @@ public class AppointmentService {
         return slotIndex >= startIndex && slotIndex < startIndex + MAJOR_DURATION_SLOTS;
     }
 
-    public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time) {
+    public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time, String counterStaffId) {
         if (serviceIds == null || serviceIds.isEmpty()) {
             return "Error: You must select at least one service.";
         }
@@ -257,7 +257,18 @@ public class AppointmentService {
         // Join multiple service IDs with commas
         String serviceIdStr = String.join(",", serviceIds);
         
-        Appointment appointment = new Appointment(appointmentId, customerId, vehicleId, serviceIdStr, date, time, "PENDING", "NONE", requestedType.name());
+        Appointment appointment = new Appointment(
+        appointmentId,
+        customerId,
+        vehicleId,
+        serviceIdStr,
+        date,
+        time,
+        "PENDING",
+        "NONE",
+        requestedType.name(),
+        counterStaffId
+    );
         appointmentRepository.save(appointment);
         return "Success: Appointment booked.";
     }

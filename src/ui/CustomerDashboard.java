@@ -770,7 +770,14 @@ public class CustomerDashboard extends JFrame implements Refreshable {
             if (SharedStyles.showConfirm(this, summary.toString())) {
                 String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
                 List<String> sIds = selected.stream().map(Service::getServiceId).collect(Collectors.toList());
-                String res = appointmentService.bookAppointment(currentUser.getUserId(), vId, sIds, dateValue, timeValue);
+                String res = appointmentService.bookAppointment(
+                    currentUser.getUserId(),
+                    vId,
+                    sIds,
+                    dateValue,
+                    timeValue,
+                    "CUSTOMER"
+            );
                 SharedStyles.showMessage(this, res);
                 if (res.startsWith("Success")) {
                     navList.setSelectedIndex(3);

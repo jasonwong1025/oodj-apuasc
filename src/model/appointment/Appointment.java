@@ -10,11 +10,12 @@ public class Appointment {
     private String status;
     private String technicianId;
     private String appointmentType;
+    private String counterStaffId;
 
     public Appointment() {}
 
     public Appointment(String appointmentId, String customerId, String vehicleId, String serviceId,
-                       String date, String time, String status, String technicianId, String appointmentType) {
+                       String date, String time, String status, String technicianId, String appointmentType, String counterStaffId) {
 
         this.appointmentId = appointmentId;
         this.customerId = customerId;
@@ -25,6 +26,7 @@ public class Appointment {
         this.status = status;
         this.technicianId = technicianId;
         this.appointmentType = appointmentType;
+        this.counterStaffId = counterStaffId;
     }
 
     public String getAppointmentId() { return appointmentId; }
@@ -76,6 +78,9 @@ public class Appointment {
     public String getAppointmentType() { return appointmentType; }
     public void setAppointmentType(String appointmentType) { this.appointmentType = appointmentType; }
 
+    public String getCounterStaffId() { return counterStaffId; }
+    public void setCounterStaffId(String counterStaffId) { this.counterStaffId = counterStaffId; }
+
     public boolean canTechnicianProvideFeedback() {
         return "IN PROGRESS".equalsIgnoreCase(this.status) || "COMPLETED".equalsIgnoreCase(this.status);
     }
@@ -106,7 +111,8 @@ public class Appointment {
                 time,
                 status,
                 (technicianId == null ? "NONE" : technicianId),
-                (appointmentType == null || appointmentType.isEmpty()) ? "NORMAL" : appointmentType
+                (appointmentType == null || appointmentType.isEmpty()) ? "NORMAL" : appointmentType,
+                (counterStaffId == null || counterStaffId.isEmpty()) ? "NONE" : counterStaffId
         );
     }
 }

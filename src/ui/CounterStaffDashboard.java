@@ -381,7 +381,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         root.add(top, BorderLayout.NORTH);
 
-        String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status", "Type", "Technician"};
+        String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status", "Type", "Technician", "Staff"};
 
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
@@ -426,8 +426,9 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
                         a.getTime(),
                         a.getStatus(),
                         a.getAppointmentType(),
-                        a.getTechnicianId()
-                });
+                        a.getTechnicianId(),
+                        a.getCounterStaffId()                
+                    });
             }
         };
 
@@ -577,7 +578,9 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
                         selectedVehicle,
                         selectedServices,
                         date,
-                        selectedTime
+                        selectedTime,
+                        currentUser.getUserId()
+
                 );
 
                 JOptionPane.showMessageDialog(this, result);
@@ -594,6 +597,13 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         }
 
         String id = table.getValueAt(row, 0).toString();
+        String staffId = table.getValueAt(row, 9).toString();
+
+        if (!staffId.equals(currentUser.getUserId())) {
+            JOptionPane.showMessageDialog(this,
+                    "You can only edit appointments handled by yourself.");
+            return;
+        }
 
         String status = (String) JOptionPane.showInputDialog(
                 this,

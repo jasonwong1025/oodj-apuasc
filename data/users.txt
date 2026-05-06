@@ -1,5 +1,6 @@
 M001|Manager1|3|0177896541|3|Manager|-|ACTIVE
 S001|Counter Staff Yew|1|0177896541|1|CounterStaff|-|ACTIVE
+S002|Counter Staff Wey|12|0177896231|12|CounterStaff|-|ACTIVE
 T001|Technician1|2|0177896541|2|Technician|Normal Service|ACTIVE
 T002|Technician2|technician2@gmail.com|0177896542|Technician123.|Technician|Major Service|ACTIVE
 C001|Customer1|4|0177896541|4|Customer|-|ACTIVE

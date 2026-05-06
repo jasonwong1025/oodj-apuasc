@@ -1,9 +1,9 @@
 package repository;
 
-import model.appointment.Appointment;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import model.appointment.Appointment;
 
 public class AppointmentRepository {
     private static final String FILE_PATH = "data/appointments.txt";
@@ -20,11 +20,17 @@ public class AppointmentRepository {
                 String[] parts = line.split("\\|", -1);
                 if (parts.length >= 8) {
                     appointments.add(new Appointment(
-                        parts[0], parts[1], parts[2], parts[3],
-                        parts[4], parts[5], parts[6],
-                        parts[7],
-                        parts.length >= 9 ? parts[8] : "NORMAL"
-                    ));
+                    parts[0],
+                    parts[1],
+                    parts[2],
+                    parts[3],
+                    parts[4],
+                    parts[5],
+                    parts[6],
+                    parts[7],
+                    parts.length > 8 ? parts[8] : "NORMAL",
+                    parts.length > 9 ? parts[9] : "NONE"
+            ));
                 }
             }
         } catch (IOException e) {
