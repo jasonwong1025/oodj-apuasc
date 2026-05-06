@@ -2,22 +2,38 @@ package service_layer;
 
 import repository.ReviewRepository;
 import utils.IdGenerator;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import model.appointment.Appointment;
 
 import model.feedback.Review;
 
 public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final PaymentService paymentService;
+    private final AppointmentService appointmentService;
 
     public ReviewService() {
         this.reviewRepository = new ReviewRepository();
         this.paymentService = new PaymentService();
+        this.appointmentService = new AppointmentService();
     }
 
     public List<Review> getCustomerReviews(String customerId) {
-        return reviewRepository.getReviewsByCustomer(customerId);
+        List<Appointment> customerAppts = appointmentService.getCustomerAppointments(customerId);
+        List<String> apptIds = new ArrayList<>();
+        for (Appointment a : customerAppts) apptIds.add(a.getAppointmentId());
+
+        List<Review> all = reviewRepository.getAllReviews();
+        List<Review> filtered = new ArrayList<>();
+        for (Review r : all) {
+            if (apptIds.contains(r.getAppointmentId())) {
+                filtered.add(r);
+            }
+        }
+        return filtered;
     }
 
     public List<Review> getAllReviews() {
@@ -52,8 +68,8 @@ public class ReviewService {
         }
 
         String reviewId = IdGenerator.generateId("REV", "data/reviews.txt");
-        String date = LocalDate.now().toString();
-        Review review = new Review(reviewId, appointmentId, customerId, rating, description, date);
+        String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        Review review = new Review(reviewId, appointmentId, rating, description, dateTime);
         reviewRepository.save(review);
         return "Success: Review submitted.";
     }
