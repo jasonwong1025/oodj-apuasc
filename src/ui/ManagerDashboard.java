@@ -4,8 +4,11 @@ import abstracts.AbstractUser;
 import model.users.User;
 import service_layer.AppointmentService;
 import service_layer.CategoryService;
+import service_layer.FeedbackService;
+import service_layer.ReviewService;
 import service_layer.ServiceService;
 import service_layer.UserService;
+import ui.ManagerPortal.AllFeedbackTabPanel;
 import ui.ManagerPortal.CategoriesTabPanel;
 import ui.ManagerPortal.DashboardTabPanel;
 import ui.ManagerPortal.MyProfileTabPanel;
@@ -30,6 +33,8 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private final ServiceService serviceService;
     private final CategoryService categoryService;
     private final AppointmentService appointmentService;
+    private final FeedbackService feedbackService;
+    private final ReviewService reviewService;
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
@@ -42,7 +47,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private final UserManagementTabPanel userManagementTab;
     private final ServiceCatalogTabPanel serviceCatalogTab;
     private final CategoriesTabPanel categoriesTab;
-    private final PlaceholderTabPanel feedbackTab;
+    private final AllFeedbackTabPanel feedbackTab;
     private final PlaceholderTabPanel reportsTab;
     private final MyProfileTabPanel profileTab;
 
@@ -52,12 +57,14 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         this.serviceService = new ServiceService();
         this.categoryService = new CategoryService();
         this.appointmentService = new AppointmentService();
+        this.feedbackService = new FeedbackService();
+        this.reviewService = new ReviewService();
 
         this.dashboardTab = new DashboardTabPanel(userService, appointmentService, this::refresh);
         this.userManagementTab = new UserManagementTabPanel(this, currentUser, userService);
         this.serviceCatalogTab = new ServiceCatalogTabPanel(this, serviceService, categoryService);
         this.categoriesTab = new CategoriesTabPanel(this, categoryService);
-        this.feedbackTab = new PlaceholderTabPanel("All Feedback", "View customer and staff feedback (link to data layer next).");
+        this.feedbackTab = new AllFeedbackTabPanel(feedbackService, reviewService, appointmentService, userService, serviceService);
         this.reportsTab = new PlaceholderTabPanel("Reports", "Export analysis summaries (link to appointments/payments next).");
         this.profileTab = new MyProfileTabPanel(this, currentUser, userService);
 
