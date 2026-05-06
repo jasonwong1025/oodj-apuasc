@@ -367,7 +367,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         top.setOpaque(false);
 
         JComboBox<String> filterBox = new JComboBox<>(new String[]{
-                "All", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"
+            "PENDING", "All", "CONFIRMED", "COMPLETED", "CANCELLED"
         });
         JComboBox<String> sortBox = new JComboBox<>(new String[]{
         "Newest Date",

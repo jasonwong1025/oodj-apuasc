@@ -1,11 +1,11 @@
-M001|Manager1|3|0177896541|3|Manager|-|ACTIVE
+M001|Manager 1|3|0177896541|3|Manager|-|ACTIVE
 S001|Counter Staff Yew|1|0177896541|1|CounterStaff|-|ACTIVE
-S002|Counter Staff Wey|12|0177896231|12|CounterStaff|-|ACTIVE
-T001|Technician1|2|0177896541|2|Technician|Normal Service|ACTIVE
-T002|Technician2|technician2@gmail.com|0177896542|Technician123.|Technician|Major Service|ACTIVE
-C001|Customer1|4|0177896541|4|Customer|-|ACTIVE
-C002|Lee Zii Qing|leezq@mail.com|0129783813|leezq123|Customer|-|ACTIVE
-C003|Ong Jia Sen|ongjs@gmail.com|0129182000|ongjs123|Customer|-|ACTIVE
+S002|Counter Staff Wey|11|0177896231|11|CounterStaff|-|ACTIVE
+T001|Technician 1|2|0177896541|2|Technician|Normal Service|ACTIVE
+T002|Technician 2|22|0177896542|22|Technician|Major Service|ACTIVE
+C001|Ong Zi Ming|4|0177896541|4|Customer|-|ACTIVE
+C002|Lee Zii Qing|12|0129783813|12|Customer|-|ACTIVE
+C003|Ong Jia Sen|13|0129182000|13|Customer|-|ACTIVE
 T003|qwe|qweqwe@qweqwe.com|0123456789|Qwe123.|Technician|Normal Service|ACTIVE
 C004|Lee Sang Yew|sangyewlee@gmail.com|0126388765|Lsy@050915|Customer|-|ACTIVE
 C005|Muhammad Ali|muhdali@gmail.com|01298271281|1|Customer|-|ACTIVE
