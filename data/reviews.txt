@@ -1,3 +1,1 @@
-REV001|APT001|C002|5|omg lurveeee my car is spectacular|2026-05-06
-REV002|APT002|C002|5|walao eh damn good sia, the counter guy very hadnsome|2026-05-06
-REV003|APT003|C003|5|handsome staff yumm|2026-05-06
+REV001|APT001|5|good service|2026-05-06 10:00
