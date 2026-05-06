@@ -749,7 +749,7 @@ sortBox.setPreferredSize(new Dimension(140, 25));
                 "Update",
                 JOptionPane.QUESTION_MESSAGE,
                 null,
-                new String[]{"PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"},
+                new String[]{"PENDING", "CONFIRMED", "CANCELLED"},
                 "PENDING"
         );
 
