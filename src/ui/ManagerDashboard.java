@@ -81,12 +81,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         brand.setFont(new Font("SansSerif", Font.BOLD, 18));
         header.add(brand, BorderLayout.WEST);
 
-        JComboBox<String> lang = SharedStyles.createFilterCombo(new String[]{"English", "Bahasa Melayu"});
-        JPanel center = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
-        center.setOpaque(false);
-        center.add(lang);
-        header.add(center, BorderLayout.CENTER);
-
         JLabel who = new JLabel(currentUser.getFullName() + "  |  " + roleDisplay(currentUser.getRole()));
         who.setFont(new Font("SansSerif", Font.PLAIN, 14));
         JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
