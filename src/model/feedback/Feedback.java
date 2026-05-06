@@ -4,15 +4,15 @@ public class Feedback {
     private String feedbackId;
     private String appointmentId;
     private String description;
-    private String type; // e.g., "Technician Feedback"
+    private String dateTime;
 
     public Feedback() {}
 
-    public Feedback(String feedbackId, String appointmentId, String description, String type) {
+    public Feedback(String feedbackId, String appointmentId, String description, String dateTime) {
         this.feedbackId = feedbackId;
         this.appointmentId = appointmentId;
         this.description = description;
-        this.type = type;
+        this.dateTime = dateTime;
     }
 
     public String getFeedbackId() { return feedbackId; }
@@ -24,11 +24,11 @@ public class Feedback {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public String getDateTime() { return dateTime; }
+    public void setDateTime(String dateTime) { this.dateTime = dateTime; }
 
     @Override
     public String toString() {
-        return String.join("|", feedbackId, appointmentId, description, type);
+        return String.join("|", feedbackId, appointmentId, description, dateTime);
     }
 }
