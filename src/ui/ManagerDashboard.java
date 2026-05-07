@@ -15,6 +15,7 @@ import ui.ManagerPortal.DashboardTabPanel;
 import ui.ManagerPortal.MyProfileTabPanel;
 import ui.ManagerPortal.ReportsTabPanel;
 import ui.ManagerPortal.ServiceCatalogTabPanel;
+import ui.ManagerPortal.SystemMaintenanceTabPanel;
 import ui.ManagerPortal.UserManagementTabPanel;
 
 import javax.swing.*;
@@ -24,7 +25,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class ManagerDashboard extends JFrame implements Refreshable {
-    private static final String[] NAV_ITEMS = {"Dashboard", "User Management", "Service Management", "All Feedback", "Reports", "My Profile"};
+    private static final String[] NAV_ITEMS = {"Dashboard", "User Management", "Service Management", "All Feedback", "Reports", "System Maintenance", "My Profile"};
     private static final String SVC_HEADER = "Service Management";
     private static final String SVC_CATALOG = "Manage Service Catalog";
     private static final String SVC_CATEGORIES = "Manage Categories";
@@ -51,6 +52,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private final CategoriesTabPanel categoriesTab;
     private final AllFeedbackTabPanel feedbackTab;
     private final ReportsTabPanel reportsTab;
+    private final SystemMaintenanceTabPanel maintenanceTab;
     private final MyProfileTabPanel profileTab;
 
     public ManagerDashboard(AbstractUser user) {
@@ -69,6 +71,10 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         this.categoriesTab = new CategoriesTabPanel(this, categoryService);
         this.feedbackTab = new AllFeedbackTabPanel(feedbackService, reviewService, appointmentService, userService, serviceService);
         this.reportsTab = new ReportsTabPanel(appointmentService, paymentService, serviceService, categoryService, reviewService, userService);
+        this.maintenanceTab = new SystemMaintenanceTabPanel(() -> {
+            new LoginFrame().setVisible(true);
+            dispose();
+        });
         this.profileTab = new MyProfileTabPanel(this, currentUser, userService);
 
         setTitle("APU-ASC | Manager - " + currentUser.getFullName());
@@ -177,6 +183,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         cardPanel.add(categoriesTab, "SVC_CATEGORIES");
         cardPanel.add(feedbackTab, "FEED");
         cardPanel.add(reportsTab, "REPORT");
+        cardPanel.add(maintenanceTab, "MAINTENANCE");
         cardPanel.add(profileTab, "PROFILE");
 
         wrap.add(side, BorderLayout.WEST);
@@ -215,6 +222,10 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             case "Reports":
                 reportsTab.refresh();
                 cardLayout.show(cardPanel, "REPORT");
+                break;
+            case "System Maintenance":
+                maintenanceTab.refresh();
+                cardLayout.show(cardPanel, "MAINTENANCE");
                 break;
             case "My Profile":
                 profileTab.refresh();
