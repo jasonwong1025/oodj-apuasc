@@ -13,6 +13,8 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -40,6 +42,8 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
     @Override
     public void refresh() {
         removeAll();
+        JPanel content = new JPanel(new BorderLayout(0, 18));
+        content.setOpaque(false);
         List<User> allUsers = userService.listAllUsers();
         long normalServiceTechs = allUsers.stream()
                 .filter(u -> "Technician".equals(u.getRole()))
@@ -63,19 +67,37 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         topRight.setOpaque(false);
         topRight.add(refreshDashboardBtn);
         topRow.add(topRight, BorderLayout.EAST);
-        add(topRow, BorderLayout.NORTH);
+        content.add(topRow, BorderLayout.NORTH);
 
-        JPanel analyticsRow = new JPanel(new GridLayout(1, 2, 16, 0));
+        JPanel analyticsRow = new JPanel(new GridBagLayout());
         analyticsRow.setOpaque(false);
         List<Payment> payments = paymentService.getAllPayments();
-        analyticsRow.add(buildYearlyEarningsStatCard(appointments, payments));
-        analyticsRow.add(buildTechnicianServiceTypeCard(normalServiceTechs, majorServiceTechs));
+        JPanel yearlyEarningsCard = buildYearlyEarningsStatCard(appointments, payments);
+        JPanel technicianDistributionCard = buildTechnicianServiceTypeCard(normalServiceTechs, majorServiceTechs);
+        applyResponsiveAnalyticsLayout(analyticsRow, yearlyEarningsCard, technicianDistributionCard);
+        analyticsRow.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                applyResponsiveAnalyticsLayout(analyticsRow, yearlyEarningsCard, technicianDistributionCard);
+            }
+        });
 
         JPanel center = new JPanel(new BorderLayout(0, 20));
         center.setOpaque(false);
         center.add(analyticsRow, BorderLayout.NORTH);
         center.add(buildAppointmentsTableCard(appointments), BorderLayout.CENTER);
-        add(center, BorderLayout.CENTER);
+        content.add(center, BorderLayout.CENTER);
+
+        JScrollPane rightPanelScroll = new JScrollPane(
+                content,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        rightPanelScroll.setBorder(null);
+        rightPanelScroll.getViewport().setOpaque(false);
+        rightPanelScroll.setOpaque(false);
+        rightPanelScroll.getVerticalScrollBar().setUnitIncrement(16);
+        add(rightPanelScroll, BorderLayout.CENTER);
         revalidate();
         repaint();
     }
@@ -83,6 +105,7 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
     private JPanel buildTechnicianServiceTypeCard(long normalServiceTechs, long majorServiceTechs) {
         JPanel card = SharedStyles.createCardPanel();
         card.setLayout(new BorderLayout(0, 10));
+        card.setPreferredSize(new Dimension(420, 290));
 
         JLabel title = new JLabel("Technician Distribution");
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
@@ -126,6 +149,7 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
     private JPanel buildYearlyEarningsStatCard(List<Appointment> appointments, List<Payment> payments) {
         JPanel card = SharedStyles.createCardPanel();
         card.setLayout(new BorderLayout(12, 0));
+        card.setPreferredSize(new Dimension(620, 290));
 
         JLabel title = new JLabel("General Statistic");
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
@@ -177,6 +201,40 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         chartAndStats.add(statsColumn, BorderLayout.EAST);
         card.add(chartAndStats, BorderLayout.CENTER);
         return card;
+    }
+
+    private void applyResponsiveAnalyticsLayout(JPanel analyticsRow, JPanel yearlyEarningsCard, JPanel technicianDistributionCard) {
+        analyticsRow.removeAll();
+        boolean stackCards = analyticsRow.getWidth() > 0 && analyticsRow.getWidth() < 1120;
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+
+        if (stackCards) {
+            gbc.gridy = 0;
+            gbc.insets = new Insets(0, 0, 12, 0);
+            analyticsRow.add(yearlyEarningsCard, gbc);
+
+            gbc.gridy = 1;
+            gbc.insets = new Insets(0, 0, 0, 0);
+            analyticsRow.add(technicianDistributionCard, gbc);
+        } else {
+            gbc.gridy = 0;
+            gbc.gridx = 0;
+            gbc.weightx = 0.62;
+            gbc.insets = new Insets(0, 0, 0, 8);
+            analyticsRow.add(yearlyEarningsCard, gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.38;
+            gbc.insets = new Insets(0, 8, 0, 0);
+            analyticsRow.add(technicianDistributionCard, gbc);
+        }
+
+        analyticsRow.revalidate();
+        analyticsRow.repaint();
     }
 
     private JPanel createMetricLine(String title, String value) {
