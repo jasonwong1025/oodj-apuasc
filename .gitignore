@@ -9,3 +9,5 @@
 !data/**
 !src/
 !src/**
+!activation-1.1.1.jar
+!javax.mail.jar
