@@ -99,7 +99,7 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
         controlsWrap.setOpaque(false);
         controlsRow = new JPanel(new GridBagLayout());
         controlsRow.setOpaque(false);
-        controlsWrap.add(controlsRow, BorderLayout.CENTER);
+        controlsWrap.add(controlsRow, BorderLayout.WEST);
         topCard.add(controlsWrap, BorderLayout.CENTER);
 
         reportTypeCombo = SharedStyles.createFilterCombo(new String[]{
@@ -121,6 +121,7 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
         generateBtn.addActionListener(e -> generateSelectedReport(true));
         clearBtn.addActionListener(e -> resetFilters());
         periodCombo.addActionListener(e -> applyPeriodPreset());
+        reportTypeCombo.addActionListener(e -> layoutControls());
         periodCombo.setSelectedItem("This Month");
 
         layoutControls();
@@ -168,8 +169,10 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
         addControl(gbc, x++, reportTypeCombo);
         addControl(gbc, x++, new JLabel("Period"));
         addControl(gbc, x++, periodCombo);
-        addControl(gbc, x++, new JLabel("VIP Rank"));
-        addControl(gbc, x++, vipMetricCombo);
+        if (REPORT_TOP_VIP.equals(String.valueOf(reportTypeCombo.getSelectedItem()))) {
+            addControl(gbc, x++, new JLabel("VIP Rank"));
+            addControl(gbc, x++, vipMetricCombo);
+        }
         addControl(gbc, x++, generateBtn);
         addControl(gbc, x, clearBtn);
 
