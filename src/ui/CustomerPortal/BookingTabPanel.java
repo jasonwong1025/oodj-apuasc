@@ -78,28 +78,14 @@ public class BookingTabPanel extends CustomerTabPanel {
         );
 
         List<Service> allServices = serviceLookup().listAll();
-        List<Service> normalServices = allServices.stream().filter(Service::isIncludedInNormalService).collect(Collectors.toList());
-        List<Service> majorServices = allServices.stream().filter(s -> !s.isIncludedInNormalService()).collect(Collectors.toList());
-
         final int NORMAL_LIMIT = 3;
         final int MAJOR_LIMIT = 8;
 
-        List<JCheckBox> normalChecks = new ArrayList<>();
-        List<JCheckBox> majorChecks = new ArrayList<>();
         List<JCheckBox> allChecks = new ArrayList<>();
-
-        for (Service s : normalServices) {
+        for (Service s : allServices) {
             JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
             cb.setOpaque(false);
             cb.putClientProperty("service", s);
-            normalChecks.add(cb);
-            allChecks.add(cb);
-        }
-        for (Service s : majorServices) {
-            JCheckBox cb = new JCheckBox(s.getServiceName() + " (RM " + String.format("%.2f", s.getPrice()) + ")");
-            cb.setOpaque(false);
-            cb.putClientProperty("service", s);
-            majorChecks.add(cb);
             allChecks.add(cb);
         }
 
@@ -205,19 +191,17 @@ public class BookingTabPanel extends CustomerTabPanel {
             }
         };
 
-        java.util.function.Supplier<List<JCheckBox>> activeChecks = () ->
-                majorCategoryBtn.isSelected() ? allChecks : normalChecks;
+        java.util.function.Supplier<List<JCheckBox>> activeChecks = () -> allChecks;
         java.util.function.Supplier<Integer> maxSelection = () ->
                 majorCategoryBtn.isSelected() ? MAJOR_LIMIT : NORMAL_LIMIT;
 
         Runnable refreshServiceList = () -> {
             if (normalCategoryBtn.isSelected()) {
-                for (JCheckBox cb : majorChecks) {
-                    if (cb.isSelected()) cb.setSelected(false);
-                }
-                serviceScroll.setBorder(BorderFactory.createTitledBorder("Normal Services"));
+                serviceScroll.setBorder(BorderFactory.createTitledBorder("Normal Services (max 3)"));
+                // Clear all selections when switching back to Normal to avoid exceeding limit
+                for (JCheckBox cb : allChecks) cb.setSelected(false);
             } else {
-                serviceScroll.setBorder(BorderFactory.createTitledBorder("All Services"));
+                serviceScroll.setBorder(BorderFactory.createTitledBorder("Major Services (max 8)"));
             }
             serviceListPanel.removeAll();
             for (JCheckBox cb : activeChecks.get()) {
@@ -484,7 +468,7 @@ public class BookingTabPanel extends CustomerTabPanel {
             if (SharedStyles.showConfirm(context.getOwner(), summary.toString())) {
                 String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
                 List<String> sIds = selected.stream().map(Service::getServiceId).collect(Collectors.toList());
-                String res = appointmentService().bookAppointment(currentUser().getUserId(), vId, sIds, dateValue, timeValue, "CUSTOMER");
+                String res = appointmentService().bookAppointment(currentUser().getUserId(), vId, sIds, dateValue, timeValue, "NONE", isMajorCategory ? "MAJOR" : "NORMAL");
                 SharedStyles.showMessage(context.getOwner(), res);
                 if (res.startsWith("Success")) {
                     context.getNavigator().navigateTo("My Appointments");

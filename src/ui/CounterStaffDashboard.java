@@ -367,7 +367,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         top.setOpaque(false);
 
         JComboBox<String> filterBox = new JComboBox<>(new String[]{
-            "PENDING", "All", "CONFIRMED", "COMPLETED", "CANCELLED"
+            "PENDING", "All", "CONFIRMED", "IN PROGRESS", "COMPLETED", "CANCELLED"
         });
         JComboBox<String> sortBox = new JComboBox<>(new String[]{
         "Newest Date",
@@ -385,12 +385,10 @@ sortBox.setPreferredSize(new Dimension(140, 25));
         JButton addBtn = SharedStyles.createActionButton("Add Appointment", SharedStyles.BTN_GREEN);
         JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_ORANGE);
         JButton assignBtn = SharedStyles.createActionButton("Assign Technician", SharedStyles.BTN_BLUE);
-        JButton deleteBtn = SharedStyles.createActionButton("Delete Appointment", SharedStyles.BTN_RED);
 
         top.add(addBtn);
         top.add(updateBtn);
         top.add(assignBtn);
-        top.add(deleteBtn);
         root.add(top, BorderLayout.NORTH);
 
         String[] columns = {"ID", "Customer", "Vehicle", "Service", "Date", "Time", "Status", "Type", "Technician", "Staff"};
@@ -458,83 +456,7 @@ sortBox.setPreferredSize(new Dimension(140, 25));
         loadTable.run();
         filterBox.addActionListener(e -> loadTable.run());
         sortBox.addActionListener(e -> loadTable.run());
-//delete button
-        deleteBtn.addActionListener(e -> {
-
-            int row = table.getSelectedRow();
-
-            if (row == -1) {
-                JOptionPane.showMessageDialog(this,
-                        "Please select an appointment.");
-                return;
-            }
-
-            String appointmentId =
-                    table.getValueAt(row, 0).toString();
-
-            String staffId =
-                    table.getValueAt(row, 9).toString();
-
-            if (!staffId.equals(currentUser.getUserId())) {
-                JOptionPane.showMessageDialog(this,
-                        "You can only delete appointments handled by yourself.");
-                return;
-            }
-
-            int confirm = JOptionPane.showConfirmDialog(
-                    this,
-                    "Delete this appointment?",
-                    "Confirm Delete",
-                    JOptionPane.YES_NO_OPTION
-            );
-
-            if (confirm != JOptionPane.YES_OPTION) {
-                return;
-            }
-
-            try {
-
-                java.util.List<String> lines =
-                        new java.util.ArrayList<>();
-
-                try (java.io.BufferedReader br =
-                            new java.io.BufferedReader(
-                                    new java.io.FileReader("data/appointments.txt"))) {
-
-                    String line;
-
-                    while ((line = br.readLine()) != null) {
-
-                        String[] parts = line.split("\\|");
-
-                        if (!parts[0].equals(appointmentId)) {
-                            lines.add(line);
-                        }
-                    }
-                }
-
-                try (java.io.BufferedWriter bw =
-                            new java.io.BufferedWriter(
-                                    new java.io.FileWriter("data/appointments.txt"))) {
-
-                    for (String l : lines) {
-                        bw.write(l);
-                        bw.newLine();
-                    }
-                }
-
-                JOptionPane.showMessageDialog(this,
-                        "Appointment deleted successfully!");
-
-                refresh();
-
-            } catch (Exception ex) {
-                ex.printStackTrace();
-
-                JOptionPane.showMessageDialog(this,
-                        "Failed to delete appointment.");
-            }
-        });
+// Add appointment listener starts here
 
         // ADD APPOINTMENT 
         addBtn.addActionListener(e -> {
@@ -743,41 +665,51 @@ sortBox.setPreferredSize(new Dimension(140, 25));
             return;
         }
 
+        model.appointment.Appointment targetAppt = null;
+        for (model.appointment.Appointment a : list) {
+            if (a.getAppointmentId().equals(id)) {
+                targetAppt = a;
+                break;
+            }
+        }
+        if (targetAppt == null) return;
+
+        if (!"PENDING".equalsIgnoreCase(targetAppt.getStatus())) {
+            JOptionPane.showMessageDialog(this, "Only Technicians can update the status once it is CONFIRMED.");
+            return;
+        }
+
+        java.util.List<String> options = new java.util.ArrayList<>();
+        options.add("PENDING");
+        options.add("CONFIRMED");
+        options.add("CANCELLED");
+
         String status = (String) JOptionPane.showInputDialog(
                 this,
-                "Status",
-                "Update",
+                "Update Status for " + id,
+                "Select Status",
                 JOptionPane.QUESTION_MESSAGE,
                 null,
-                new String[]{"PENDING", "CONFIRMED", "CANCELLED"},
-                "PENDING"
+                options.toArray(new String[0]),
+                targetAppt.getStatus()
         );
 
         if (status != null) {
-            for (model.appointment.Appointment a : list) {
-                if (a.getAppointmentId().equals(id)) {
-                    if ("CANCELLED".equalsIgnoreCase(status) && "CONFIRMED".equalsIgnoreCase(a.getStatus())) {
-                        JOptionPane.showMessageDialog(this, "Cannot change status to CANCELLED once it is CONFIRMED.");
-                        return;
-                    }
-                    if ("CONFIRMED".equalsIgnoreCase(status) &&
-                        (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
-                        
-                        openAssignTechnicianDialog(a, list);
-                        if (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId())) {
-                            return;
-                        }
-                    }
-                    if (("CONFIRMED".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) &&
-                        (a.getTechnicianId() == null || a.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(a.getTechnicianId()))) {
-                        JOptionPane.showMessageDialog(this, "Cannot change status to " + status + " without an assigned technician.");
-                        return;
-                    }
-                    a.setStatus(status);
-                    new repository.AppointmentRepository().update(a);
-                    break;
+            if ("CONFIRMED".equalsIgnoreCase(status) &&
+                (targetAppt.getTechnicianId() == null || targetAppt.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(targetAppt.getTechnicianId()))) {
+                
+                openAssignTechnicianDialog(targetAppt, list);
+                if (targetAppt.getTechnicianId() == null || targetAppt.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(targetAppt.getTechnicianId())) {
+                    return;
                 }
             }
+            if (("CONFIRMED".equalsIgnoreCase(status) || "IN PROGRESS".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) &&
+                (targetAppt.getTechnicianId() == null || targetAppt.getTechnicianId().trim().isEmpty() || "NONE".equalsIgnoreCase(targetAppt.getTechnicianId()))) {
+                JOptionPane.showMessageDialog(this, "Cannot change status to " + status + " without an assigned technician.");
+                return;
+            }
+            targetAppt.setStatus(status);
+            new repository.AppointmentRepository().update(targetAppt);
             refresh();
         }
     });
@@ -839,6 +771,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
     if (selectedTech != null) {
         a.setTechnicianId(selectedTech);
+        a.setCounterStaffId(currentUser.getUserId());
         new repository.AppointmentRepository().update(a);
         refresh();
     }
@@ -949,7 +882,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                             a.getCustomerId(),
                             r.getRating() + " / 5",
                             r.getDescription(),
-                            r.getDateTime()
+                            r.getDate()
                     });
 
                     break;
@@ -1047,7 +980,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
         root.add(top, BorderLayout.NORTH);
 
-        String[] cols = {"Appointment ID", "Customer", "Service", "Price", "Appt Status", "Payment Status", "Remaining"};
+        String[] cols = {"Appointment ID", "Customer", "Service", "Price", "Payment Status", "Payment Date & Time"};
 
         DefaultTableModel model = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int r, int c) { return false; }
@@ -1062,8 +995,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
             for (model.appointment.Appointment a : list) {
 
-                if (!a.getStatus().equalsIgnoreCase("CONFIRMED") &&
-                    !a.getStatus().equalsIgnoreCase("COMPLETED")) {
+                if (!a.getStatus().equalsIgnoreCase("COMPLETED")) {
                     continue;
                 }
                 String[] serviceIds = a.getServiceId().split(",");
@@ -1114,7 +1046,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
                 if (found != null) {
                     paymentStatus = found.getStatus();
-                    remaining = found.getRemainingAmount();
+                    remaining = "PAID".equalsIgnoreCase(paymentStatus) ? 0 : found.getAmount();
                 }
 
                 // FILTER 
@@ -1122,14 +1054,15 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
                 if (filter.equals("Unpaid") && !paymentStatus.equalsIgnoreCase("UNPAID")) continue;
 
+                String payDate = (found != null) ? found.getDate() : "NONE";
+
                 model.addRow(new Object[]{
                         a.getAppointmentId(),
                         a.getCustomerId(),
                         finalService,
                         totalPrice,
-                        a.getStatus(),
                         paymentStatus,
-                        remaining
+                        payDate
                 });
             }
         };
@@ -1148,7 +1081,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
             String appointmentId = table.getValueAt(row, 0).toString();
             String customerId = table.getValueAt(row, 1).toString();
-            String status = table.getValueAt(row, 5).toString();
+            String status = table.getValueAt(row, 4).toString();
 
             if ("PAID".equalsIgnoreCase(status)) {
                 JOptionPane.showMessageDialog(this, "Already fully paid!");
@@ -1169,13 +1102,10 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
             model.payment.Payment payment = new model.payment.Payment(
                     utils.IdGenerator.generateId("PAY", "data/payments.txt"),
                     appointmentId,
-                    customerId,
                     total,
-                    0,
-                    java.time.LocalDate.now().toString(),
+                    java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                     "PAID"
             );
-
             paymentService.processPayment(payment);
 
             JOptionPane.showMessageDialog(this, "Full payment recorded!");
@@ -1198,8 +1128,8 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
         String customerId = table.getValueAt(row, 1).toString();
         String service = table.getValueAt(row, 2).toString();
         String total = table.getValueAt(row, 3).toString();
-        String status = table.getValueAt(row, 5).toString();
-        String remaining = table.getValueAt(row, 6).toString();
+        String status = table.getValueAt(row, 4).toString();
+        String payDate = table.getValueAt(row, 5).toString();
 
         if (!"PAID".equalsIgnoreCase(status)) {
             JOptionPane.showMessageDialog(this,
@@ -1230,7 +1160,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
             writer.write("<div class='row'><span>Appointment</span><span>" + appointmentId + "</span></div>");
             writer.write("<div class='row'><span>Customer</span><span>" + customerId + "</span></div>");
-            writer.write("<div class='row'><span>Date</span><span>" + java.time.LocalDate.now() + "</span></div>");
+            writer.write("<div class='row'><span>Payment Date & Time</span><span>" + payDate + "</span></div>");
 
             writer.write("<div class='line'></div>");
 
@@ -1244,7 +1174,6 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
             writer.write("<div class='row total'><span>Total</span><span>RM " + total + "</span></div>");
             writer.write("<div class='row'><span>Status</span><span>" + status + "</span></div>");
-            writer.write("<div class='row'><span>Remaining</span><span>RM " + remaining + "</span></div>");
 
             writer.write("<div class='line'></div>");
             writer.write("<div style='text-align:center;'>Thank you for your payment!</div>");

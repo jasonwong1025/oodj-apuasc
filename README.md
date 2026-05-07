@@ -1,3 +1,3 @@
 In Terminal run:
 
-javac -d bin (Get-ChildItem -Path src -Filter *.java -Recurse).FullName; java -cp bin main.Main
+java -cp "bin;javax.mail.jar;activation-1.1.1.jar" main.Main

@@ -29,6 +29,43 @@ public class PaymentService {
     }
     public void processPayment(Payment payment) {
         paymentRepository.save(payment);
-}
-}
+    }
 
+    public void updatePayment(Payment payment) {
+        paymentRepository.update(payment);
+    }
+
+    public void generateUnpaidPaymentForCompletedAppointment(model.appointment.Appointment a) {
+        if (!"COMPLETED".equalsIgnoreCase(a.getStatus())) return;
+
+        List<Payment> all = paymentRepository.getAllPayments();
+        for (Payment p : all) {
+            if (p.getAppointmentId().equals(a.getAppointmentId())) {
+                return; 
+            }
+        }
+        
+        repository.ServiceFileRepository repo = new repository.ServiceFileRepository();
+        List<model.service.Service> allServices = repo.getAll();
+        double total = 0;
+        String[] sIds = a.getServiceId().split(",");
+        for (String id : sIds) {
+            String idNum = id.replaceAll("\\D", "");
+            for (model.service.Service s : allServices) {
+                if (s.getServiceId().replaceAll("\\D", "").equals(idNum)) {
+                    total += s.getPrice();
+                    break;
+                }
+            }
+        }
+        
+        Payment payment = new Payment(
+            utils.IdGenerator.generateId("PAY", "data/payments.txt"),
+            a.getAppointmentId(),
+            total,
+            "NONE",
+            "UNPAID"
+        );
+        processPayment(payment);
+    }
+}

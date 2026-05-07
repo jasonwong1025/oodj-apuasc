@@ -32,6 +32,9 @@ public class Review {
     public String getDateTime() { return dateTime; }
     public void setDateTime(String dateTime) { this.dateTime = dateTime; }
 
+    public String getDate() { return dateTime; }
+    public void setDate(String date) { this.dateTime = date; }
+
     @Override
     public String toString() {
         return String.join("|", reviewId, appointmentId, String.valueOf(rating), description, dateTime);

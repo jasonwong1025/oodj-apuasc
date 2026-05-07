@@ -42,11 +42,19 @@ public class ReviewService {
 
     public List<String[]> getAllReviewRows() {
         List<String[]> rows = new java.util.ArrayList<>();
+        List<Appointment> allAppts = appointmentService.getAllAppointments();
         for (Review review : reviewRepository.getAllReviews()) {
+            String customerId = "N/A";
+            for (Appointment a : allAppts) {
+                if (a.getAppointmentId().equals(review.getAppointmentId())) {
+                    customerId = a.getCustomerId();
+                    break;
+                }
+            }
             rows.add(new String[]{
                     review.getReviewId(),
                     review.getAppointmentId(),
-                    review.getCustomerId(),
+                    customerId,
                     String.valueOf(review.getRating()),
                     review.getDescription() == null ? "" : review.getDescription(),
                     review.getDate() == null ? "" : review.getDate()

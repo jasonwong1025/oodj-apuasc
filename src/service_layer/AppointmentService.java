@@ -228,6 +228,10 @@ public class AppointmentService {
     }
 
     public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time, String counterStaffId) {
+        return bookAppointment(customerId, vehicleId, serviceIds, date, time, counterStaffId, null);
+    }
+
+    public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time, String counterStaffId, String forcedType) {
         if (serviceIds == null || serviceIds.isEmpty()) {
             return "Error: You must select at least one service.";
         }
@@ -246,7 +250,16 @@ public class AppointmentService {
             return "Error: You must select a registered vehicle.";
         }
 
-        SlotType requestedType = determineRequestedSlotType(serviceIds);
+        SlotType requestedType;
+        if (forcedType != null && !forcedType.trim().isEmpty()) {
+            try {
+                requestedType = SlotType.valueOf(forcedType.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                requestedType = determineRequestedSlotType(serviceIds);
+            }
+        } else {
+            requestedType = determineRequestedSlotType(serviceIds);
+        }
 
         String scheduleError = validateSchedule(date, time, requestedType);
         if (scheduleError != null) {

@@ -9,3 +9,4 @@ C003|Ong Jia Sen|13|0129182000|13|Customer|-|ACTIVE
 T003|qwe|qweqwe@qweqwe.com|0123456789|Qwe123.|Technician|Normal Service|ACTIVE
 C004|Lee Sang Yew|sangyewlee@gmail.com|0126388765|Lsy@050915|Customer|-|ACTIVE
 C005|Muhammad Ali|muhdali@gmail.com|01298271281|1|Customer|-|ACTIVE
+C006|apunene|zimingong0211@gmail.com|0123654987|Qwerty123.|Customer|-|ACTIVE

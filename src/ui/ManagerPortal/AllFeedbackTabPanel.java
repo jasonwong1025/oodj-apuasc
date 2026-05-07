@@ -125,7 +125,7 @@ public class AllFeedbackTabPanel extends JPanel implements Refreshable {
         JPanel techPanel = new JPanel(new BorderLayout());
         techPanel.setOpaque(false);
         technicianTableModel = new DefaultTableModel(
-                new String[]{"Feedback ID", "Apt ID", "Customer", "Service(s)", "Date", "Technician Feedback"}, 0) {
+                new String[]{"Feedback ID", "Apt ID", "Customer", "Service(s)", "Date & Time", "Technician Feedback"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -148,7 +148,7 @@ public class AllFeedbackTabPanel extends JPanel implements Refreshable {
         JPanel reviewPanel = new JPanel(new BorderLayout());
         reviewPanel.setOpaque(false);
         reviewTableModel = new DefaultTableModel(
-                new String[]{"Review ID", "Apt ID", "Customer", "Service(s)", "Review Date", "Rating", "Customer Review"}, 0) {
+                new String[]{"Review ID", "Apt ID", "Customer", "Service(s)", "Date & Time", "Rating", "Customer Review"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -374,11 +374,9 @@ public class AllFeedbackTabPanel extends JPanel implements Refreshable {
         addReadOnlyRow(form, gbc, y++, "Appointment ID:", row.appointmentId);
         addReadOnlyRow(form, gbc, y++, "Customer:", row.customer);
         addReadOnlyRow(form, gbc, y++, "Service(s):", row.services);
-        addReadOnlyRow(form, gbc, y++, "Date:", row.date);
+        addReadOnlyRow(form, gbc, y++, "Date & Time:", row.date);
         if ("Customer Review".equals(row.source)) {
             addReadOnlyRow(form, gbc, y++, "Rating:", row.rating == null ? "-" : String.valueOf(row.rating));
-        } else {
-            addReadOnlyRow(form, gbc, y++, "Feedback Type:", row.feedbackMeta.isEmpty() ? "-" : row.feedbackMeta);
         }
 
         gbc.gridx = 0;
@@ -491,10 +489,10 @@ public class AllFeedbackTabPanel extends JPanel implements Refreshable {
                     appointmentId,
                     resolveCustomer(appointment, userById),
                     resolveServices(appointment, serviceById),
-                    appointment == null ? "-" : appointment.getDate(),
+                    type == null || type.trim().isEmpty() ? "-" : type,
                     null,
                     feedbackText,
-                    type == null ? "" : type
+                    ""
             );
         }
 

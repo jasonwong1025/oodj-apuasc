@@ -21,27 +21,13 @@ public class PaymentRepository {
 
                 String[] parts = line.split("\\|", -1);
 
-                if (parts.length == 6) {
-                    // OLD DATA (no remainingAmount)
+                if (parts.length >= 5) {
                     payments.add(new Payment(
                             parts[0],
                             parts[1],
-                            parts[2],
-                            Double.parseDouble(parts[3]),
-                            0, // default remaining
-                            parts[4],
-                            parts[5]
-                    ));
-                } else if (parts.length >= 7) {
-                    // NEW DATA
-                    payments.add(new Payment(
-                            parts[0],
-                            parts[1],
-                            parts[2],
-                            Double.parseDouble(parts[3]),
-                            Double.parseDouble(parts[4]),
-                            parts[5],
-                            parts[6]
+                            Double.parseDouble(parts[2]),
+                            parts[3],
+                            parts[4]
                     ));
                 }
             }
@@ -56,10 +42,14 @@ public class PaymentRepository {
     public List<Payment> getPaymentsByCustomer(String customerId) {
         List<Payment> all = getAllPayments();
         List<Payment> filtered = new ArrayList<>();
+        List<model.appointment.Appointment> appts = new AppointmentRepository().getAllAppointments();
 
         for (Payment p : all) {
-            if (p.getCustomerId().equals(customerId)) {
-                filtered.add(p);
+            for (model.appointment.Appointment a : appts) {
+                if (a.getAppointmentId().equals(p.getAppointmentId()) && a.getCustomerId().equals(customerId)) {
+                    filtered.add(p);
+                    break;
+                }
             }
         }
 
@@ -70,6 +60,22 @@ public class PaymentRepository {
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH, true))) {
             bw.write(payment.toString());
             bw.newLine();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void update(Payment payment) {
+        List<Payment> all = getAllPayments();
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
+            for (Payment p : all) {
+                if (p.getPaymentId().equals(payment.getPaymentId())) {
+                    bw.write(payment.toString());
+                } else {
+                    bw.write(p.toString());
+                }
+                bw.newLine();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }

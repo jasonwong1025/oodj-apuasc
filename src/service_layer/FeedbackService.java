@@ -18,7 +18,7 @@ public class FeedbackService {
     }
 
     /**
-     * Row order: feedbackId, appointmentId, description, type (for UI callers that avoid {@link Feedback}).
+     * Row order: feedbackId, appointmentId, description, dateTime (for UI callers that avoid {@link Feedback}).
      */
     public List<String[]> getAllFeedbackRows() {
         List<String[]> rows = new ArrayList<>();
@@ -27,7 +27,7 @@ public class FeedbackService {
                     f.getFeedbackId(),
                     f.getAppointmentId(),
                     f.getDescription() == null ? "" : f.getDescription(),
-                    f.getType() == null ? "" : f.getType()
+                    f.getDateTime() == null ? "" : f.getDateTime()
             });
         }
         return rows;
