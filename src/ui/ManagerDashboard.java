@@ -70,7 +70,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         this.serviceCatalogTab = new ServiceCatalogTabPanel(this, serviceService, categoryService);
         this.categoriesTab = new CategoriesTabPanel(this, categoryService);
         this.feedbackTab = new AllFeedbackTabPanel(feedbackService, reviewService, appointmentService, userService, serviceService);
-        this.reportsTab = new ReportsTabPanel(appointmentService, paymentService, serviceService, categoryService, reviewService, userService);
+        this.reportsTab = new ReportsTabPanel(appointmentService, paymentService, serviceService, categoryService, reviewService, userService, currentUser.getEmail());
         this.maintenanceTab = new SystemMaintenanceTabPanel(() -> {
             new LoginFrame().setVisible(true);
             dispose();

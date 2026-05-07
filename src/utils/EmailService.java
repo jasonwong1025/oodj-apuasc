@@ -20,6 +20,48 @@ public class EmailService {
     private EmailService() {}
 
     /**
+     * Sends a report email via SMTP.
+     *
+     * @param recipientEmail The target email address (manager).
+     * @param subject        Email subject line.
+     * @param body           Plain-text body containing the formatted report.
+     * @throws Exception if sending fails.
+     */
+    public static void sendReportEmail(String recipientEmail, String subject, String body) throws Exception {
+        System.out.println("[EmailService] Sending report email to: " + recipientEmail);
+
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", SMTP_HOST);
+        props.put("mail.smtp.port", SMTP_PORT);
+        props.put("mail.smtp.ssl.trust", SMTP_HOST);
+        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
+        props.put("mail.smtp.connectiontimeout", "10000");
+        props.put("mail.smtp.timeout", "10000");
+
+        Session session = Session.getInstance(props, new javax.mail.Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(SENDER_EMAIL, APP_PASSWORD);
+            }
+        });
+
+        try {
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(SENDER_EMAIL, "APU-ASC Reports"));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipientEmail));
+            message.setSubject(subject);
+            message.setText(body);
+            Transport.send(message);
+            System.out.println("[EmailService] Report email sent successfully!");
+        } catch (MessagingException e) {
+            System.err.println("[EmailService] SMTP Error: " + e.getMessage());
+            throw new Exception("Email delivery failed: " + e.getMessage());
+        }
+    }
+
+    /**
      * Sends a real OTP email via SMTP.
      *
      * @param recipientEmail  The target email address.

@@ -14,10 +14,15 @@ import service_layer.ServiceService;
 import service_layer.UserService;
 import ui.Refreshable;
 import ui.SharedStyles;
+import utils.EmailService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.awt.*;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -55,12 +60,15 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
     private final CategoryService categoryService;
     private final ReviewService reviewService;
     private final UserService userService;
+    private final String managerEmail;
 
     private JComboBox<String> reportTypeCombo;
     private JComboBox<String> periodCombo;
     private JComboBox<String> vipMetricCombo;
     private JButton generateBtn;
     private JButton clearBtn;
+    private JButton exportBtn;
+    private JButton emailBtn;
 
     private JLabel summaryLabel;
     private JTable reportTable;
@@ -73,13 +81,15 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
                            ServiceService serviceService,
                            CategoryService categoryService,
                            ReviewService reviewService,
-                           UserService userService) {
+                           UserService userService,
+                           String managerEmail) {
         this.appointmentService = appointmentService;
         this.paymentService = paymentService;
         this.serviceService = serviceService;
         this.categoryService = categoryService;
         this.reviewService = reviewService;
         this.userService = userService;
+        this.managerEmail = managerEmail;
         setLayout(new BorderLayout(0, 14));
         setBackground(SharedStyles.MAIN_BG);
         setBorder(new EmptyBorder(20, 24, 24, 24));
@@ -117,9 +127,13 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
         vipMetricCombo = SharedStyles.createFilterCombo(new String[]{"By Total Spend", "By Total Visits"});
         generateBtn = SharedStyles.createActionButton("Generate", SharedStyles.BTN_BLUE);
         clearBtn = SharedStyles.createActionButton("Reset", SharedStyles.BTN_ORANGE);
+        exportBtn = SharedStyles.createActionButton("Export CSV", SharedStyles.BTN_GREEN);
+        emailBtn = SharedStyles.createActionButton("Send to Email", SharedStyles.BTN_BLUE);
 
         generateBtn.addActionListener(e -> generateSelectedReport(true));
         clearBtn.addActionListener(e -> resetFilters());
+        exportBtn.addActionListener(e -> exportCsv());
+        emailBtn.addActionListener(e -> sendToEmail());
         periodCombo.addActionListener(e -> applyPeriodPreset());
         reportTypeCombo.addActionListener(e -> layoutControls());
         periodCombo.setSelectedItem("This Month");
@@ -174,7 +188,9 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
             addControl(gbc, x++, vipMetricCombo);
         }
         addControl(gbc, x++, generateBtn);
-        addControl(gbc, x, clearBtn);
+        addControl(gbc, x++, clearBtn);
+        addControl(gbc, x++, exportBtn);
+        addControl(gbc, x, emailBtn);
 
         controlsRow.revalidate();
         controlsRow.repaint();
@@ -191,6 +207,101 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
         reportTypeCombo.setSelectedIndex(0);
         vipMetricCombo.setSelectedIndex(0);
         generateSelectedReport(false);
+    }
+
+    private void exportCsv() {
+        if (reportModel.getRowCount() == 0) {
+            SharedStyles.showWarning(this, "No report data to export. Please generate a report first.");
+            return;
+        }
+        JFileChooser fc = new JFileChooser();
+        fc.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
+        String defaultName = String.valueOf(reportTypeCombo.getSelectedItem()).replace(" ", "_")
+                + "_" + String.valueOf(periodCombo.getSelectedItem()).replace(" ", "_") + ".csv";
+        fc.setSelectedFile(new File(defaultName));
+        if (fc.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+        File file = fc.getSelectedFile();
+        if (!file.getAbsolutePath().toLowerCase().endsWith(".csv")) {
+            file = new File(file.getAbsolutePath() + ".csv");
+        }
+        try (FileWriter fw = new FileWriter(file)) {
+            fw.write(buildCsvContent());
+            SharedStyles.showMessage(this, "Exported to: " + file.getName());
+        } catch (IOException ex) {
+            SharedStyles.showError(this, "Export failed: " + ex.getMessage());
+        }
+    }
+
+    private void sendToEmail() {
+        if (reportModel.getRowCount() == 0) {
+            SharedStyles.showWarning(this, "No report data to send. Please generate a report first.");
+            return;
+        }
+        if (managerEmail == null || managerEmail.isBlank()) {
+            SharedStyles.showError(this, "Manager email address not available.");
+            return;
+        }
+
+        String reportName = String.valueOf(reportTypeCombo.getSelectedItem());
+        String period = String.valueOf(periodCombo.getSelectedItem());
+        String subject = "APU-ASC Report: " + reportName + " (" + period + ")";
+
+        StringBuilder body = new StringBuilder();
+        body.append("APU Automotive Service Centre\n");
+        body.append("Report: ").append(reportName).append("\n");
+        body.append("Period: ").append(period).append("\n");
+        body.append("Summary: ").append(summaryLabel.getText()).append("\n");
+        body.append("\n");
+        body.append(buildCsvContent());
+        body.append("\n---\nThis report was generated automatically by APU-ASC Reports.");
+
+        emailBtn.setEnabled(false);
+        emailBtn.setText("Sending...");
+
+        new Thread(() -> {
+            try {
+                EmailService.sendReportEmail(managerEmail, subject, body.toString());
+                SwingUtilities.invokeLater(() -> {
+                    emailBtn.setEnabled(true);
+                    emailBtn.setText("Send to Email");
+                    SharedStyles.showMessage(ReportsTabPanel.this,
+                            "Report sent to: " + managerEmail);
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    emailBtn.setEnabled(true);
+                    emailBtn.setText("Send to Email");
+                    SharedStyles.showError(ReportsTabPanel.this,
+                            "Failed to send email: " + ex.getMessage());
+                });
+            }
+        }).start();
+    }
+
+    private String buildCsvContent() {
+        StringBuilder sb = new StringBuilder();
+        int colCount = reportModel.getColumnCount();
+        for (int c = 0; c < colCount; c++) {
+            if (c > 0) sb.append(',');
+            sb.append(escapeCsvCell(reportModel.getColumnName(c)));
+        }
+        sb.append(System.lineSeparator());
+        for (int r = 0; r < reportModel.getRowCount(); r++) {
+            for (int c = 0; c < colCount; c++) {
+                if (c > 0) sb.append(',');
+                Object val = reportModel.getValueAt(r, c);
+                sb.append(escapeCsvCell(val == null ? "" : val.toString()));
+            }
+            sb.append(System.lineSeparator());
+        }
+        return sb.toString();
+    }
+
+    private static String escapeCsvCell(String value) {
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 
     @Override
