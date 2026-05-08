@@ -5,6 +5,7 @@ import model.users.User;
 import service_layer.AppointmentService;
 import service_layer.CategoryService;
 import service_layer.FeedbackService;
+import service_layer.PaymentService;
 import service_layer.ReviewService;
 import service_layer.ServiceService;
 import service_layer.UserService;
@@ -12,8 +13,9 @@ import ui.ManagerPortal.AllFeedbackTabPanel;
 import ui.ManagerPortal.CategoriesTabPanel;
 import ui.ManagerPortal.DashboardTabPanel;
 import ui.ManagerPortal.MyProfileTabPanel;
-import ui.ManagerPortal.PlaceholderTabPanel;
+import ui.ManagerPortal.ReportsTabPanel;
 import ui.ManagerPortal.ServiceCatalogTabPanel;
+import ui.ManagerPortal.SystemMaintenanceTabPanel;
 import ui.ManagerPortal.UserManagementTabPanel;
 
 import javax.swing.*;
@@ -23,7 +25,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 public class ManagerDashboard extends JFrame implements Refreshable {
-    private static final String[] NAV_ITEMS = {"Dashboard", "User Management", "Service Management", "All Feedback", "Reports", "My Profile"};
+    private static final String[] NAV_ITEMS = {"Dashboard", "User Management", "Service Management", "All Feedback", "Reports", "System Maintenance", "My Profile"};
     private static final String SVC_HEADER = "Service Management";
     private static final String SVC_CATALOG = "Manage Service Catalog";
     private static final String SVC_CATEGORIES = "Manage Categories";
@@ -35,6 +37,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private final AppointmentService appointmentService;
     private final FeedbackService feedbackService;
     private final ReviewService reviewService;
+    private final PaymentService paymentService;
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
@@ -48,7 +51,8 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private final ServiceCatalogTabPanel serviceCatalogTab;
     private final CategoriesTabPanel categoriesTab;
     private final AllFeedbackTabPanel feedbackTab;
-    private final PlaceholderTabPanel reportsTab;
+    private final ReportsTabPanel reportsTab;
+    private final SystemMaintenanceTabPanel maintenanceTab;
     private final MyProfileTabPanel profileTab;
 
     public ManagerDashboard(AbstractUser user) {
@@ -59,13 +63,18 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         this.appointmentService = new AppointmentService();
         this.feedbackService = new FeedbackService();
         this.reviewService = new ReviewService();
+        this.paymentService = new PaymentService();
 
         this.dashboardTab = new DashboardTabPanel(userService, appointmentService, this::refresh);
         this.userManagementTab = new UserManagementTabPanel(this, currentUser, userService);
         this.serviceCatalogTab = new ServiceCatalogTabPanel(this, serviceService, categoryService);
         this.categoriesTab = new CategoriesTabPanel(this, categoryService);
         this.feedbackTab = new AllFeedbackTabPanel(feedbackService, reviewService, appointmentService, userService, serviceService);
-        this.reportsTab = new PlaceholderTabPanel("Reports", "Export analysis summaries (link to appointments/payments next).");
+        this.reportsTab = new ReportsTabPanel(appointmentService, paymentService, serviceService, categoryService, reviewService, userService, currentUser.getEmail());
+        this.maintenanceTab = new SystemMaintenanceTabPanel(() -> {
+            new LoginFrame().setVisible(true);
+            dispose();
+        });
         this.profileTab = new MyProfileTabPanel(this, currentUser, userService);
 
         setTitle("APU-ASC | Manager - " + currentUser.getFullName());
@@ -174,6 +183,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         cardPanel.add(categoriesTab, "SVC_CATEGORIES");
         cardPanel.add(feedbackTab, "FEED");
         cardPanel.add(reportsTab, "REPORT");
+        cardPanel.add(maintenanceTab, "MAINTENANCE");
         cardPanel.add(profileTab, "PROFILE");
 
         wrap.add(side, BorderLayout.WEST);
@@ -212,6 +222,10 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             case "Reports":
                 reportsTab.refresh();
                 cardLayout.show(cardPanel, "REPORT");
+                break;
+            case "System Maintenance":
+                maintenanceTab.refresh();
+                cardLayout.show(cardPanel, "MAINTENANCE");
                 break;
             case "My Profile":
                 profileTab.refresh();

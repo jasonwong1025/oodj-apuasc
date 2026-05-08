@@ -1,8 +1,10 @@
 package ui.ManagerPortal;
 
 import model.appointment.Appointment;
+import model.payment.Payment;
 import model.users.User;
 import service_layer.AppointmentService;
+import service_layer.PaymentService;
 import service_layer.UserService;
 import ui.Refreshable;
 import ui.SharedStyles;
@@ -11,19 +13,25 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 
 public class DashboardTabPanel extends JPanel implements Refreshable {
     private final UserService userService;
     private final AppointmentService appointmentService;
+    private final PaymentService paymentService;
     private final Runnable refreshDashboardAction;
 
     public DashboardTabPanel(UserService userService, AppointmentService appointmentService, Runnable refreshDashboardAction) {
         this.userService = userService;
         this.appointmentService = appointmentService;
+        this.paymentService = new PaymentService();
         this.refreshDashboardAction = refreshDashboardAction;
         setLayout(new BorderLayout(0, 18));
         setBackground(SharedStyles.MAIN_BG);
@@ -34,6 +42,8 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
     @Override
     public void refresh() {
         removeAll();
+        JPanel content = new JPanel(new BorderLayout(0, 18));
+        content.setOpaque(false);
         List<User> allUsers = userService.listAllUsers();
         long normalServiceTechs = allUsers.stream()
                 .filter(u -> "Technician".equals(u.getRole()))
@@ -57,18 +67,37 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         topRight.setOpaque(false);
         topRight.add(refreshDashboardBtn);
         topRow.add(topRight, BorderLayout.EAST);
-        add(topRow, BorderLayout.NORTH);
+        content.add(topRow, BorderLayout.NORTH);
 
-        JPanel analyticsRow = new JPanel(new GridLayout(1, 2, 16, 0));
+        JPanel analyticsRow = new JPanel(new GridBagLayout());
         analyticsRow.setOpaque(false);
-        analyticsRow.add(buildYearlyEarningsStatCard(appointments));
-        analyticsRow.add(buildTechnicianServiceTypeCard(normalServiceTechs, majorServiceTechs));
+        List<Payment> payments = paymentService.getAllPayments();
+        JPanel yearlyEarningsCard = buildYearlyEarningsStatCard(appointments, payments);
+        JPanel technicianDistributionCard = buildTechnicianServiceTypeCard(normalServiceTechs, majorServiceTechs);
+        applyResponsiveAnalyticsLayout(analyticsRow, yearlyEarningsCard, technicianDistributionCard);
+        analyticsRow.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                applyResponsiveAnalyticsLayout(analyticsRow, yearlyEarningsCard, technicianDistributionCard);
+            }
+        });
 
         JPanel center = new JPanel(new BorderLayout(0, 20));
         center.setOpaque(false);
         center.add(analyticsRow, BorderLayout.NORTH);
         center.add(buildAppointmentsTableCard(appointments), BorderLayout.CENTER);
-        add(center, BorderLayout.CENTER);
+        content.add(center, BorderLayout.CENTER);
+
+        JScrollPane rightPanelScroll = new JScrollPane(
+                content,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        rightPanelScroll.setBorder(null);
+        rightPanelScroll.getViewport().setOpaque(false);
+        rightPanelScroll.setOpaque(false);
+        rightPanelScroll.getVerticalScrollBar().setUnitIncrement(16);
+        add(rightPanelScroll, BorderLayout.CENTER);
         revalidate();
         repaint();
     }
@@ -76,6 +105,7 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
     private JPanel buildTechnicianServiceTypeCard(long normalServiceTechs, long majorServiceTechs) {
         JPanel card = SharedStyles.createCardPanel();
         card.setLayout(new BorderLayout(0, 10));
+        card.setPreferredSize(new Dimension(420, 290));
 
         JLabel title = new JLabel("Technician Distribution");
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
@@ -116,17 +146,33 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         return tile;
     }
 
-    private JPanel buildYearlyEarningsStatCard(List<Appointment> appointments) {
+    private JPanel buildYearlyEarningsStatCard(List<Appointment> appointments, List<Payment> payments) {
         JPanel card = SharedStyles.createCardPanel();
         card.setLayout(new BorderLayout(12, 0));
+        card.setPreferredSize(new Dimension(620, 290));
 
         JLabel title = new JLabel("General Statistic");
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
         title.setBorder(new EmptyBorder(0, 0, 8, 0));
         card.add(title, BorderLayout.NORTH);
 
+        int currentYear = YearMonth.now().getYear();
         int[] monthlyTotalEarned = new int[12];
         int[] monthlyEarnedTrend = new int[12];
+        double totalEarned = 0.0;
+        int yearlyPaidTransactions = 0;
+        for (Payment payment : payments) {
+            if (!"PAID".equalsIgnoreCase(payment.getStatus())) continue;
+            LocalDate paymentDate = parsePaymentDate(payment.getDate());
+            if (paymentDate == null || paymentDate.getYear() != currentYear) continue;
+
+            int monthIndex = paymentDate.getMonthValue() - 1;
+            int roundedAmount = (int) Math.round(payment.getAmount());
+            monthlyTotalEarned[monthIndex] += roundedAmount;
+            monthlyEarnedTrend[monthIndex] += 1;
+            totalEarned += payment.getAmount();
+            yearlyPaidTransactions++;
+        }
 
         JPanel chartAndStats = new JPanel(new BorderLayout(12, 0));
         chartAndStats.setOpaque(false);
@@ -134,20 +180,21 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         JPanel chartHolder = new JPanel(new BorderLayout(0, 6));
         chartHolder.setOpaque(false);
         chartHolder.add(new MiniChartPanel(monthlyTotalEarned, monthlyEarnedTrend), BorderLayout.CENTER);
-        JLabel chartNote = new JLabel("Total earned graph (yearly, pending payment integration)");
+        JLabel chartNote = new JLabel("Total earned graph (yearly, from paid transactions)");
         chartNote.setFont(new Font("SansSerif", Font.PLAIN, 11));
         chartNote.setForeground(new Color(120, 125, 142));
         chartHolder.add(chartNote, BorderLayout.SOUTH);
         chartAndStats.add(chartHolder, BorderLayout.CENTER);
 
-        int yearlyTotalBookings = countByYear(appointments, YearMonth.now().getYear(), null);
-        int yearlyCancelledBookings = countByYear(appointments, YearMonth.now().getYear(), "CANCELLED");
+        int yearlyTotalBookings = countByYear(appointments, currentYear, null);
+        int yearlyCancelledBookings = countByYear(appointments, currentYear, "CANCELLED");
 
         JPanel statsColumn = new JPanel();
         statsColumn.setOpaque(false);
         statsColumn.setLayout(new BoxLayout(statsColumn, BoxLayout.Y_AXIS));
-        statsColumn.setPreferredSize(new Dimension(180, 0));
-        statsColumn.add(createMetricLine("Total Earned (Year)", "RM 0.00"));
+        statsColumn.setPreferredSize(new Dimension(220, 0));
+        statsColumn.add(createMetricLine("Total Earned (Year)", String.format("RM %.2f", totalEarned)));
+        statsColumn.add(createMetricLine("Paid Transactions (Year)", String.valueOf(yearlyPaidTransactions)));
         statsColumn.add(createMetricLine("Total Bookings (Year)", String.valueOf(yearlyTotalBookings)));
         statsColumn.add(createMetricLine("Cancelled Bookings (Year)", String.valueOf(yearlyCancelledBookings)));
 
@@ -156,15 +203,49 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         return card;
     }
 
+    private void applyResponsiveAnalyticsLayout(JPanel analyticsRow, JPanel yearlyEarningsCard, JPanel technicianDistributionCard) {
+        analyticsRow.removeAll();
+        boolean stackCards = analyticsRow.getWidth() > 0 && analyticsRow.getWidth() < 1120;
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+
+        if (stackCards) {
+            gbc.gridy = 0;
+            gbc.insets = new Insets(0, 0, 12, 0);
+            analyticsRow.add(yearlyEarningsCard, gbc);
+
+            gbc.gridy = 1;
+            gbc.insets = new Insets(0, 0, 0, 0);
+            analyticsRow.add(technicianDistributionCard, gbc);
+        } else {
+            gbc.gridy = 0;
+            gbc.gridx = 0;
+            gbc.weightx = 0.62;
+            gbc.insets = new Insets(0, 0, 0, 8);
+            analyticsRow.add(yearlyEarningsCard, gbc);
+
+            gbc.gridx = 1;
+            gbc.weightx = 0.38;
+            gbc.insets = new Insets(0, 8, 0, 0);
+            analyticsRow.add(technicianDistributionCard, gbc);
+        }
+
+        analyticsRow.revalidate();
+        analyticsRow.repaint();
+    }
+
     private JPanel createMetricLine(String title, String value) {
         JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
-        p.setBorder(new EmptyBorder(4, 0, 8, 0));
+        p.setBorder(new EmptyBorder(2, 0, 4, 0));
         JLabel t = new JLabel(title);
         t.setFont(new Font("SansSerif", Font.PLAIN, 12));
         t.setForeground(new Color(95, 98, 110));
         JLabel v = new JLabel(value);
-        v.setFont(new Font("SansSerif", Font.BOLD, 22));
+        v.setFont(new Font("SansSerif", Font.BOLD, 18));
         v.setForeground(SharedStyles.NAV_ACTIVE_TOP);
         p.add(t, BorderLayout.NORTH);
         p.add(v, BorderLayout.CENTER);
@@ -287,6 +368,19 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         }
     }
 
+    private LocalDate parsePaymentDate(String rawDate) {
+        if (rawDate == null || rawDate.isBlank()) return null;
+        try {
+            return LocalDate.parse(rawDate, AppointmentService.DATE_FORMATTER);
+        } catch (DateTimeParseException ignored) {
+            try {
+                return LocalDateTime.parse(rawDate, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")).toLocalDate();
+            } catch (DateTimeParseException ex) {
+                return null;
+            }
+        }
+    }
+
     private static class MiniChartPanel extends JPanel {
         private final int[] barSeries;
         private final int[] lineSeries;
@@ -295,7 +389,7 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
             this.barSeries = barSeries;
             this.lineSeries = lineSeries;
             setOpaque(false);
-            setPreferredSize(new Dimension(300, 190));
+            setPreferredSize(new Dimension(300, 230));
         }
 
         @Override
