@@ -76,20 +76,20 @@ public class VehicleService {
     /**
      * @return null on success, otherwise error message.
      */
-    public String deleteVehicleForCustomer(String ownerId, String vehicleId) {
+    public Result<Void> deleteVehicleForCustomer(String ownerId, String vehicleId) {
         Vehicle existing = findById(vehicleId);
         if (existing == null || !existing.getOwnerId().equals(ownerId)) {
-            return "Vehicle not found.";
+            return Result.failure("Vehicle not found.");
         }
 
         for (Appointment a : appointmentRepository.getAllAppointments()) {
             if (vehicleId.equals(a.getVehicleId()) && "PENDING".equalsIgnoreCase(a.getStatus())) {
-                return "Cannot delete this vehicle because it has pending appointment(s).";
+                return Result.failure("Cannot delete this vehicle because it has pending appointment(s).");
             }
         }
 
         vehicleRepository.delete(vehicleId);
-        return null;
+        return Result.success(null);
     }
 
     public Vehicle findById(String vehicleId) {

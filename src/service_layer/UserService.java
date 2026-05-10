@@ -18,19 +18,19 @@ public class UserService {
         this.userRepository = new UserFileRepository();
     }
 
-    public AbstractUser login(String email, String password) throws Exception {
+    public utils.Result<AbstractUser> login(String email, String password) {
         if (email == null || email.trim().isEmpty()) {
-            throw new Exception("Email cannot be empty.");
+            return utils.Result.failure("Email cannot be empty.");
         }
         if (password == null || password.trim().isEmpty()) {
-            throw new Exception("Password cannot be empty.");
+            return utils.Result.failure("Password cannot be empty.");
         }
 
         AbstractUser user = userRepository.authenticateUser(email, password);
         if (user == null) {
-            throw new Exception("Invalid email or password, or account is inactive.");
+            return utils.Result.failure("Invalid email or password, or account is inactive.");
         }
-        return user;
+        return utils.Result.success(user);
     }
 
     public List<User> listAllUsers() {
@@ -38,37 +38,34 @@ public class UserService {
     }
 
     public User findByUserId(String userId) {
-        for (User u : listAllUsers()) {
-            if (u.getUserId().equals(userId)) return u;
-        }
-        return null;
+        return userRepository.findById(userId);
     }
 
     /**
-     * @return null on success, otherwise error message.
+     * Adds a new user with the specified role and details.
      */
-    public String addUser(String role, String fullName, String email, String contact, String password,
-                          String technicianServiceType) {
+    public utils.Result<User> addUser(String role, String fullName, String email, String contact, String password,
+                                     String technicianServiceType) {
         if (!ValidationUtil.isNotEmpty(fullName)
                 || !ValidationUtil.isNotEmpty(email) || !ValidationUtil.isNotEmpty(contact)
                 || !ValidationUtil.isNotEmpty(password)) {
-            return "All fields are required.";
+            return utils.Result.failure("All fields are required.");
         }
         if (!ValidationUtil.isValidEmail(email)) {
-            return ValidationUtil.invalidEmailMessage();
+            return utils.Result.failure(ValidationUtil.invalidEmailMessage());
         }
         if (!ValidationUtil.isValidContact(contact)) {
-            return ValidationUtil.invalidContactMessage();
+            return utils.Result.failure(ValidationUtil.invalidContactMessage());
         }
         if (!ValidationUtil.isValidPassword(password)) {
-            return ValidationUtil.passwordRequirementsMessage();
+            return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
         }
         if (!isAllowedManagedRole(role)) {
-            return "Invalid role selected.";
+            return utils.Result.failure("Invalid role selected.");
         }
         if ("Technician".equals(role)) {
             if (!"Normal Service".equals(technicianServiceType) && !"Major Service".equals(technicianServiceType)) {
-                return "Technician service type is required.";
+                return utils.Result.failure("Technician service type is required.");
             }
         } else {
             technicianServiceType = "-";
@@ -76,7 +73,7 @@ public class UserService {
         List<User> all = listAllUsers();
         for (User u : all) {
             if (u.getEmail().equalsIgnoreCase(email)) {
-                return "Email is already in use.";
+                return utils.Result.failure("Email is already in use.");
             }
         }
 
@@ -89,28 +86,38 @@ public class UserService {
         try {
             userRepository.writeAllUsers(all);
         } catch (IOException e) {
-            return "Failed to save users: " + e.getMessage();
+            return utils.Result.failure("Failed to save users: " + e.getMessage());
         }
-        return null;
+        return utils.Result.success(created);
     }
 
     /**
-     * @return null on success, otherwise error message.
+     * Updates an existing user's details.
+     * @param updated The user object with updated information.
+     * @param managerUserId The ID of the manager performing the update (to prevent self-deactivation).
+     *                      Pass null if not applicable (e.g. self-update).
      */
-    public String updateUser(User updated, String managerUserId) {
-        if (updated == null) return "No user to update.";
+    public utils.Result<Void> updateUser(User updated, String managerUserId) {
+        if (updated == null) return utils.Result.failure("No user to update.");
         if (!ValidationUtil.isNotEmpty(updated.getFullName())
                 || !ValidationUtil.isNotEmpty(updated.getEmail()) || !ValidationUtil.isNotEmpty(updated.getContact())) {
-            return "Full name, email, and contact are required.";
+            return utils.Result.failure("Full name, email, and contact are required.");
         }
         if (!ValidationUtil.isValidEmail(updated.getEmail())) {
-            return ValidationUtil.invalidEmailMessage();
+            return utils.Result.failure(ValidationUtil.invalidEmailMessage());
         }
         if (!ValidationUtil.isValidContact(updated.getContact())) {
-            return ValidationUtil.invalidContactMessage();
+            return utils.Result.failure(ValidationUtil.invalidContactMessage());
         }
-        if (ValidationUtil.isNotEmpty(updated.getPassword()) && !ValidationUtil.isValidPassword(updated.getPassword())) {
-            return ValidationUtil.passwordRequirementsMessage();
+        
+        // Only validate password if it's being changed
+        if (ValidationUtil.isNotEmpty(updated.getPassword())) {
+            User existing = findByUserId(updated.getUserId());
+            if (existing != null && !updated.getPassword().equals(existing.getPassword())) {
+                if (!ValidationUtil.isValidPassword(updated.getPassword())) {
+                    return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
+                }
+            }
         }
 
         List<User> all = listAllUsers();
@@ -121,18 +128,18 @@ public class UserService {
                 break;
             }
         }
-        if (idx < 0) return "User not found.";
+        if (idx < 0) return utils.Result.failure("User not found.");
 
         for (User u : all) {
             if (u.getUserId().equals(updated.getUserId())) continue;
             if (u.getEmail().equalsIgnoreCase(updated.getEmail())) {
-                return "Email is already in use.";
+                return utils.Result.failure("Email is already in use.");
             }
         }
 
         User existing = all.get(idx);
         if (managerUserId != null && managerUserId.equals(existing.getUserId()) && !updated.isActive()) {
-            return "You cannot deactivate your own account.";
+            return utils.Result.failure("You cannot deactivate your own account.");
         }
 
         existing.setFullName(updated.getFullName().trim());
@@ -144,7 +151,7 @@ public class UserService {
         if ("Technician".equals(existing.getRole())) {
             String serviceType = updated.getTechnicianServiceType();
             if (!"Normal Service".equals(serviceType) && !"Major Service".equals(serviceType)) {
-                return "Technician service type is required.";
+                return utils.Result.failure("Technician service type is required.");
             }
             existing.setTechnicianServiceType(serviceType);
         } else {
@@ -155,14 +162,14 @@ public class UserService {
         try {
             userRepository.writeAllUsers(all);
         } catch (IOException e) {
-            return "Failed to save users: " + e.getMessage();
+            return utils.Result.failure("Failed to save users: " + e.getMessage());
         }
-        return null;
+        return utils.Result.success(null);
     }
 
-    public String setUserActive(String userId, boolean active, String managerUserId) {
+    public utils.Result<Void> setUserActive(String userId, boolean active, String managerUserId) {
         if (managerUserId != null && managerUserId.equals(userId) && !active) {
-            return "You cannot deactivate your own account.";
+            return utils.Result.failure("You cannot deactivate your own account.");
         }
         List<User> all = listAllUsers();
         boolean found = false;
@@ -173,38 +180,51 @@ public class UserService {
                 break;
             }
         }
-        if (!found) return "User not found.";
+        if (!found) return utils.Result.failure("User not found.");
         try {
             userRepository.writeAllUsers(all);
         } catch (IOException e) {
-            return "Failed to save users: " + e.getMessage();
+            return utils.Result.failure("Failed to save users: " + e.getMessage());
         }
-        return null;
+        return utils.Result.success(null);
+    }
+
+    public utils.Result<Void> updateUser(model.users.User user) {
+        if (user == null) return utils.Result.failure("User cannot be null.");
+        String violations = utils.ValidationUtil.getViolations(user);
+        if (violations != null) return utils.Result.failure(violations);
+        
+        userRepository.updateUser(user);
+        return utils.Result.success(null);
+    }
+
+    public utils.Result<Void> deleteUser(String userId) {
+        if (userId == null || userId.isEmpty()) return utils.Result.failure("User ID cannot be empty.");
+        userRepository.deleteUser(userId);
+        return utils.Result.success(null);
     }
 
     /**
-     * Permanently removes a user from storage. Managers cannot delete their own account.
-     *
-     * @return null on success, otherwise error message.
+     * Permanently removes a user from storage.
      */
-    public String deleteUser(String userId, String managerUserId) {
+    public utils.Result<Void> deleteUser(String userId, String managerUserId) {
         if (!ValidationUtil.isNotEmpty(userId)) {
-            return "User ID is required.";
+            return utils.Result.failure("User ID is required.");
         }
         if (managerUserId != null && managerUserId.equals(userId)) {
-            return "You cannot delete your own account.";
+            return utils.Result.failure("You cannot delete your own account.");
         }
         List<User> all = listAllUsers();
         boolean removed = all.removeIf(u -> u.getUserId().equals(userId.trim()));
         if (!removed) {
-            return "User not found.";
+            return utils.Result.failure("User not found.");
         }
         try {
             userRepository.writeAllUsers(all);
         } catch (IOException e) {
-            return "Failed to save users: " + e.getMessage();
+            return utils.Result.failure("Failed to save users: " + e.getMessage());
         }
-        return null;
+        return utils.Result.success(null);
     }
 
     public List<User> filterUsers(String searchText, String roleFilter) {
@@ -382,28 +402,19 @@ public class UserService {
         }
         return user;
     }
-    //Sang Yew Changes - Edit Profile
-    public void updateUser(model.users.User user) {
-    userRepository.updateUser(user);
-}
-    //Sang Yew Changes - Manage Customer
     public java.util.List<model.users.User> getAllCustomers() {
-    java.util.List<model.users.User> all = userRepository.getAllUsers();
-    java.util.List<model.users.User> customers = new java.util.ArrayList<>();
+        java.util.List<model.users.User> all = userRepository.getAllUsers();
+        java.util.List<model.users.User> customers = new java.util.ArrayList<>();
 
-    for (model.users.User u : all) {
-        if ("Customer".equals(u.getRole())) {
-            customers.add(u);
+        for (model.users.User u : all) {
+            if ("Customer".equals(u.getRole())) {
+                customers.add(u);
+            }
         }
+        return customers;
     }
-    return customers;
-}
 
-public void addCustomer(model.users.Customer customer) {
-    userRepository.saveUser(customer);
-}
-
-public void deleteUser(String userId) {
-    userRepository.deleteUser(userId);
-}
+    public void addCustomer(model.users.Customer customer) {
+        userRepository.saveUser(customer);
+    }
 }

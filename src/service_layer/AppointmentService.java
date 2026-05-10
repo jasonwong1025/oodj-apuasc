@@ -165,10 +165,7 @@ public class AppointmentService {
         List<User> users = userRepository.getAllUsers();
         int count = 0;
         for (User u : users) {
-            if (u == null) continue;
-            if (u.getRole() == null) continue;
-            if (!"Technician".equalsIgnoreCase(u.getRole())) continue;
-            if (!u.isActive()) continue;
+            if (u == null || !"Technician".equalsIgnoreCase(u.getRole()) || !u.isActive()) continue;
             String svc = u.getTechnicianServiceType();
             if (svc == null) continue;
             String norm = svc.trim().toLowerCase();
@@ -178,45 +175,52 @@ public class AppointmentService {
                 if (norm.contains("normal")) count++;
             }
         }
-        return Math.max(1, count);
+        return count;
     }
 
     public int getTotalCapacityLimit() {
-        return 1;
+        List<User> users = userRepository.getAllUsers();
+        int count = 0;
+        for (User u : users) {
+            if (u != null && "Technician".equalsIgnoreCase(u.getRole()) && u.isActive()) {
+                count++;
+            }
+        }
+        return count;
     }
 
-    public String validateSchedule(String date, String time) {
+    public utils.Result<Void> validateSchedule(String date, String time) {
         return validateSchedule(date, time, SlotType.NORMAL);
     }
 
-    public String validateSchedule(String date, String time, SlotType slotType) {
+    public utils.Result<Void> validateSchedule(String date, String time, SlotType slotType) {
         LocalDate pickedDate;
         LocalTime pickedTime;
         try {
             pickedDate = LocalDate.parse(date, DATE_FORMATTER);
             pickedTime = LocalTime.parse(time, TIME_FORMATTER);
         } catch (DateTimeParseException e) {
-            return "Error: Invalid date/time format.";
+            return utils.Result.failure("Error: Invalid date/time format.");
         }
 
         if (!isAllowedSlotTime(time)) {
-            return "Error: Appointment time must be one of the allowed slots (08:30 to 16:30).";
+            return utils.Result.failure("Error: Appointment time must be one of the allowed slots (08:30 to 16:30).");
         }
 
         if (slotType == SlotType.MAJOR && !isMajorSlotWindowAvailable(date, time)) {
-            return "Error: Major service requires a 3-hour block. Please choose an earlier slot.";
+            return utils.Result.failure("Error: Major service requires a 3-hour block. Please choose an earlier slot.");
         }
 
         LocalDateTime picked = LocalDateTime.of(pickedDate, pickedTime);
         if (picked.isBefore(LocalDateTime.now())) {
-            return "Error: You cannot book an appointment in the past.";
+            return utils.Result.failure("Error: You cannot book an appointment in the past.");
         }
 
         if (!isSlotAvailable(date, time, slotType)) {
-            return "Error: This time slot is full. Please choose another slot.";
+            return utils.Result.failure("Error: This time slot is full. Please choose another slot.");
         }
 
-        return null;
+        return utils.Result.success(null);
     }
 
     private boolean isMajorAppointmentCoveringSlot(String startTime, String slotTime) {
@@ -227,13 +231,13 @@ public class AppointmentService {
         return slotIndex >= startIndex && slotIndex < startIndex + MAJOR_DURATION_SLOTS;
     }
 
-    public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time, String counterStaffId) {
+    public utils.Result<Appointment> bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time, String counterStaffId) {
         return bookAppointment(customerId, vehicleId, serviceIds, date, time, counterStaffId, null);
     }
 
-    public String bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time, String counterStaffId, String forcedType) {
+    public utils.Result<Appointment> bookAppointment(String customerId, String vehicleId, List<String> serviceIds, String date, String time, String counterStaffId, String forcedType) {
         if (serviceIds == null || serviceIds.isEmpty()) {
-            return "Error: You must select at least one service.";
+            return utils.Result.failure("Error: You must select at least one service.");
         }
         
         // Check if vehicle exists and belongs to customer
@@ -247,7 +251,7 @@ public class AppointmentService {
         }
 
         if (!ownsVehicle) {
-            return "Error: You must select a registered vehicle.";
+            return utils.Result.failure("Error: You must select a registered vehicle.");
         }
 
         SlotType requestedType;
@@ -261,9 +265,9 @@ public class AppointmentService {
             requestedType = determineRequestedSlotType(serviceIds);
         }
 
-        String scheduleError = validateSchedule(date, time, requestedType);
-        if (scheduleError != null) {
-            return scheduleError;
+        utils.Result<Void> scheduleResult = validateSchedule(date, time, requestedType);
+        if (scheduleResult.isFailure()) {
+            return utils.Result.failure(scheduleResult.getError());
         }
 
         String appointmentId = IdGenerator.generateId("APT", "data/appointments.txt");
@@ -271,19 +275,19 @@ public class AppointmentService {
         String serviceIdStr = String.join(",", serviceIds);
         
         Appointment appointment = new Appointment(
-        appointmentId,
-        customerId,
-        vehicleId,
-        serviceIdStr,
-        date,
-        time,
-        "PENDING",
-        "NONE",
-        requestedType.name(),
-        counterStaffId
-    );
+            appointmentId,
+            customerId,
+            vehicleId,
+            serviceIdStr,
+            date,
+            time,
+            "PENDING",
+            "NONE",
+            requestedType.name(),
+            counterStaffId
+        );
         appointmentRepository.save(appointment);
-        return "Success: Appointment booked.";
+        return utils.Result.success(appointment);
     }
 
     public void cancelAppointment(String appointmentId) {

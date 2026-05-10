@@ -19,50 +19,42 @@ public class RegistrationService {
      * Registers a new customer.
      * @return null if successful, or an error message if validation fails.
      */
-    public String registerCustomer(String fullName, String email, String contact, String password, String confirmPassword) {
-        // 1. Validate empty fields
-        if (!ValidationUtil.isNotEmpty(fullName) ||
-            !ValidationUtil.isNotEmpty(email) || !ValidationUtil.isNotEmpty(contact) ||
-            !ValidationUtil.isNotEmpty(password) || !ValidationUtil.isNotEmpty(confirmPassword)) {
-            return "All fields are required.";
+    public utils.Result<Customer> registerCustomer(String fullName, String email, String contact, String password, String confirmPassword) {
+        // 1. Validate password match first
+        if (!ValidationUtil.isNotEmpty(password) || !password.equals(confirmPassword)) {
+            return utils.Result.failure("Passwords do not match or are empty.");
         }
 
-        // 2. Validate email format
-        if (!ValidationUtil.isValidEmail(email)) {
-            return ValidationUtil.invalidEmailMessage();
+        // 2. Generate ID temporarily to create object for validation
+        String tempId = "TEMP";
+        Customer newCustomer = new Customer(tempId, fullName, email, contact, password);
+
+        // 3. Use annotation-based validation
+        String violations = ValidationUtil.getViolations(newCustomer);
+        if (violations != null) {
+            return utils.Result.failure(violations);
         }
 
-        if (!ValidationUtil.isValidContact(contact)) {
-            return ValidationUtil.invalidContactMessage();
-        }
-
-        // 3. Validate password strength
+        // 4. Manual password strength check (if not fully covered by annotations)
         if (!ValidationUtil.isValidPassword(password)) {
-            return ValidationUtil.passwordRequirementsMessage();
-        }
-
-        // 4. Validate password and confirm password match
-        if (!password.equals(confirmPassword)) {
-            return "Password and Confirm Password do not match.";
+            return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
         }
 
         // 5. Check uniqueness (email)
         List<User> existingUsers = userRepository.getAllUsers();
         for (User u : existingUsers) {
             if (u.getEmail().equalsIgnoreCase(email)) {
-                return "Email is already registered.";
+                return utils.Result.failure("Email is already registered.");
             }
         }
 
-        // 6. Generate ID
+        // 6. Generate real ID and update object
         String newId = IdGenerator.generateNextCustomerId();
+        newCustomer.setUserId(newId);
 
-        // 7. Create Customer
-        Customer newCustomer = new Customer(newId, fullName, email, contact, password);
-
-        // 8. Save
+        // 7. Save
         userRepository.saveUser(newCustomer);
 
-        return null; // Return null on success
+        return utils.Result.success(newCustomer);
     }
 }
