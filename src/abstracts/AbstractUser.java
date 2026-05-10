@@ -1,8 +1,6 @@
 package abstracts;
 
-import utils.validation.Email;
 import utils.validation.NotBlank;
-import utils.validation.Size;
 
 public abstract class AbstractUser {
     private String userId;
@@ -11,15 +9,16 @@ public abstract class AbstractUser {
     private String fullName;
 
     @NotBlank(message = "is required")
-    @Email(message = "must be a valid email address")
+    @utils.validation.Pattern(regexp = "^[A-Za-z0-9+_.-]+@(.+)$", message = "must be a valid email address")
     private String email;
 
     @NotBlank(message = "is required")
-    @Size(min = 10, max = 11, message = "must be 10-11 digits")
+    @utils.validation.Pattern(regexp = "^\\d{10,11}$", message = "must be 10-11 digits")
     private String contact;
 
     @NotBlank(message = "is required")
-    @Size(min = 6, message = "must be at least 6 characters")
+    @utils.validation.Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).{6,}$", 
+             message = "must have at least 6 characters, including uppercase, lowercase, number, and special character")
     private String password;
 
     private String role;
@@ -109,7 +108,8 @@ public abstract class AbstractUser {
         String serviceType = technicianServiceType == null || technicianServiceType.trim().isEmpty()
                 ? "-"
                 : technicianServiceType.trim();
-        return String.join("|", userId, fullName, email, contact, password, role, serviceType,
-                active ? "ACTIVE" : "INACTIVE");
+        return utils.FileStorageHelper.join(
+                userId, fullName, email, contact, password, role, serviceType, active ? "ACTIVE" : "INACTIVE"
+        );
     }
 }
