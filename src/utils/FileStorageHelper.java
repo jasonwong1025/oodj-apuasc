@@ -2,11 +2,12 @@ package utils;
 
 import java.io.*;
 import java.nio.file.*;
+import java.util.Base64;
 import java.util.List;
 
 /**
  * Helper for robust file storage operations.
- * Handles atomic writes and character escaping for delimiter-safe storage.
+ * Handles atomic writes and Base64 field encoding for absolute delimiter/newline safety.
  */
 public class FileStorageHelper {
 
@@ -62,32 +63,31 @@ public class FileStorageHelper {
     }
 
     /**
-     * Escapes characters that would break the pipe-delimited storage format.
-     * To be 100% collision-safe, we use unique tokens that are processed 
-     * AFTER the escape character (\) is itself escaped.
+     * Encodes a field using Base64 to ensure it contains no delimiters or newlines.
+     * This provides absolute collision-safety for any character sequence.
      */
     public static String escape(Object input) {
         if (input == null) return "";
-        String str = String.valueOf(input);
-        return str.replace("\\", "\\\\")  // 1. Escape literal backslashes
-                  .replace("|", "{P}")    // 2. Escape pipe with unique token
-                  .replace("\n", "{N}")   // 3. Escape newline with unique token
-                  .replace("\r", "");
+        byte[] bytes = String.valueOf(input).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return Base64.getEncoder().encodeToString(bytes);
     }
 
     /**
-     * Unescapes characters from the storage format.
-     * Order is CRITICAL: Tokens are restored FIRST, then escaped backslashes LAST.
+     * Decodes a Base64-encoded field.
      */
     public static String unescape(String input) {
-        if (input == null) return "";
-        String res = input.replace("{N}", "\n")
-                          .replace("{P}", "|");
-        return res.replace("\\\\", "\\");
+        if (input == null || input.isEmpty()) return "";
+        try {
+            byte[] decoded = Base64.getDecoder().decode(input);
+            return new String(decoded, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            // Fallback for legacy plaintext data during migration
+            return input;
+        }
     }
 
     /**
-     * Joins parts using the delimiter after escaping each part.
+     * Joins parts using the delimiter after encoding each part in Base64.
      */
     public static String join(Object... parts) {
         StringBuilder sb = new StringBuilder();
