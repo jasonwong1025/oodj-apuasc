@@ -1,4 +1,4 @@
-package ui;
+package ui.auth;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -199,10 +199,10 @@ public class RegisterFrame extends JFrame {
 
         if (isVisible) {
             field.setEchoChar((char) 0);
-            button.setText("\uD83D\uDD76"); // Sunglasses
+            button.setText("\uD83D\uDD76");
         } else {
             field.setEchoChar('*');
-            button.setText("\uD83D\uDC41"); // Eye
+            button.setText("\uD83D\uDC41");
         }
         field.requestFocus();
     }

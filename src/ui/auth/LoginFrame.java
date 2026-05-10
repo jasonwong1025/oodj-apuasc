@@ -1,10 +1,14 @@
-package ui;
+package ui.auth;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import service_layer.PasswordResetService;
 import utils.EmailService;
+import ui.CounterStaffDashboard;
+import ui.CustomerDashboard;
+import ui.ManagerDashboard;
+import ui.TechnicianDashboard;
 
 public class LoginFrame extends JFrame {
 
@@ -160,14 +164,6 @@ public class LoginFrame extends JFrame {
         add(loginPanel, frameGbc);
     }
 
-    // -------------------------------------------------------------------------
-    // Forgot Password - Step 1: Enter Email
-    // -------------------------------------------------------------------------
-    /**
-     * Opens a dialog asking the user for their registered email address.
-     * Validates the email exists, generates an OTP, and sends it via email.
-     * On success, proceeds to OTP verification step.
-     */
     private void showForgotPasswordStep1() {
         JDialog dialog = new JDialog(this, "Forgot Password - Step 1 of 3", true);
         dialog.setSize(420, 260);
@@ -251,10 +247,8 @@ public class LoginFrame extends JFrame {
                     dialog.dispose();
 
                     if (!sent) {
-                        // Fallback: show OTP to user (dev/demo mode when SMTP is not configured)
                         JOptionPane.showMessageDialog(null,
-                            "Email service is not configured.\n\nYour OTP (for testing purposes): " + otp +
-                            "\n\nTo enable real email, set system properties:\n  email.sender & email.password",
+                            "Email service is not configured.\n\nYour OTP (for testing purposes): " + otp,
                             "OTP (Dev Mode)", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(null,
@@ -270,16 +264,6 @@ public class LoginFrame extends JFrame {
         dialog.setVisible(true);
     }
 
-    // -------------------------------------------------------------------------
-    // Forgot Password - Step 2: Enter OTP
-    // -------------------------------------------------------------------------
-    /**
-     * Opens a dialog for OTP entry and verification.
-     * On success, proceeds to the new password entry step.
-     *
-     * @param email        The email address the OTP was sent to.
-     * @param resetService The shared PasswordResetService instance.
-     */
     private void showForgotPasswordStep2(String email, PasswordResetService resetService) {
         JDialog dialog = new JDialog(this, "Forgot Password - Step 2 of 3", true);
         dialog.setSize(420, 300);
@@ -355,16 +339,6 @@ public class LoginFrame extends JFrame {
         dialog.setVisible(true);
     }
 
-    // -------------------------------------------------------------------------
-    // Forgot Password - Step 3: Set New Password
-    // -------------------------------------------------------------------------
-    /**
-     * Opens a dialog for entering and confirming the new password.
-     * On success, updates the password via PasswordResetService.
-     *
-     * @param email        The email of the account being reset.
-     * @param resetService The shared PasswordResetService instance.
-     */
     private void showForgotPasswordStep3(String email, PasswordResetService resetService) {
         JDialog dialog = new JDialog(this, "Forgot Password - Step 3 of 3", true);
         dialog.setSize(440, 360);
@@ -386,7 +360,7 @@ public class LoginFrame extends JFrame {
         panel.add(title, gbc);
 
         gbc.gridy++;
-        JLabel req = new JLabel("<html><font color='#777777'>Min. 6 characters — uppercase, lowercase, number and special character.</font></html>");
+        JLabel req = new JLabel("<html><font color='#777777'>Min. 6 characters \u2014 uppercase, lowercase, number and special character.</font></html>");
         req.setFont(new Font("SansSerif", Font.PLAIN, 11));
         panel.add(req, gbc);
 
