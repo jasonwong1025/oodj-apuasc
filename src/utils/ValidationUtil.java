@@ -21,7 +21,7 @@ public class ValidationUtil {
      * Returns a comma-separated list of violations, or null if valid.
      */
     public static <T> String getViolations(T object) {
-        if (object == null) return null;
+        if (object == null) return "Object cannot be null";
         List<String> violations = new ArrayList<>();
         
         Class<?> clazz = object.getClass();
@@ -31,27 +31,29 @@ public class ValidationUtil {
                 try {
                     Object value = field.get(object);
                     String fieldName = field.getName();
+                    // Basic CamelCase to Title Case for field names
+                    String displayName = fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
                     
                     if (field.isAnnotationPresent(NotNull.class) && value == null) {
-                        violations.add(field.getAnnotation(NotNull.class).message());
+                        violations.add(displayName + " " + field.getAnnotation(NotNull.class).message());
                     }
                     
                     if (field.isAnnotationPresent(NotBlank.class)) {
                         if (value == null || value.toString().trim().isEmpty()) {
-                            violations.add(fieldName + " " + field.getAnnotation(NotBlank.class).message());
+                            violations.add(displayName + " " + field.getAnnotation(NotBlank.class).message());
                         }
                     }
                     
                     if (field.isAnnotationPresent(Email.class) && value != null) {
                         if (!value.toString().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-                            violations.add(field.getAnnotation(Email.class).message());
+                            violations.add(displayName + " " + field.getAnnotation(Email.class).message());
                         }
                     }
                     
                     if (field.isAnnotationPresent(utils.validation.Pattern.class) && value != null) {
                         utils.validation.Pattern p = field.getAnnotation(utils.validation.Pattern.class);
                         if (!value.toString().matches(p.regexp())) {
-                            violations.add(fieldName + " " + p.message());
+                            violations.add(displayName + " " + p.message());
                         }
                     }
                     
@@ -59,7 +61,7 @@ public class ValidationUtil {
                         Size s = field.getAnnotation(Size.class);
                         int len = value.toString().length();
                         if (len < s.min() || len > s.max()) {
-                            violations.add(fieldName + " " + s.message()
+                            violations.add(displayName + " " + s.message()
                                     .replace("{min}", String.valueOf(s.min()))
                                     .replace("{max}", String.valueOf(s.max())));
                         }
@@ -68,7 +70,7 @@ public class ValidationUtil {
                     if (field.isAnnotationPresent(Min.class) && value != null) {
                         long min = field.getAnnotation(Min.class).value();
                         if (value instanceof Number && ((Number) value).longValue() < min) {
-                            violations.add(fieldName + " " + field.getAnnotation(Min.class).message()
+                            violations.add(displayName + " " + field.getAnnotation(Min.class).message()
                                     .replace("{value}", String.valueOf(min)));
                         }
                     }
@@ -76,7 +78,7 @@ public class ValidationUtil {
                     if (field.isAnnotationPresent(Max.class) && value != null) {
                         long max = field.getAnnotation(Max.class).value();
                         if (value instanceof Number && ((Number) value).longValue() > max) {
-                            violations.add(fieldName + " " + field.getAnnotation(Max.class).message()
+                            violations.add(displayName + " " + field.getAnnotation(Max.class).message()
                                     .replace("{value}", String.valueOf(max)));
                         }
                     }
