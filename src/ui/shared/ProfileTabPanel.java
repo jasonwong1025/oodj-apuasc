@@ -48,12 +48,15 @@ public class ProfileTabPanel extends JPanel {
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
 
         saveBtn.addActionListener(e -> {
+            // Update fields in the object
             self.setFullName(nameF.getText().trim());
             self.setEmail(emailF.getText().trim());
             self.setContact(contactF.getText().trim());
 
             String newPass = new String(passF.getPassword());
+            // Pass the object AND the optional new plaintext password
             Result<Void> result = context.userService().updateUser(self, newPass.length() > 0 ? newPass : null);
+            
             if (result.isSuccess()) {
                 JOptionPane.showMessageDialog(this, "Profile updated successfully!");
                 context.refreshAction().run();

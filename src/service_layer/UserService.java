@@ -105,79 +105,50 @@ public class UserService {
      * @param managerUserId The ID of the manager performing the update (to prevent self-deactivation).
      *                      Pass null if not applicable (e.g. self-update).
      */
-    public utils.Result<Void> updateUser(User updated, String managerUserId) {
-        if (updated == null) return utils.Result.failure("No user to update.");
-        if (!ValidationUtil.isNotEmpty(updated.getFullName())
-                || !ValidationUtil.isNotEmpty(updated.getEmail()) || !ValidationUtil.isNotEmpty(updated.getContact())) {
-            return utils.Result.failure("Full name, email, and contact are required.");
-        }
-        if (!ValidationUtil.isValidEmail(updated.getEmail())) {
-            return utils.Result.failure(ValidationUtil.invalidEmailMessage());
-        }
-        if (!ValidationUtil.isValidContact(updated.getContact())) {
-            return utils.Result.failure(ValidationUtil.invalidContactMessage());
-        }
-        
-        // Only validate password if it's being changed
-        if (ValidationUtil.isNotEmpty(updated.getPassword())) {
-            User existing = findByUserId(updated.getUserId());
-            if (existing != null && !updated.getPassword().equals(existing.getPassword())) {
-                if (!ValidationUtil.isValidPassword(updated.getPassword())) {
-                    return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
+    /**
+     * Updates a user's details. If newPassword is provided (not null/empty), it will be hashed and updated.
+     */
+    public utils.Result<Void> updateUser(User user, String newPassword) {
+        if (user == null) return utils.Result.failure("User cannot be null.");
+
+        // Fetch the existing user from the repository to ensure we are updating the correct record
+        User existing = userRepository.findById(user.getUserId());
+        if (existing == null) return utils.Result.failure("User not found.");
+
+        // Check email uniqueness if email changed
+        if (!existing.getEmail().equalsIgnoreCase(user.getEmail())) {
+            for (User u : listAllUsers()) {
+                if (u.getEmail().equalsIgnoreCase(user.getEmail())) {
+                    return utils.Result.failure("Email is already in use.");
                 }
             }
         }
 
-        List<User> all = listAllUsers();
-        int idx = -1;
-        for (int i = 0; i < all.size(); i++) {
-            if (all.get(i).getUserId().equals(updated.getUserId())) {
-                idx = i;
-                break;
-            }
-        }
-        if (idx < 0) return utils.Result.failure("User not found.");
+        // Update fields
+        existing.setFullName(user.getFullName().trim());
+        existing.setEmail(user.getEmail().trim());
+        existing.setContact(user.getContact().trim());
 
-        for (User u : all) {
-            if (u.getUserId().equals(updated.getUserId())) continue;
-            if (u.getEmail().equalsIgnoreCase(updated.getEmail())) {
-                return utils.Result.failure("Email is already in use.");
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            if (!ValidationUtil.isValidPassword(newPassword)) {
+                return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
             }
+            existing.setPassword(utils.PasswordHasher.hashPassword(newPassword));
         }
 
-        User existing = all.get(idx);
-        if (managerUserId != null && managerUserId.equals(existing.getUserId()) && !updated.isActive()) {
-            return utils.Result.failure("You cannot deactivate your own account.");
-        }
-
-        existing.setFullName(updated.getFullName().trim());
-        existing.setEmail(updated.getEmail().trim());
-        existing.setContact(updated.getContact().trim());
-        if (ValidationUtil.isNotEmpty(updated.getPassword())) {
-            // If the incoming password is not already hashed (it's new plaintext), hash it
-            if (!utils.PasswordHasher.isHashed(updated.getPassword())) {
-                existing.setPassword(utils.PasswordHasher.hashPassword(updated.getPassword()));
-            } else {
-                existing.setPassword(updated.getPassword());
-            }
-        }
+        // Maintain status and technician service type if provided
+        existing.setActive(user.isActive());
         if ("Technician".equals(existing.getRole())) {
-            String serviceType = updated.getTechnicianServiceType();
-            if (!"Normal Service".equals(serviceType) && !"Major Service".equals(serviceType)) {
-                return utils.Result.failure("Technician service type is required.");
-            }
-            existing.setTechnicianServiceType(serviceType);
-        } else {
-            existing.setTechnicianServiceType("-");
+            existing.setTechnicianServiceType(user.getTechnicianServiceType());
         }
-        existing.setActive(updated.isActive());
 
-        try {
-            userRepository.writeAllUsers(all);
-        } catch (IOException e) {
-            return utils.Result.failure("Failed to save users: " + e.getMessage());
-        }
+        // Save back to repository
+        userRepository.updateUser(existing);
         return utils.Result.success(null);
+    }
+
+    public utils.Result<Void> updateUser(model.users.User user) {
+        return updateUser(user, (String) null);
     }
 
     public utils.Result<Void> setUserActive(String userId, boolean active, String managerUserId) {
@@ -199,25 +170,6 @@ public class UserService {
         } catch (IOException e) {
             return utils.Result.failure("Failed to save users: " + e.getMessage());
         }
-        return utils.Result.success(null);
-    }
-
-    public utils.Result<Void> updateUser(model.users.User user) {
-        if (user == null) return utils.Result.failure("User cannot be null.");
-        
-        // Manual validation to bypass hashed password regex issues
-        if (!ValidationUtil.isNotEmpty(user.getFullName())) return utils.Result.failure("Full name is required.");
-        if (!ValidationUtil.isValidEmail(user.getEmail())) return utils.Result.failure(ValidationUtil.invalidEmailMessage());
-        if (!ValidationUtil.isValidContact(user.getContact())) return utils.Result.failure(ValidationUtil.invalidContactMessage());
-        
-        // Password validation: only if NOT hashed
-        if (user.getPassword() != null && !utils.PasswordHasher.isHashed(user.getPassword())) {
-            if (!ValidationUtil.isValidPassword(user.getPassword())) {
-                return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
-            }
-        }
-        
-        userRepository.updateUser(user);
         return utils.Result.success(null);
     }
 
