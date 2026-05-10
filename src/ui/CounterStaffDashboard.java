@@ -58,15 +58,14 @@ public class CounterStaffDashboard extends BaseFrame implements Refreshable {
         );
 
         initializeTabs();
-        add(buildHeader(), BorderLayout.NORTH);
-        add(buildSidebarAndContent(), BorderLayout.CENTER);
         init();
         refresh();
     }
 
     @Override
     protected void initContent() {
-        setLayout(new BorderLayout());
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildSidebarAndContent(), BorderLayout.CENTER);
     }
 
     private void initializeTabs() {

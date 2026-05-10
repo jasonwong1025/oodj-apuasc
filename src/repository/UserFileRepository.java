@@ -111,11 +111,30 @@ public class UserFileRepository {
     }
 
     public abstracts.AbstractUser authenticateUser(String email, String password) {
-        for (User candidate : getAllUsers()) {
+        List<User> all = getAllUsers();
+        for (User candidate : all) {
             if (!candidate.isActive()) continue;
-            if (candidate.getEmail().equalsIgnoreCase(email.trim()) &&
-                utils.PasswordHasher.verifyPassword(password, candidate.getPassword())) {
-                return candidate;
+            if (candidate.getEmail().equalsIgnoreCase(email.trim())) {
+                boolean authenticated = false;
+                
+                // 1. Check if it's a valid hash
+                if (utils.PasswordHasher.isHashed(candidate.getPassword())) {
+                    authenticated = utils.PasswordHasher.verifyPassword(password, candidate.getPassword());
+                } else {
+                    // 2. Fallback for legacy/reverted plaintext passwords
+                    authenticated = candidate.getPassword().equals(password);
+                    if (authenticated) {
+                        // 3. Auto-migrate to hashed for next time
+                        candidate.setPassword(utils.PasswordHasher.hashPassword(password));
+                        try {
+                            writeAllUsers(all);
+                        } catch (java.io.IOException e) {
+                            utils.Logger.error("UserFileRepository", "Failed to auto-migrate password hash", e);
+                        }
+                    }
+                }
+
+                if (authenticated) return candidate;
             }
         }
         return null;

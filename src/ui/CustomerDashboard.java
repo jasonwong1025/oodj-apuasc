@@ -67,15 +67,14 @@ public class CustomerDashboard extends BaseFrame implements Refreshable, Custome
         this.reviewsTab = new ReviewsTabPanel(context);
         this.profileTab = new ProfileTabPanel(context);
 
-        add(buildHeader(), BorderLayout.NORTH);
-        add(buildSidebarAndContent(), BorderLayout.CENTER);
         init();
         refresh();
     }
 
     @Override
     protected void initContent() {
-        setLayout(new BorderLayout());
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildSidebarAndContent(), BorderLayout.CENTER);
     }
 
     private JPanel buildHeader() {

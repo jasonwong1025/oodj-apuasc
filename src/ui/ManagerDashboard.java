@@ -86,16 +86,14 @@ public class ManagerDashboard extends BaseFrame implements Refreshable {
         });
 
         // Frame configuration already handled by BaseFrame
-        add(buildHeader(), BorderLayout.NORTH);
-        add(buildSidebarAndContent(), BorderLayout.CENTER);
-        
         init();
         refresh(); // Initial draw
     }
 
     @Override
     protected void initContent() {
-        setLayout(new BorderLayout());
+        add(buildHeader(), BorderLayout.NORTH);
+        add(buildSidebarAndContent(), BorderLayout.CENTER);
     }
 
     private JPanel buildHeader() {

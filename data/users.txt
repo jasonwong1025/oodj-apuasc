@@ -1,9 +1,9 @@
-M001|Manager 1|3|0177896541|3|Manager|-|ACTIVE
-S001|Counter Staff Yew|1|0177896541|1|CounterStaff|-|ACTIVE
+M001|Manager 1|3|0177896541|10000:7QUNaV9InFR4jiWpuUBR1w==:uJVm/YoQjocmFCdPPisGHS9TimDk+EGMe58uvHus/yw=|Manager|-|ACTIVE
+S001|Counter Staff Yew|1|0177896541|10000:wvI14Gs6jM1TFvie0W9W9A==:fs02QRNoq1gFHv5AXVoqgv0cqskfhnc+xfOnfuCTpHQ=|CounterStaff|-|ACTIVE
 S002|Counter Staff Wey|11|0177896231|11|CounterStaff|-|ACTIVE
-T001|Technician 1|2|0177896541|2|Technician|Normal Service|ACTIVE
+T001|Technician 1|2|0177896541|10000:rhG91YqxaMcDHhIRKD0hBg==:w/SpqVKGszMPb9OyZ9HdZf3SVGKq0eSVI0FbN5XPrSU=|Technician|Normal Service|ACTIVE
 T002|Technician 2|22|0177896542|22|Technician|Major Service|ACTIVE
-C001|Ong Zi Ming|4|0177896541|4|Customer|-|ACTIVE
+C001|Ong Zi Ming|4|0177896541|10000:aRLwsVgJ9qbmuNTol6WCGg==:x4EozzNev5Jq5CcPfHw8Ks2zN8zJlyux6WlwieGWbn4=|Customer|-|ACTIVE
 C002|Lee Zii Qing|12|0129783813|12|Customer|-|ACTIVE
 C003|Ong Jia Sen|13|0129182000|13|Customer|-|ACTIVE
 T003|qwe|qweqwe@qweqwe.com|0123456789|Qwe123.|Technician|Normal Service|ACTIVE
