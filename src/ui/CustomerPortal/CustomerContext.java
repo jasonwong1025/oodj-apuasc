@@ -2,14 +2,10 @@ package ui.CustomerPortal;
 
 import abstracts.AbstractUser;
 import javax.swing.JFrame;
-import service_layer.AppointmentService;
-import service_layer.PaymentService;
-import service_layer.ReviewService;
-import service_layer.ServiceService;
-import service_layer.UserService;
-import service_layer.VehicleService;
+import service_layer.*;
+import ui.core.PortalContext;
 
-public class CustomerContext {
+public class CustomerContext implements PortalContext {
     private final JFrame owner;
     private final AbstractUser currentUser;
     private final VehicleService vehicleService;
@@ -43,43 +39,27 @@ public class CustomerContext {
         this.navigator = navigator;
     }
 
-    public JFrame getOwner() {
-        return owner;
-    }
+    @Override public JFrame owner() { return owner; }
+    @Override public AbstractUser currentUser() { return currentUser; }
+    @Override public UserService userService() { return userService; }
+    @Override public AppointmentService appointmentService() { return appointmentService; }
+    @Override public PaymentService paymentService() { return paymentService; }
+    @Override public ReviewService reviewService() { return reviewService; }
+    @Override public VehicleService vehicleService() { return vehicleService; }
+    @Override public ServiceService serviceService() { return serviceLookup; }
+    @Override public RegistrationService registrationService() { return new RegistrationService(); }
+    @Override public FeedbackService feedbackService() { return new FeedbackService(); }
+    @Override public Runnable refreshAction() { return refreshAction; }
 
-    public AbstractUser getCurrentUser() {
-        return currentUser;
-    }
-
-    public VehicleService getVehicleService() {
-        return vehicleService;
-    }
-
-    public AppointmentService getAppointmentService() {
-        return appointmentService;
-    }
-
-    public PaymentService getPaymentService() {
-        return paymentService;
-    }
-
-    public ReviewService getReviewService() {
-        return reviewService;
-    }
-
-    public ServiceService getServiceLookup() {
-        return serviceLookup;
-    }
-
-    public UserService getUserService() {
-        return userService;
-    }
-
-    public Runnable getRefreshAction() {
-        return refreshAction;
-    }
-
-    public CustomerNavigator getNavigator() {
-        return navigator;
-    }
+    // Legacy getters for backward compatibility
+    public JFrame getOwner() { return owner; }
+    public AbstractUser getCurrentUser() { return currentUser; }
+    public VehicleService getVehicleService() { return vehicleService; }
+    public AppointmentService getAppointmentService() { return appointmentService; }
+    public PaymentService getPaymentService() { return paymentService; }
+    public ReviewService getReviewService() { return reviewService; }
+    public ServiceService getServiceLookup() { return serviceLookup; }
+    public UserService getUserService() { return userService; }
+    public Runnable getRefreshAction() { return refreshAction; }
+    public CustomerNavigator getNavigator() { return navigator; }
 }
