@@ -1,4 +1,7 @@
 package ui;
+import ui.auth.LoginFrame;
+import ui.shared.SharedStyles;
+import ui.core.Refreshable;
 
 import abstracts.AbstractUser;
 import java.awt.BorderLayout;

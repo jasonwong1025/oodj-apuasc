@@ -1,17 +1,18 @@
 package ui;
+import ui.auth.LoginFrame;
 
 import abstracts.AbstractUser;
 import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import model.users.User;
-import service_layer.UserService;
-import service_layer.AppointmentService;
-import service_layer.ReviewService;
-import service_layer.VehicleService;
+import service_layer.*;
 import ui.TechnicianPortal.*;
-import java.util.HashMap;
-import java.util.Map;
+import ui.core.Refreshable;
+import ui.shared.ProfileTabPanel;
+import ui.shared.SharedStyles;
 
 public class TechnicianDashboard extends JFrame implements Refreshable {
 
@@ -20,6 +21,9 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
     private final AppointmentService appointmentService;
     private final ReviewService reviewService;
     private final VehicleService vehicleService;
+    private final ServiceService serviceService;
+    private final PaymentService paymentService;
+    private final RegistrationService registrationService;
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
@@ -28,7 +32,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
     private JLabel headerWho;
 
     private final TechnicianContext context;
-    private final Map<String, TechnicianTabPanel> tabs = new HashMap<>();
+    private final Map<String, JPanel> tabs = new HashMap<>();
 
     private static final String[] NAV_ITEMS = {
             "Dashboard",
@@ -45,6 +49,9 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         this.appointmentService = new AppointmentService();
         this.reviewService = new ReviewService();
         this.vehicleService = new VehicleService();
+        this.serviceService = new ServiceService();
+        this.paymentService = new PaymentService();
+        this.registrationService = new RegistrationService();
 
         this.context = new TechnicianContext(
             this,
@@ -53,6 +60,9 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
             appointmentService,
             reviewService,
             vehicleService,
+            serviceService,
+            paymentService,
+            registrationService,
             this::refresh
         );
 
@@ -75,7 +85,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         tabs.put("Task History", new TaskHistoryTabPanel(context));
         tabs.put("Provide Feedback", new ProvideFeedbackTabPanel(context));
         tabs.put("Customer Reviews", new ReviewsTabPanel(context));
-        tabs.put("My Profile", new MyProfileTabPanel(context));
+        tabs.put("My Profile", new ProfileTabPanel(context));
     }
 
     private JPanel buildHeader() {
@@ -153,7 +163,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         cardPanel.setOpaque(false);
 
         for (String item : NAV_ITEMS) {
-            TechnicianTabPanel panel = tabs.get(item);
+            JPanel panel = tabs.get(item);
             if (panel != null) {
                 cardPanel.add(panel, item);
             }
@@ -175,13 +185,12 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         String selected = navList.getSelectedValue();
         if (selected == null) return;
 
-        TechnicianTabPanel panel = tabs.get(selected);
-        if (panel != null) {
-            panel.refresh();
-            cardLayout.show(cardPanel, selected);
+        JPanel panel = tabs.get(selected);
+        if (panel instanceof Refreshable) {
+            ((Refreshable) panel).refresh();
         }
+        cardLayout.show(cardPanel, selected);
 
-        // Update header just in case name changed
         User current = userService.findByUserId(currentUser.getUserId());
         if (current != null) {
             String serviceType = current.getTechnicianServiceType();

@@ -1,4 +1,5 @@
 package ui;
+import ui.auth.LoginFrame;
 
 import abstracts.AbstractUser;
 import java.awt.*;
@@ -6,9 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-
 import service_layer.*;
 import ui.CounterStaffPortal.*;
+import ui.core.Refreshable;
+import ui.shared.ProfileTabPanel;
+import ui.shared.SharedStyles;
 
 public class CounterStaffDashboard extends JFrame implements Refreshable {
 
@@ -27,7 +30,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
     private JList<String> navList;
 
     private final CounterStaffContext context;
-    private final Map<String, CounterStaffTabPanel> tabs = new HashMap<>();
+    private final Map<String, JPanel> tabs = new HashMap<>();
 
     private static final String[] NAV_ITEMS = {
             "Dashboard",
@@ -80,7 +83,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         tabs.put("Manage Appointments", new ManageAppointmentsTabPanel(context));
         tabs.put("Process Payment", new ProcessPaymentTabPanel(context));
         tabs.put("Customer Reviews", new CustomerReviewsTabPanel(context));
-        tabs.put("My Profile", new MyProfileTabPanel(context));
+        tabs.put("My Profile", new ProfileTabPanel(context));
     }
 
     private JPanel buildHeader() {
@@ -153,7 +156,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         cardPanel.setOpaque(false);
 
         for (String item : NAV_ITEMS) {
-            CounterStaffTabPanel panel = tabs.get(item);
+            JPanel panel = tabs.get(item);
             if (panel != null) {
                 cardPanel.add(panel, item);
             }
@@ -175,10 +178,10 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         String selected = navList.getSelectedValue();
         if (selected == null) return;
 
-        CounterStaffTabPanel panel = tabs.get(selected);
-        if (panel != null) {
-            panel.refresh();
-            cardLayout.show(cardPanel, selected);
+        JPanel panel = tabs.get(selected);
+        if (panel instanceof Refreshable) {
+            ((Refreshable) panel).refresh();
         }
+        cardLayout.show(cardPanel, selected);
     }
 }
