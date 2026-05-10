@@ -14,7 +14,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import service_layer.AppointmentService;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class DateRangePickerDialog extends JDialog {
     private LocalDate startDate;

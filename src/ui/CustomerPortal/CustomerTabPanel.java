@@ -13,8 +13,8 @@ import service_layer.ReviewService;
 import service_layer.ServiceService;
 import service_layer.UserService;
 import service_layer.VehicleService;
-import ui.Refreshable;
-import ui.SharedStyles;
+import ui.core.Refreshable;
+import ui.shared.SharedStyles;
 
 public abstract class CustomerTabPanel extends JPanel implements Refreshable {
     protected final CustomerContext context;

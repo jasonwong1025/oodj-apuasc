@@ -26,7 +26,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import model.appointment.Appointment;
 import model.feedback.Review;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class ReviewsTabPanel extends CustomerTabPanel {
     public ReviewsTabPanel(CustomerContext context) {

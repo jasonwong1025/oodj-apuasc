@@ -14,7 +14,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import model.appointment.Appointment;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class AppointmentsTabPanel extends CustomerTabPanel {
     public AppointmentsTabPanel(CustomerContext context) {

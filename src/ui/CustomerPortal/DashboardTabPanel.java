@@ -13,7 +13,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import model.appointment.Appointment;
 import model.vehicle.Vehicle;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class DashboardTabPanel extends CustomerTabPanel {
     public DashboardTabPanel(CustomerContext context) {

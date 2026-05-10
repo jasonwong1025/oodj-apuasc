@@ -15,7 +15,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import model.vehicle.Vehicle;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class VehiclesTabPanel extends CustomerTabPanel {
     public VehiclesTabPanel(CustomerContext context) {

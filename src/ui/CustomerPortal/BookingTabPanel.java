@@ -36,7 +36,7 @@ import model.vehicle.Vehicle;
 import service_layer.AppointmentService;
 import service_layer.AppointmentService.SlotCapacity;
 import service_layer.AppointmentService.SlotType;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class BookingTabPanel extends CustomerTabPanel {
     public BookingTabPanel(CustomerContext context) {
