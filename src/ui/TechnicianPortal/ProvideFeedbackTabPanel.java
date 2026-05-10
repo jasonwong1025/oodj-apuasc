@@ -12,7 +12,7 @@ import model.appointment.Appointment;
 import model.feedback.Feedback;
 import model.service.Service;
 import model.vehicle.Vehicle;
-import repository.FeedbackRepository;
+import service_layer.FeedbackService;
 import ui.shared.SharedStyles;
 
 public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
@@ -46,7 +46,7 @@ public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        FeedbackRepository fbRepo = new FeedbackRepository();
+        FeedbackService fbService = context.feedbackService();
 
         for (Appointment a : myTasks) {
             String serviceDisplay = resolveServiceNames(a.getServiceId());
@@ -55,10 +55,10 @@ public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
                 ? String.format("%s (%s %s)", v.getPlateNumber(), v.getBrand(), v.getModel()) 
                 : "Unknown Vehicle";
 
-            Feedback fbObj = fbRepo.findByAppointmentId(a.getAppointmentId());
+            Feedback fbObj = fbService.findByAppointmentId(a.getAppointmentId());
             boolean hasFeedback = (fbObj != null && fbObj.getDescription() != null && 
-                                  !fbObj.getDescription().trim().isEmpty() && 
-                                  !"NONE".equalsIgnoreCase(fbObj.getDescription()));
+                                   !fbObj.getDescription().trim().isEmpty() && 
+                                   !"NONE".equalsIgnoreCase(fbObj.getDescription()));
             
             String existingFb = hasFeedback ? fbObj.getDescription() : "-";
             String fbTime = hasFeedback ? fbObj.getDateTime() : "-";
@@ -199,24 +199,21 @@ public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
         cancelBtn.addActionListener(e -> dialog.dispose());
 
         submitBtn.addActionListener(e -> {
-            String fb = fbArea.getText().trim();
-            if (fb.isEmpty()) {
+            String fbDescription = fbArea.getText().trim();
+            if (fbDescription.isEmpty()) {
                 JOptionPane.showMessageDialog(dialog, "Feedback content cannot be empty.");
                 return;
             }
             String currentDateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-            FeedbackRepository fRepo = new FeedbackRepository();
-            Feedback fbObj = fRepo.findByAppointmentId(apptId);
-            if (fbObj == null) {
-                fbObj = new Feedback(fRepo.generateNextId(), apptId, fb, currentDateTime);
+            utils.Result<Void> result = context.feedbackService().saveFeedback(apptId, fbDescription, currentDateTime);
+            
+            if (result.isSuccess()) {
+                dialog.dispose();
+                JOptionPane.showMessageDialog(context.owner(), "Feedback saved successfully!");
+                context.refreshAction().run();
             } else {
-                fbObj.setDescription(fb);
-                fbObj.setDateTime(currentDateTime);
+                JOptionPane.showMessageDialog(dialog, "Error: " + result.getError());
             }
-            fRepo.addOrUpdate(fbObj);
-            dialog.dispose();
-            JOptionPane.showMessageDialog(context.owner(), "Feedback saved successfully!");
-            context.refreshAction().run();
         });
 
         dialog.setContentPane(content);
@@ -227,7 +224,7 @@ public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
         if (serviceIds == null || serviceIds.trim().isEmpty()) return "N/A";
         String[] parts = serviceIds.split(",");
         List<String> names = new ArrayList<>();
-        service_layer.ServiceService serviceSvc = new service_layer.ServiceService();
+        service_layer.ServiceService serviceSvc = context.serviceService();
         for (String p : parts) {
             Service svc = serviceSvc.findById(p.trim());
             names.add(svc != null ? svc.getServiceName() : p.trim());
