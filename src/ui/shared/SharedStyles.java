@@ -58,6 +58,70 @@ public final class SharedStyles {
         return c;
     }
 
+    public static JLabel createHeadingLabel(String text) {
+        JLabel l = new JLabel(text, SwingConstants.CENTER);
+        l.setFont(new Font("SansSerif", Font.BOLD, 22));
+        l.setForeground(new Color(38, 38, 42));
+        return l;
+    }
+
+    public static JPasswordField createPasswordField() {
+        JPasswordField f = new JPasswordField();
+        f.setPreferredSize(new Dimension(300, 35));
+        f.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        f.setBorder(null);
+        return f;
+    }
+
+    public static JPanel createPasswordContainer(JPasswordField field, JButton toggleBtn) {
+        JPanel container = new JPanel(new BorderLayout(0, 0));
+        container.setBackground(Color.WHITE);
+        container.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(0, 5, 0, 5)
+        ));
+        container.add(field, BorderLayout.CENTER);
+        container.add(toggleBtn, BorderLayout.EAST);
+        return container;
+    }
+
+    public static JButton createPasswordToggleButton() {
+        JButton b = new JButton("\uD83D\uDC41");
+        b.setToolTipText("Show/Hide Password");
+        b.setPreferredSize(new Dimension(50, 35));
+        b.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
+        b.setFocusPainted(false);
+        b.setBorderPainted(false);
+        b.setContentAreaFilled(false);
+        b.setOpaque(false);
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    public static JButton createLinkButton(String text) {
+        JButton b = new JButton(text);
+        b.setBorderPainted(false);
+        b.setContentAreaFilled(false);
+        b.setFocusPainted(false);
+        b.setForeground(new Color(0, 123, 255));
+        b.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    public static void setupPasswordToggle(JPasswordField field, JButton button) {
+        button.addActionListener(e -> {
+            if (field.getEchoChar() == (char) 0) {
+                field.setEchoChar('\u2022');
+                button.setText("\uD83D\uDC41");
+            } else {
+                field.setEchoChar((char) 0);
+                button.setText("\uD83D\uDD76");
+            }
+            field.requestFocus();
+        });
+    }
+
     public static JPanel createCardPanel() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(Color.WHITE);
