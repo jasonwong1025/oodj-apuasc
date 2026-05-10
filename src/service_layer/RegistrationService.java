@@ -5,6 +5,7 @@ import model.users.User;
 import repository.UserFileRepository;
 import utils.IdGenerator;
 import utils.ValidationUtil;
+import utils.PasswordHasher;
 
 import java.util.List;
 
@@ -17,31 +18,20 @@ public class RegistrationService {
 
     /**
      * Registers a new customer.
-     * @return null if successful, or an error message if validation fails.
+     * @return Result containing the customer or an error message.
      */
     public utils.Result<Customer> registerCustomer(String fullName, String email, String contact, String password, String confirmPassword) {
-        // 1. Validate password match first
+        // 1. Basic matching & Presence checks
         if (!ValidationUtil.isNotEmpty(password) || !password.equals(confirmPassword)) {
             return utils.Result.failure("Passwords do not match or are empty.");
         }
 
-        // 2. Hash password and generate real ID
-        String hashedPassword = utils.PasswordHasher.hashPassword(password);
-        String newId = IdGenerator.generateNextCustomerId();
-        Customer newCustomer = new Customer(newId, fullName, email, contact, hashedPassword);
-
-        // 3. Use annotation-based validation
-        String violations = ValidationUtil.getViolations(newCustomer);
-        if (violations != null) {
-            return utils.Result.failure(violations);
-        }
-
-        // 4. Manual password strength check (if not fully covered by annotations)
+        // 2. STRENGTH CHECK (Plaintext) - Done BEFORE hashing
         if (!ValidationUtil.isValidPassword(password)) {
             return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
         }
 
-        // 5. Check uniqueness (email)
+        // 3. Email Uniqueness check
         List<User> existingUsers = userRepository.getAllUsers();
         for (User u : existingUsers) {
             if (u.getEmail().equalsIgnoreCase(email)) {
@@ -49,7 +39,18 @@ public class RegistrationService {
             }
         }
 
-        // 7. Save
+        // 4. Hash password and generate ID
+        String hashedPassword = PasswordHasher.hashPassword(password);
+        String newId = IdGenerator.generateNextCustomerId();
+        Customer newCustomer = new Customer(newId, fullName, email, contact, hashedPassword);
+
+        // 5. Use annotation-based validation for other fields
+        String violations = ValidationUtil.getViolations(newCustomer);
+        if (violations != null) {
+            return utils.Result.failure(violations);
+        }
+
+        // 6. Save
         userRepository.saveUser(newCustomer);
 
         return utils.Result.success(newCustomer);
