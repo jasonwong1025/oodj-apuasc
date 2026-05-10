@@ -9,8 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import model.appointment.Appointment;
 import model.service.Service;
 import model.users.User;
-import repository.AppointmentRepository;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 import utils.Result;
 
 public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
@@ -19,7 +18,6 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
     private final DefaultTableModel model;
     private final JComboBox<String> filterBox;
     private final JComboBox<String> sortBox;
-    private List<Appointment> list;
 
     public ManageAppointmentsTabPanel(CounterStaffContext context) {
         super(context);
@@ -28,8 +26,6 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         JPanel root = new JPanel(new BorderLayout(0, 15));
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
-
-        this.list = context.appointmentService().getAllAppointments();
 
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
         top.setOpaque(false);
@@ -80,7 +76,7 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
 
     @Override
     public void refresh() {
-        list = context.appointmentService().getAllAppointments();
+        List<Appointment> list = context.appointmentService().getAllAppointments();
         model.setRowCount(0);
         
         list.sort((a1, a2) -> {
@@ -180,26 +176,26 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             "Time Slot:", timeBox
         };
 
-        if (JOptionPane.showConfirmDialog(this, fields, "Add Appointment", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+        if (SharedStyles.showConfirm(this, fields, "Add Appointment")) {
             List<String> selectedServices = new ArrayList<>();
             for (String selected : serviceList.getSelectedValuesList()) {
                 selectedServices.add(selected.split(" - ")[0]);
             }
 
             if (selectedServices.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select at least one service!");
+                SharedStyles.showWarning(this, "Select at least one service!");
                 return;
             }
 
             String selectedVehicle = vehicleBox.getSelectedItem() != null ? vehicleBox.getSelectedItem().toString().split(" - ")[0] : "";
             if (selectedVehicle.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Select a vehicle!");
+                SharedStyles.showWarning(this, "Select a vehicle!");
                 return;
             }
 
             String selectedTime = timeBox.getSelectedItem().toString();
             if (selectedTime.contains("❌")) {
-                JOptionPane.showMessageDialog(this, "This slot is FULL!");
+                SharedStyles.showWarning(this, "This slot is FULL!");
                 return;
             }
             selectedTime = selectedTime.replace(" ✅", "");
@@ -215,10 +211,10 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             );
 
             if (bookResult.isSuccess()) {
-                JOptionPane.showMessageDialog(this, "Appointment booked successfully!");
+                SharedStyles.showMessage(this, "Appointment booked successfully!");
                 context.refreshAction().run();
             } else {
-                JOptionPane.showMessageDialog(this, bookResult.getError(), "Booking Error", JOptionPane.ERROR_MESSAGE);
+                SharedStyles.showError(this, bookResult.getError());
             }
         }
     }
@@ -226,32 +222,34 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
     private void updateStatus() {
         int row = table.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Select a row!");
+            SharedStyles.showSelectionError(this);
             return;
         }
 
         String id = table.getValueAt(row, 0).toString();
-        String staffId = table.getValueAt(row, 9).toString();
-
-        if ("NONE".equalsIgnoreCase(staffId) || "CUSTOMER".equalsIgnoreCase(staffId)) {
-            Appointment ap = findById(id);
-            if (ap != null) {
-                ap.setCounterStaffId(currentUser().getUserId());
-                new AppointmentRepository().update(ap);
-                staffId = currentUser().getUserId();
+        Appointment targetAppt = null;
+        for (Appointment a : context.appointmentService().getAllAppointments()) {
+            if (a.getAppointmentId().equals(id)) {
+                targetAppt = a;
+                break;
             }
+        }
+        if (targetAppt == null) return;
+
+        String staffId = targetAppt.getCounterStaffId();
+        if ("NONE".equalsIgnoreCase(staffId) || "CUSTOMER".equalsIgnoreCase(staffId)) {
+            targetAppt.setCounterStaffId(currentUser().getUserId());
+            context.appointmentService().updateAppointment(targetAppt);
+            staffId = currentUser().getUserId();
         }
 
         if (!staffId.equals(currentUser().getUserId())) {
-            JOptionPane.showMessageDialog(this, "You can only edit appointments handled by yourself.");
+            SharedStyles.showWarning(this, "You can only edit appointments handled by yourself.");
             return;
         }
 
-        Appointment targetAppt = findById(id);
-        if (targetAppt == null) return;
-
         if (!"PENDING".equalsIgnoreCase(targetAppt.getStatus())) {
-            JOptionPane.showMessageDialog(this, "Only Technicians can update the status once it is CONFIRMED.");
+            SharedStyles.showWarning(this, "Only Technicians can update the status once it is CONFIRMED.");
             return;
         }
 
@@ -261,8 +259,8 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
 
         if (status != null && !status.equals(targetAppt.getStatus())) {
             targetAppt.setStatus(status);
-            new AppointmentRepository().update(targetAppt);
-            JOptionPane.showMessageDialog(this, "Status updated to " + status);
+            context.appointmentService().updateAppointment(targetAppt);
+            SharedStyles.showMessage(this, "Status updated to " + status);
             context.refreshAction().run();
         }
     }
@@ -270,16 +268,22 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
     private void assignTechnician() {
         int row = table.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Select a row!");
+            SharedStyles.showSelectionError(this);
             return;
         }
 
         String id = table.getValueAt(row, 0).toString();
-        Appointment target = findById(id);
+        Appointment target = null;
+        for (Appointment a : context.appointmentService().getAllAppointments()) {
+            if (a.getAppointmentId().equals(id)) {
+                target = a;
+                break;
+            }
+        }
         if (target == null) return;
 
         if ("CANCELLED".equalsIgnoreCase(target.getStatus())) {
-            JOptionPane.showMessageDialog(this, "Cannot assign technician to cancelled appointment.");
+            SharedStyles.showWarning(this, "Cannot assign technician to cancelled appointment.");
             return;
         }
 
@@ -297,17 +301,10 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         if (selectedTech != null) {
             String techId = selectedTech.split(" - ")[0];
             target.setTechnicianId(techId);
-            new AppointmentRepository().update(target);
-            JOptionPane.showMessageDialog(this, "Technician assigned!");
+            context.appointmentService().updateAppointment(target);
+            SharedStyles.showMessage(this, "Technician assigned!");
             context.refreshAction().run();
         }
-    }
-
-    private Appointment findById(String id) {
-        for (Appointment a : list) {
-            if (a.getAppointmentId().equals(id)) return a;
-        }
-        return null;
     }
 
     private String resolveServiceNames(String serviceIds) {

@@ -2,8 +2,8 @@ package ui.CounterStaffPortal;
 
 import abstracts.AbstractUser;
 import javax.swing.JPanel;
-import ui.Refreshable;
-import ui.SharedStyles;
+import ui.core.Refreshable;
+import ui.shared.SharedStyles;
 
 /**
  * Base class for all panels within the Counter Staff Portal.

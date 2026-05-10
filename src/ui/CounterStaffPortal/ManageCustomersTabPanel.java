@@ -7,8 +7,7 @@ import javax.swing.table.DefaultTableModel;
 import model.users.Customer;
 import model.users.User;
 import model.vehicle.Vehicle;
-import repository.VehicleRepository;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 import utils.IdGenerator;
 import utils.Result;
 import java.util.List;
@@ -76,7 +75,7 @@ public class ManageCustomersTabPanel extends CounterStaffTabPanel {
                 "Model:", modelF
             };
 
-            if (JOptionPane.showConfirmDialog(this, fields, "Add Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+            if (SharedStyles.showConfirm(this, fields, "Add Customer")) {
                 String customerId = IdGenerator.generateId("C", "data/users.txt");
 
                 context.userService().addCustomer(new Customer(
@@ -95,9 +94,9 @@ public class ManageCustomersTabPanel extends CounterStaffTabPanel {
                     brand.getText(),
                     modelF.getText()
                 );
-                new VehicleRepository().save(v);
+                context.vehicleService().addVehicle(v);
 
-                JOptionPane.showMessageDialog(this, "Customer + Vehicle added successfully!");
+                SharedStyles.showMessage(this, "Customer + Vehicle added successfully!");
                 context.refreshAction().run();
             }
         });
@@ -105,7 +104,7 @@ public class ManageCustomersTabPanel extends CounterStaffTabPanel {
         editBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) {
-                JOptionPane.showMessageDialog(this, "Please select a customer!");
+                SharedStyles.showSelectionError(this);
                 return;
             }
 
@@ -128,7 +127,7 @@ public class ManageCustomersTabPanel extends CounterStaffTabPanel {
                 "Contact:", contactField
             };
 
-            if (JOptionPane.showConfirmDialog(this, fields, "Edit Customer", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+            if (SharedStyles.showConfirm(this, fields, "Edit Customer")) {
                 User existing = context.userService().findByUserId(id);
                 if (existing != null) {
                     existing.setFullName(nameField.getText());
@@ -137,10 +136,10 @@ public class ManageCustomersTabPanel extends CounterStaffTabPanel {
 
                     Result<Void> result = context.userService().updateUser(existing);
                     if (result.isSuccess()) {
-                        JOptionPane.showMessageDialog(this, "Customer updated!");
+                        SharedStyles.showMessage(this, "Customer updated!");
                         context.refreshAction().run();
                     } else {
-                        JOptionPane.showMessageDialog(this, result.getError(), "Update Error", JOptionPane.ERROR_MESSAGE);
+                        SharedStyles.showError(this, result.getError());
                     }
                 }
             }
@@ -149,25 +148,18 @@ public class ManageCustomersTabPanel extends CounterStaffTabPanel {
         deleteBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) {
-                JOptionPane.showMessageDialog(this, "Please select a customer!");
+                SharedStyles.showSelectionError(this);
                 return;
             }
 
             String id = table.getValueAt(row, 0).toString();
-            int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Are you sure you want to delete this customer?",
-                "Confirm Delete",
-                JOptionPane.YES_NO_OPTION
-            );
-
-            if (confirm == JOptionPane.YES_OPTION) {
+            if (SharedStyles.showConfirm(this, "Are you sure you want to delete this customer?")) {
                 Result<Void> result = context.userService().deleteUser(id);
                 if (result.isSuccess()) {
-                    JOptionPane.showMessageDialog(this, "Customer deleted!");
+                    SharedStyles.showMessage(this, "Customer deleted!");
                     context.refreshAction().run();
                 } else {
-                    JOptionPane.showMessageDialog(this, result.getError(), "Delete Error", JOptionPane.ERROR_MESSAGE);
+                    SharedStyles.showError(this, result.getError());
                 }
             }
         });

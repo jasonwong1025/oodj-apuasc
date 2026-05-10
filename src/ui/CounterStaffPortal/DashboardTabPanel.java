@@ -4,7 +4,7 @@ import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import model.appointment.Appointment;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 import java.util.List;
 
 public class DashboardTabPanel extends CounterStaffTabPanel {
@@ -31,7 +31,7 @@ public class DashboardTabPanel extends CounterStaffTabPanel {
 
         int pending = 0;
         for (Appointment a : appointments) {
-            if ("PENDING".equals(a.getStatus())) {
+            if ("PENDING".equalsIgnoreCase(a.getStatus())) {
                 pending++;
             }
         }

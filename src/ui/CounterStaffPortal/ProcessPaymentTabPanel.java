@@ -14,7 +14,7 @@ import javax.swing.table.DefaultTableModel;
 import model.appointment.Appointment;
 import model.payment.Payment;
 import model.service.Service;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 import utils.IdGenerator;
 
 public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
@@ -22,7 +22,6 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
     private final JTable table;
     private final DefaultTableModel model;
     private final JComboBox<String> filterBox;
-    private List<Appointment> appointments;
 
     public ProcessPaymentTabPanel(CounterStaffContext context) {
         super(context);
@@ -68,48 +67,36 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
 
     @Override
     public void refresh() {
-        appointments = context.appointmentService().getAllAppointments();
-        List<Payment> payments = context.paymentService().getAllPayments();
+        List<Appointment> appointments = context.appointmentService().getAllAppointments();
         model.setRowCount(0);
 
         for (Appointment a : appointments) {
             if (!"COMPLETED".equalsIgnoreCase(a.getStatus())) continue;
 
-            String serviceIds = a.getServiceId();
-            double totalPrice = 0;
+            double totalPrice = context.appointmentService().calculateTotalPrice(a.getServiceId());
+            
+            // Resolve service names for display
             List<String> serviceNames = new ArrayList<>();
-
-            if (serviceIds != null && !serviceIds.trim().isEmpty()) {
-                String[] ids = serviceIds.split(",");
-                for (String sid : ids) {
+            if (a.getServiceId() != null && !a.getServiceId().trim().isEmpty()) {
+                for (String sid : a.getServiceId().split(",")) {
                     Service s = context.serviceService().findById(sid.trim());
-                    if (s != null) {
-                        serviceNames.add(s.getServiceName());
-                        totalPrice += s.getPrice();
-                    }
+                    if (s != null) serviceNames.add(s.getServiceName());
                 }
             }
 
-            String finalService = String.join(", ", serviceNames);
-            Payment found = null;
-            for (Payment p : payments) {
-                if (p.getAppointmentId().equals(a.getAppointmentId())) {
-                    found = p;
-                    break;
-                }
-            }
-
-            String paymentStatus = (found != null) ? found.getStatus() : "UNPAID";
+            Payment p = context.paymentService().findByAppointmentId(a.getAppointmentId());
+            String paymentStatus = (p != null) ? p.getStatus() : "UNPAID";
+            
             String filter = filterBox.getSelectedItem().toString();
             if (filter.equals("Unpaid") && !paymentStatus.equalsIgnoreCase("UNPAID")) continue;
             if (filter.equals("Paid") && !paymentStatus.equalsIgnoreCase("PAID")) continue;
 
-            String payDate = (found != null) ? found.getDate() : "NONE";
+            String payDate = (p != null) ? p.getDate() : "NONE";
 
             model.addRow(new Object[]{
                 a.getAppointmentId(),
                 a.getCustomerId(),
-                finalService,
+                String.join(", ", serviceNames),
                 totalPrice,
                 paymentStatus,
                 payDate
@@ -120,7 +107,7 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
     private void processPayment() {
         int row = table.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Select appointment!");
+            SharedStyles.showSelectionError(this);
             return;
         }
 
@@ -128,14 +115,12 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
         String status = table.getValueAt(row, 4).toString();
 
         if ("PAID".equalsIgnoreCase(status)) {
-            JOptionPane.showMessageDialog(this, "Already fully paid!");
+            SharedStyles.showWarning(this, "Already fully paid!");
             return;
         }
 
-        double total = Double.parseDouble(table.getValueAt(row, 3).toString());
-        int confirm = JOptionPane.showConfirmDialog(this, "Confirm full payment of RM " + total + " ?", "Process Payment", JOptionPane.YES_NO_OPTION);
-
-        if (confirm == JOptionPane.YES_OPTION) {
+        double total = (Double) table.getValueAt(row, 3);
+        if (SharedStyles.showConfirm(this, "Confirm full payment of RM " + total + " ?")) {
             Payment payment = new Payment(
                 IdGenerator.generateId("PAY", "data/payments.txt"),
                 appointmentId,
@@ -144,7 +129,7 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
                 "PAID"
             );
             context.paymentService().processPayment(payment);
-            JOptionPane.showMessageDialog(this, "Full payment recorded!");
+            SharedStyles.showMessage(this, "Full payment recorded!");
             context.refreshAction().run();
         }
     }
@@ -152,7 +137,7 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
     private void printReceipt() {
         int row = table.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(this, "Select a row!");
+            SharedStyles.showSelectionError(this);
             return;
         }
 
@@ -164,7 +149,7 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
         String payDate = table.getValueAt(row, 5).toString();
 
         if (!"PAID".equalsIgnoreCase(status)) {
-            JOptionPane.showMessageDialog(this, "Cannot print receipt. Payment not completed.");
+            SharedStyles.showWarning(this, "Cannot print receipt. Payment not completed.");
             return;
         }
 
@@ -194,11 +179,10 @@ public class ProcessPaymentTabPanel extends CounterStaffTabPanel {
                 writer.write("<p style='text-align:center; color:#888;'>Thank you for choosing APU-ASC!</p>");
                 writer.write("</div></body></html>");
             }
-            JOptionPane.showMessageDialog(this, "Receipt generated: " + fileName);
+            SharedStyles.showMessage(this, "Receipt generated: " + fileName);
             utils.FileUtil.openFile(new File(fileName));
         } catch (Exception ex) {
-            ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error generating receipt: " + ex.getMessage());
+            SharedStyles.showError(this, "Error generating receipt: " + ex.getMessage());
         }
     }
 }

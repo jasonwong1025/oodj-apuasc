@@ -7,11 +7,10 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import model.appointment.Appointment;
 import model.feedback.Review;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class CustomerReviewsTabPanel extends CounterStaffTabPanel {
 
-    private final JTable table;
     private final DefaultTableModel model;
     private final JTextField searchField;
 
@@ -30,7 +29,7 @@ public class CustomerReviewsTabPanel extends CounterStaffTabPanel {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        table = new JTable(model);
+        JTable table = new JTable(model);
         SharedStyles.applyTableStyle(table);
 
         javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
@@ -72,8 +71,6 @@ public class CustomerReviewsTabPanel extends CounterStaffTabPanel {
         for (Review r : reviews) {
             for (Appointment a : appointments) {
                 if (a.getAppointmentId().equals(r.getAppointmentId())) {
-                    // Only show reviews for appointments handled by this staff (or all?)
-                    // The original code had: currentUser.getUserId().equals(a.getCounterStaffId())
                     if (currentUser().getUserId().equals(a.getCounterStaffId())) {
                         model.addRow(new Object[]{
                             r.getReviewId(),

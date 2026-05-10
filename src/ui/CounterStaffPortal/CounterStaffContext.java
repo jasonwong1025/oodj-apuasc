@@ -3,6 +3,7 @@ package ui.CounterStaffPortal;
 import abstracts.AbstractUser;
 import service_layer.*;
 import javax.swing.JFrame;
+import ui.core.PortalContext;
 
 /**
  * Context object to share state and services among Counter Staff portal components.
@@ -18,4 +19,4 @@ public record CounterStaffContext(
     ServiceService serviceService,
     RegistrationService registrationService,
     Runnable refreshAction
-) {}
+) implements PortalContext {}
