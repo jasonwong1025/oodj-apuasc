@@ -62,7 +62,8 @@ public class IdGenerator {
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
                 String[] parts = line.split("\\|", -1);
-                String id = parts[0].trim();
+                String rawId = parts[0].trim();
+                String id = FileStorageHelper.unescape(rawId);
                 if (id.startsWith(prefix)) {
                     try {
                         int currentId = Integer.parseInt(id.substring(prefix.length()));
