@@ -27,7 +27,7 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         root.setBackground(SharedStyles.MAIN_BG);
         root.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 8));
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 8));
         top.setOpaque(false);
 
         filterBox = new JComboBox<>(new String[]{
@@ -37,8 +37,8 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             "Newest Date", "Oldest Date"
         });
 
-        sortBox.setPreferredSize(new Dimension(140, 25));
-        filterBox.setPreferredSize(new Dimension(120, 25));
+        sortBox.setPreferredSize(new Dimension(110, 26));
+        filterBox.setPreferredSize(new Dimension(110, 26));
 
         top.add(new JLabel("Filter:"));
         top.add(filterBox);
@@ -48,6 +48,11 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         JButton addBtn = SharedStyles.createActionButton("Add Appointment", SharedStyles.BTN_GREEN);
         JButton updateBtn = SharedStyles.createActionButton("Update Status", SharedStyles.BTN_ORANGE);
         JButton assignBtn = SharedStyles.createActionButton("Assign Technician", SharedStyles.BTN_BLUE);
+
+        // Reduce padding slightly on buttons to save horizontal space
+        addBtn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        updateBtn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        assignBtn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
 
         top.add(addBtn);
         top.add(updateBtn);
