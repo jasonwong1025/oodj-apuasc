@@ -69,6 +69,7 @@ public class CustomerDashboard extends BaseFrame implements Refreshable, Custome
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildSidebarAndContent(), BorderLayout.CENTER);
+        init();
         refresh();
     }
 

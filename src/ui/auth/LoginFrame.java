@@ -19,6 +19,7 @@ public class LoginFrame extends BaseFrame {
 
     public LoginFrame() {
         super("APU Automotive Service Centre");
+        init();
     }
 
     @Override

@@ -16,6 +16,7 @@ public class RegisterFrame extends BaseFrame {
 
     public RegisterFrame() {
         super("APU Automotive Service Centre - Register");
+        init();
     }
 
     @Override

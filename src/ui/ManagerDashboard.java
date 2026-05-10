@@ -89,6 +89,7 @@ public class ManagerDashboard extends BaseFrame implements Refreshable {
         add(buildHeader(), BorderLayout.NORTH);
         add(buildSidebarAndContent(), BorderLayout.CENTER);
         
+        init();
         refresh(); // Initial draw
     }
 
