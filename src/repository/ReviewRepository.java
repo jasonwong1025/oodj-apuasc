@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import model.feedback.Review;
+import utils.FileStorageHelper;
 
 public class ReviewRepository {
     private static final String FILE_PATH = "data/reviews.txt";
@@ -18,9 +19,15 @@ public class ReviewRepository {
             String line;
             while ((line = br.readLine()) != null) {
                 if (line.trim().isEmpty()) continue;
-                String[] parts = line.split("\\|", -1);
-                if (parts.length == 5) {
-                    reviews.add(new Review(parts[0], parts[1], Integer.parseInt(parts[2]), parts[3], parts[4]));
+                String[] p = line.split("\\|", -1);
+                if (p.length >= 5) {
+                    reviews.add(new Review(
+                        FileStorageHelper.unescape(p[0]),
+                        FileStorageHelper.unescape(p[1]),
+                        Integer.parseInt(FileStorageHelper.unescape(p[2])),
+                        FileStorageHelper.unescape(p[3]),
+                        FileStorageHelper.unescape(p[4])
+                    ));
                 }
             }
         } catch (IOException | NumberFormatException e) {
@@ -30,9 +37,8 @@ public class ReviewRepository {
     }
 
     public void save(Review review) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH, true))) {
-            bw.write(review.toString());
-            bw.newLine();
+        try {
+            FileStorageHelper.appendLine(FILE_PATH, review.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }

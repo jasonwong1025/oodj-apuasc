@@ -1,10 +1,12 @@
 package repository;
 
 import model.service.Category;
+import utils.FileStorageHelper;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CategoryFileRepository {
     private static final String FILE_PATH = "data/categories.txt";
@@ -30,19 +32,16 @@ public class CategoryFileRepository {
     private Category parseLine(String line) {
         String[] parts = line.split("\\|", -1);
         if (parts.length < 2) return null;
-        return new Category(parts[0].trim(), parts[1].trim());
+        return new Category(
+            FileStorageHelper.unescape(parts[0]),
+            FileStorageHelper.unescape(parts[1])
+        );
     }
 
     public void writeAll(List<Category> categories) throws IOException {
-        File file = new File(FILE_PATH);
-        if (file.getParentFile() != null && !file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
-        }
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, false))) {
-            for (Category c : categories) {
-                bw.write(c.toString());
-                bw.newLine();
-            }
-        }
+        List<String> lines = categories.stream()
+                .map(Category::toString)
+                .collect(Collectors.toList());
+        FileStorageHelper.writeAtomic(FILE_PATH, lines);
     }
 }
