@@ -29,6 +29,6 @@ public class Feedback {
 
     @Override
     public String toString() {
-        return String.join("|", feedbackId, appointmentId, description, dateTime);
+        return utils.FileStorageHelper.join(feedbackId, appointmentId, description, dateTime);
     }
 }

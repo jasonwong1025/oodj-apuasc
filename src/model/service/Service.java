@@ -37,6 +37,6 @@ public class Service {
 
     @Override
     public String toString() {
-        return String.join("|", serviceId, serviceName, categoryId, String.format("%.2f", price));
+        return utils.FileStorageHelper.join(serviceId, serviceName, categoryId, String.format("%.2f", price));
     }
 }

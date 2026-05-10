@@ -34,7 +34,7 @@ public class Payment {
 
     @Override
     public String toString() {
-        return String.join("|",
+        return utils.FileStorageHelper.join(
             paymentId,
             appointmentId,
             String.valueOf(amount),

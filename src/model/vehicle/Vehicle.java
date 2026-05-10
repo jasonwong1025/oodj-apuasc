@@ -45,6 +45,6 @@ public class Vehicle implements Serializable {
 
     @Override
     public String toString() {
-        return String.join("|", vehicleId, ownerId, plateNumber, brand, model);
+        return utils.FileStorageHelper.join(vehicleId, ownerId, plateNumber, brand, model);
     }
 }
