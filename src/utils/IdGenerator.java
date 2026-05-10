@@ -71,7 +71,7 @@ public class IdGenerator {
                 }
             }
         } catch (java.io.IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("General", "I/O Error", e);
         }
         return String.format("%s%03d", prefix, maxId + 1);
     }

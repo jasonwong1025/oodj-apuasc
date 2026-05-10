@@ -21,7 +21,7 @@ public class FeedbackRepository {
                 if (f != null) list.add(f);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
         return list;
     }
@@ -69,7 +69,7 @@ public class FeedbackRepository {
         try {
             utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 

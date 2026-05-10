@@ -31,7 +31,7 @@ public class ReviewRepository {
                 }
             }
         } catch (IOException | NumberFormatException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
         return reviews;
     }
@@ -40,7 +40,7 @@ public class ReviewRepository {
         try {
             FileStorageHelper.appendLine(FILE_PATH, review.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 }

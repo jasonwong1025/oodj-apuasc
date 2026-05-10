@@ -9,7 +9,7 @@ public class Main {
         try {
             UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
         } catch (Exception e) {
-            e.printStackTrace();
+            utils.Logger.error("General", "I/O Error", e);
         }
 
         SwingUtilities.invokeLater(() -> {

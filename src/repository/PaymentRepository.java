@@ -33,7 +33,7 @@ public class PaymentRepository {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
 
         return payments;
@@ -60,7 +60,7 @@ public class PaymentRepository {
         try {
             utils.FileStorageHelper.appendLine(FILE_PATH, payment.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 
@@ -77,7 +77,7 @@ public class PaymentRepository {
         try {
             utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 }

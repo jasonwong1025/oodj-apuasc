@@ -24,7 +24,7 @@ public class CategoryFileRepository {
                 if (c != null) categories.add(c);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
         return categories;
     }

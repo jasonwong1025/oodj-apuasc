@@ -187,7 +187,7 @@ public class LoginFrame extends BaseFrame {
                     EmailService.sendOtpEmail(email, finalOtp);
                     success = true;
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    utils.Logger.error("General", "I/O Error", ex);
                 }
 
                 final boolean mailSent = success;

@@ -34,7 +34,7 @@ public class AppointmentRepository {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("AppointmentRepository", "Failed to load appointments", e);
         }
         return appointments;
     }
@@ -54,7 +54,7 @@ public class AppointmentRepository {
         try {
             utils.FileStorageHelper.appendLine(FILE_PATH, appointment.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("AppointmentRepository", "Failed to load appointments", e);
         }
     }
 
@@ -71,7 +71,7 @@ public class AppointmentRepository {
         try {
             utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("AppointmentRepository", "Failed to load appointments", e);
         }
     }
 }

@@ -22,7 +22,7 @@ public class ServiceFileRepository {
                 if (s != null) services.add(s);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
         return services;
     }

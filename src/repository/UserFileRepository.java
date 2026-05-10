@@ -26,7 +26,7 @@ public class UserFileRepository {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
         return users;
     }
@@ -125,7 +125,7 @@ public class UserFileRepository {
         try {
             utils.FileStorageHelper.appendLine(FILE_PATH, user.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 
@@ -142,7 +142,7 @@ public class UserFileRepository {
         try {
             utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 
@@ -157,7 +157,7 @@ public class UserFileRepository {
         try {
             utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 

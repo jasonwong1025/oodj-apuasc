@@ -36,7 +36,7 @@ public class VehicleRepository {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
         return vehicles;
     }
@@ -56,7 +56,7 @@ public class VehicleRepository {
         try {
             utils.FileStorageHelper.appendLine(FILE_PATH, vehicle.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 
@@ -73,7 +73,7 @@ public class VehicleRepository {
         try {
             utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 
@@ -88,7 +88,7 @@ public class VehicleRepository {
         try {
             utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
-            e.printStackTrace();
+            utils.Logger.error("Repository", "I/O Error", e);
         }
     }
 }
