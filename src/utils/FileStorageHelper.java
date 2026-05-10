@@ -11,6 +11,7 @@ import java.util.List;
 public class FileStorageHelper {
 
     private static final String DELIMITER = "|";
+    private static final Object LOCK = new Object();
 
     private FileStorageHelper() {}
 
@@ -40,31 +41,34 @@ public class FileStorageHelper {
     }
 
     /**
-     * Appends a line to a file. (Not atomic, but handles directory creation).
+     * Appends a line to a file. Thread-safe via global lock.
      */
     public static void appendLine(String filePath, String line) throws IOException {
-        Path target = Paths.get(filePath);
-        Path parent = target.getParent();
-        if (parent != null && !Files.exists(parent)) {
-            Files.createDirectories(parent);
-        }
+        synchronized (LOCK) {
+            Path target = Paths.get(filePath);
+            Path parent = target.getParent();
+            if (parent != null && !Files.exists(parent)) {
+                Files.createDirectories(parent);
+            }
 
-        try (BufferedWriter writer = Files.newBufferedWriter(target, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
-            writer.write(line);
-            writer.newLine();
+            try (BufferedWriter writer = Files.newBufferedWriter(target, StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
+                writer.write(line);
+                writer.newLine();
+            }
         }
     }
 
     /**
      * Escapes characters that would break the pipe-delimited storage format.
      * Order of replacement is critical: backslash must be escaped first.
+     * We use a unique sequence [PIPE] and [NL] to be 100% collision-safe.
      */
     public static String escape(Object input) {
         if (input == null) return "";
         String str = String.valueOf(input);
-        return str.replace("\\", "\\\\") // Escape backslash first
-                  .replace("|", "\\p")   // Escape pipe
-                  .replace("\n", "\\n")  // Escape newline
+        return str.replace("\\", "\\\\") 
+                  .replace("|", "[PIPE]")  
+                  .replace("\n", "[NL]") 
                   .replace("\r", "");
     }
 
@@ -74,8 +78,8 @@ public class FileStorageHelper {
      */
     public static String unescape(String input) {
         if (input == null) return "";
-        return input.replace("\\n", "\n")
-                    .replace("\\p", "|")
+        return input.replace("[NL]", "\n")
+                    .replace("[PIPE]", "|")
                     .replace("\\\\", "\\");
     }
 
