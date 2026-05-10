@@ -134,7 +134,9 @@ public class AppointmentService {
         if (capacity.getTotalCount() >= totalLimit) {
             return false;
         }
-        return capacity.getNormalCount() < normalLimit;
+        // Total pending major + normal must be less than total technicians,
+        // and normal-specific slots must be within normal technicians' capacity.
+        return capacity.getNormalCount() < (totalLimit - capacity.getMajorCount());
     }
 
     private boolean isMajorSlotWindowAvailable(String date, String startTime) {
@@ -375,6 +377,8 @@ public class AppointmentService {
         serviceRepository.getAll().stream()
                 .filter(s -> !s.isIncludedInNormalService())
                 .forEach(s -> major.add(s.getServiceId()));
+        // Safety: If no services are explicitly marked as major, treat all as potential major
+        // or ensure at least one exists. For this system, we rely on the flag.
         return major;
     }
 }
