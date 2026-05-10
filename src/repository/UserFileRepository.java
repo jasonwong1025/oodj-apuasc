@@ -32,62 +32,68 @@ public class UserFileRepository {
     }
 
     /**
-     * Supports:
-     * <ul>
-     *   <li>8 fields (current): userId|fullName|email|contact|password|role|technicianServiceType|status</li>
-     *   <li>8 fields (legacy): userId|username|fullName|email|contact|password|role|status</li>
-     *   <li>7 fields (legacy): userId|fullName|email|contact|password|role|status</li>
-     *   <li>6 fields (legacy): userId|fullName|email|contact|password|role — status defaults to ACTIVE</li>
-     * </ul>
+     * Supports legacy formats and normalizes them to the 8-field format:
+     * userId|fullName|email|contact|password|role|technicianServiceType|status
      */
     private User parseUserLine(String line) {
         String[] parts = line.split("\\|", -1);
-        if (parts.length == 8) {
+        int len = parts.length;
+
+        if (len < 6) return null;
+
+        String id = parts[0].trim();
+        String name, email, contact, pass, role, svc;
+        boolean active;
+
+        if (len == 8) {
+            // Check if parts[1] is username (legacy) or fullName (current)
+            // Current: id|name|email|contact|pass|role|svc|status
+            // Legacy: id|user|name|email|contact|pass|role|status
             if ("ACTIVE".equalsIgnoreCase(parts[7].trim()) || "INACTIVE".equalsIgnoreCase(parts[7].trim())) {
-                boolean active = "ACTIVE".equalsIgnoreCase(parts[7]);
-                return buildUser(
-                        parts[0].trim(),
-                        parts[1].trim(),
-                        parts[2].trim(),
-                        parts[3].trim(),
-                        parts[4].trim(),
-                        parts[5].trim(),
-                        parts[6].trim(),
-                        active);
+                name = parts[1].trim();
+                email = parts[2].trim();
+                contact = parts[3].trim();
+                pass = parts[4].trim();
+                role = parts[5].trim();
+                svc = parts[6].trim();
+                active = "ACTIVE".equalsIgnoreCase(parts[7].trim());
+            } else {
+                // Legacy with 8 parts but last is not status? Unlikely based on docs, but let's be safe.
+                name = parts[2].trim();
+                email = parts[3].trim();
+                contact = parts[4].trim();
+                pass = parts[5].trim();
+                role = parts[6].trim();
+                svc = "-";
+                active = "ACTIVE".equalsIgnoreCase(parts[7].trim());
             }
-            boolean active = "ACTIVE".equalsIgnoreCase(parts[7]);
-            return buildUser(
-                    parts[0].trim(),
-                    parts[2].trim(),
-                    parts[3].trim(),
-                    parts[4].trim(),
-                    parts[5].trim(),
-                    parts[6].trim(),
-                    "-",
-                    active);
+        } else if (len == 7) {
+            // Legacy: id|name|email|contact|pass|role|status
+            name = parts[1].trim();
+            email = parts[2].trim();
+            contact = parts[3].trim();
+            pass = parts[4].trim();
+            role = parts[5].trim();
+            svc = "-";
+            active = "ACTIVE".equalsIgnoreCase(parts[6].trim());
+        } else { // len == 6
+            // Legacy: id|name|email|contact|pass|role
+            name = parts[1].trim();
+            email = parts[2].trim();
+            contact = parts[3].trim();
+            pass = parts[4].trim();
+            role = parts[5].trim();
+            svc = "-";
+            active = true;
         }
-        if (parts.length == 7) {
-            boolean active = "ACTIVE".equalsIgnoreCase(parts[6]);
-            return buildUser(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    parts[2].trim(),
-                    parts[3].trim(),
-                    parts[4].trim(),
-                    parts[5].trim(),
-                    "-",
-                    active);
-        }
-        if (parts.length == 6) {
-            return buildUser(
-                    parts[0].trim(),
-                    parts[1].trim(),
-                    parts[2].trim(),
-                    parts[3].trim(),
-                    parts[4].trim(),
-                    parts[5].trim(),
-                    "-",
-                    true);
+
+        return buildUser(id, name, email, contact, pass, role, svc, active);
+    }
+
+    public User findById(String userId) {
+        if (userId == null) return null;
+        for (User u : getAllUsers()) {
+            if (u.getUserId().equals(userId)) return u;
         }
         return null;
     }
