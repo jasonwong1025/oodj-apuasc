@@ -37,6 +37,6 @@ public class Review {
 
     @Override
     public String toString() {
-        return String.join("|", reviewId, appointmentId, String.valueOf(rating), description, dateTime);
+        return utils.FileStorageHelper.join(reviewId, appointmentId, rating, description, dateTime);
     }
 }

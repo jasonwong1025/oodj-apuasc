@@ -19,6 +19,6 @@ public class Category {
 
     @Override
     public String toString() {
-        return String.join("|", categoryId, categoryName);
+        return utils.FileStorageHelper.join(categoryId, categoryName);
     }
 }
