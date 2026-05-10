@@ -1,6 +1,6 @@
 package main;
 
-import ui.LoginFrame;
+import ui.auth.LoginFrame;
 import javax.swing.*;
 
 public class Main {
