@@ -111,8 +111,10 @@ public class LoginFrame extends JFrame {
         loginButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         loginButton.addActionListener(e -> {
             service_layer.UserService userService = new service_layer.UserService();
-            try {
-                abstracts.AbstractUser user = userService.login(emailField.getText(), new String(passwordField.getPassword()));
+            utils.Result<abstracts.AbstractUser> result = userService.login(emailField.getText(), new String(passwordField.getPassword()));
+            
+            if (result.isSuccess()) {
+                abstracts.AbstractUser user = result.getValue();
                 if ("Customer".equals(user.getRole())) {
                     new CustomerDashboard(user).setVisible(true);
                 } else if ("Manager".equals(user.getRole())) {
@@ -123,8 +125,8 @@ public class LoginFrame extends JFrame {
                     new CounterStaffDashboard(user).setVisible(true);
                 }
                 this.dispose();
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Login Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, result.getError(), "Login Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -235,16 +237,14 @@ public class LoginFrame extends JFrame {
 
             new Thread(() -> {
                 boolean mailSent = false;
-                String mailError = null;
                 try {
                     EmailService.sendOtpEmail(email, otp);
                     mailSent = true;
                 } catch (Exception ex) {
-                    mailError = ex.getMessage();
+                    ex.printStackTrace();
                 }
 
                 final boolean sent = mailSent;
-                final String errMsg = mailError;
                 SwingUtilities.invokeLater(() -> {
                     sendBtn.setEnabled(true);
                     sendBtn.setText("Send OTP");

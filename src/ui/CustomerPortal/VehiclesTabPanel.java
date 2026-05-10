@@ -148,9 +148,9 @@ public class VehiclesTabPanel extends CustomerTabPanel {
 
     private void deleteVehicle(Vehicle vehicle) {
         if (!SharedStyles.showConfirm(context.getOwner(), "Delete selected vehicle?")) return;
-        String err = vehicleService().deleteVehicleForCustomer(currentUser().getUserId(), vehicle.getVehicleId());
-        if (err != null) {
-            SharedStyles.showValidationError(context.getOwner(), err);
+        utils.Result<Void> result = vehicleService().deleteVehicleForCustomer(currentUser().getUserId(), vehicle.getVehicleId());
+        if (result.isFailure()) {
+            SharedStyles.showValidationError(context.getOwner(), result.getError());
             return;
         }
         SharedStyles.showMessage(context.getOwner(), "Vehicle deleted successfully.");

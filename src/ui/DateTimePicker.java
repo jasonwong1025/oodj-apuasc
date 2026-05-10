@@ -116,9 +116,9 @@ public class DateTimePicker extends JDialog {
             }
 
             String date = getSelectedDate();
-            String error = appointmentService.validateSchedule(date, selectedSlot.time, requestedType);
-            if (error != null) {
-                SharedStyles.showWarning(this, error);
+            utils.Result<Void> result = appointmentService.validateSchedule(date, selectedSlot.time, requestedType);
+            if (result.isFailure()) {
+                SharedStyles.showWarning(this, result.getError());
                 refreshSlotOptions();
                 return;
             }

@@ -445,9 +445,9 @@ public class BookingTabPanel extends CustomerTabPanel {
             String dateValue = selectedDate[0].format(AppointmentService.DATE_FORMATTER);
             String timeValue = selectedTime[0];
             SlotType requestedType = isMajorCategory ? SlotType.MAJOR : SlotType.NORMAL;
-            String scheduleError = appointmentService().validateSchedule(dateValue, timeValue, requestedType);
-            if (scheduleError != null) {
-                SharedStyles.showWarning(context.getOwner(), scheduleError);
+            utils.Result<Void> scheduleResult = appointmentService().validateSchedule(dateValue, timeValue, requestedType);
+            if (scheduleResult.isFailure()) {
+                SharedStyles.showWarning(context.getOwner(), scheduleResult.getError());
                 return;
             }
             StringBuilder summary = new StringBuilder("<html><body style='width: 300px;'>");
@@ -468,11 +468,13 @@ public class BookingTabPanel extends CustomerTabPanel {
             if (SharedStyles.showConfirm(context.getOwner(), summary.toString())) {
                 String vId = vehicleCombo.getSelectedItem().toString().split(" - ")[0];
                 List<String> sIds = selected.stream().map(Service::getServiceId).collect(Collectors.toList());
-                String res = appointmentService().bookAppointment(currentUser().getUserId(), vId, sIds, dateValue, timeValue, "NONE", isMajorCategory ? "MAJOR" : "NORMAL");
-                SharedStyles.showMessage(context.getOwner(), res);
-                if (res.startsWith("Success")) {
+                utils.Result<model.appointment.Appointment> res = appointmentService().bookAppointment(currentUser().getUserId(), vId, sIds, dateValue, timeValue, "NONE", isMajorCategory ? "MAJOR" : "NORMAL");
+                if (res.isSuccess()) {
+                    SharedStyles.showMessage(context.getOwner(), "Appointment booked successfully!");
                     context.getNavigator().navigateTo("My Appointments");
                     context.getRefreshAction().run();
+                } else {
+                    SharedStyles.showMessage(context.getOwner(), res.getError());
                 }
             }
         });

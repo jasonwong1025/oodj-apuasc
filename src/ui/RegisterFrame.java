@@ -67,7 +67,7 @@ public class RegisterFrame extends JFrame {
         registerButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         registerButton.addActionListener(e -> {
             service_layer.RegistrationService registrationService = new service_layer.RegistrationService();
-            String err = registrationService.registerCustomer(
+            utils.Result<model.users.Customer> result = registrationService.registerCustomer(
                 fullNameField.getText(),
                 emailField.getText(),
                 contactField.getText(),
@@ -75,12 +75,12 @@ public class RegisterFrame extends JFrame {
                 new String(confirmPasswordField.getPassword())
             );
 
-            if (err != null) {
-                JOptionPane.showMessageDialog(this, err, "Registration Error", JOptionPane.ERROR_MESSAGE);
-            } else {
+            if (result.isSuccess()) {
                 JOptionPane.showMessageDialog(this, "Registration successful! You can now login.", "Success", JOptionPane.INFORMATION_MESSAGE);
                 new LoginFrame().setVisible(true);
                 this.dispose();
+            } else {
+                JOptionPane.showMessageDialog(this, result.getError(), "Registration Error", JOptionPane.ERROR_MESSAGE);
             }
         });
         

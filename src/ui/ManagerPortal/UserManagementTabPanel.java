@@ -130,8 +130,8 @@ public class UserManagementTabPanel extends JPanel implements Refreshable {
     private void setSelectedActive(boolean active) {
         User u = getSelectedUserFromTable();
         if (u == null) { JOptionPane.showMessageDialog(owner, "Select a user first.", "User Management", JOptionPane.WARNING_MESSAGE); return; }
-        String err = userService.setUserActive(u.getUserId(), active, currentUser.getUserId());
-        if (err != null) JOptionPane.showMessageDialog(owner, err, "User Management", JOptionPane.ERROR_MESSAGE);
+        utils.Result<Void> result = userService.setUserActive(u.getUserId(), active, currentUser.getUserId());
+        if (result.isFailure()) JOptionPane.showMessageDialog(owner, result.getError(), "User Management", JOptionPane.ERROR_MESSAGE);
         else refresh();
     }
 
@@ -145,8 +145,8 @@ public class UserManagementTabPanel extends JPanel implements Refreshable {
         String who = u.getFullName() + " (" + u.getEmail() + ", " + u.getUserId() + ")";
         int confirm = JOptionPane.showConfirmDialog(owner, "Permanently delete this user? This cannot be undone.\n\n" + who, "Delete User", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm != JOptionPane.YES_OPTION) return;
-        String err = userService.deleteUser(u.getUserId(), currentUser.getUserId());
-        if (err != null) JOptionPane.showMessageDialog(owner, err, "Delete User", JOptionPane.ERROR_MESSAGE);
+        utils.Result<Void> result = userService.deleteUser(u.getUserId(), currentUser.getUserId());
+        if (result.isFailure()) JOptionPane.showMessageDialog(owner, result.getError(), "Delete User", JOptionPane.ERROR_MESSAGE);
         else { JOptionPane.showMessageDialog(owner, "User deleted.", "Delete User", JOptionPane.INFORMATION_MESSAGE); refresh(); }
     }
 
@@ -186,8 +186,8 @@ public class UserManagementTabPanel extends JPanel implements Refreshable {
             String rk = mapRoleFilter((String) role.getSelectedItem());
             String selectedTechServiceType = String.valueOf(technicianServiceType.getSelectedItem());
             if (!"Technician".equals(rk)) selectedTechServiceType = "-";
-            String err = userService.addUser(rk, fullName.getText(), email.getText(), contact.getText(), new String(password.getPassword()), selectedTechServiceType);
-            if (err != null) JOptionPane.showMessageDialog(d, err, "Add User", JOptionPane.ERROR_MESSAGE);
+            utils.Result<User> result = userService.addUser(rk, fullName.getText(), email.getText(), contact.getText(), new String(password.getPassword()), selectedTechServiceType);
+            if (result.isFailure()) JOptionPane.showMessageDialog(d, result.getError(), "Add User", JOptionPane.ERROR_MESSAGE);
             else { d.dispose(); refresh(); }
         });
         d.add(save, gbc);
@@ -240,8 +240,8 @@ public class UserManagementTabPanel extends JPanel implements Refreshable {
             else copy.setTechnicianServiceType("-");
             String np = new String(password.getPassword());
             if (ValidationUtil.isNotEmpty(np)) copy.setPassword(np); else copy.setPassword(u.getPassword());
-            String err = userService.updateUser(copy, currentUser.getUserId());
-            if (err != null) JOptionPane.showMessageDialog(d, err, "Edit User", JOptionPane.ERROR_MESSAGE);
+            utils.Result<Void> result = userService.updateUser(copy, ValidationUtil.isNotEmpty(np) ? np : null);
+            if (result.isFailure()) JOptionPane.showMessageDialog(d, result.getError(), "Edit User", JOptionPane.ERROR_MESSAGE);
             else { d.dispose(); refresh(); }
         });
         d.add(save, gbc);

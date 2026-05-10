@@ -67,10 +67,10 @@ public class MyProfileTabPanel extends JPanel implements Refreshable {
             u.setEmail(email.getText().trim());
             u.setContact(contact.getText().trim());
             String np = new String(pass.getPassword());
-            if (ValidationUtil.isNotEmpty(np)) u.setPassword(np);
-            String err = userService.updateUser(u, currentUser.getUserId());
-            if (err != null) JOptionPane.showMessageDialog(owner, err, "Profile", JOptionPane.ERROR_MESSAGE);
-            else {
+            utils.Result<Void> result = userService.updateUser(u, ValidationUtil.isNotEmpty(np) ? np : null);
+            if (result.isFailure()) {
+                JOptionPane.showMessageDialog(owner, result.getError(), "Profile", JOptionPane.ERROR_MESSAGE);
+            } else {
                 JOptionPane.showMessageDialog(owner, "Profile updated.", "Profile", JOptionPane.INFORMATION_MESSAGE);
                 pass.setText("");
             }

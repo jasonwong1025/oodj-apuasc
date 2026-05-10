@@ -10,8 +10,6 @@ import model.users.Customer;
 import model.users.User;
 import service_layer.UserService;
 import utils.IdGenerator;
-import utils.ValidationUtil;
-
 
 public class CounterStaffDashboard extends JFrame implements Refreshable {
 
@@ -321,10 +319,14 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
                 existing.setEmail(emailField.getText());
                 existing.setContact(contactField.getText());
 
-                userService.updateUser(existing);
+                utils.Result<Void> result = userService.updateUser(existing);
 
-                JOptionPane.showMessageDialog(this, "Customer updated!");
-                refresh();
+                if (result.isSuccess()) {
+                    JOptionPane.showMessageDialog(this, "Customer updated!");
+                    refresh();
+                } else {
+                    JOptionPane.showMessageDialog(this, result.getError(), "Update Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -346,9 +348,13 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             );
 
             if (confirm == JOptionPane.YES_OPTION) {
-                userService.deleteUser(id);
-                JOptionPane.showMessageDialog(this, "Customer deleted!");
-                refresh();
+                utils.Result<Void> result = userService.deleteUser(id);
+                if (result.isSuccess()) {
+                    JOptionPane.showMessageDialog(this, "Customer deleted!");
+                    refresh();
+                } else {
+                    JOptionPane.showMessageDialog(this, result.getError(), "Delete Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -615,7 +621,7 @@ sortBox.setPreferredSize(new Dimension(140, 25));
                         monthBox.getSelectedItem() + "-" +
                         dayBox.getSelectedItem();
 
-                String result = service.bookAppointment(
+                utils.Result<model.appointment.Appointment> bookResult = service.bookAppointment(
                         c.getText().trim().toUpperCase(),
                         selectedVehicle,
                         selectedServices,
@@ -625,8 +631,12 @@ sortBox.setPreferredSize(new Dimension(140, 25));
 
                 );
 
-                JOptionPane.showMessageDialog(this, result);
-                refresh();
+                if (bookResult.isSuccess()) {
+                    JOptionPane.showMessageDialog(this, "Appointment booked successfully!");
+                    refresh();
+                } else {
+                    JOptionPane.showMessageDialog(this, bookResult.getError(), "Booking Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
@@ -923,26 +933,18 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
         gbc.gridx = 1; gbc.gridy = y; gbc.anchor = GridBagConstraints.EAST;
 
         saveBtn.addActionListener(e -> {
-            if (!ValidationUtil.isNotEmpty(nameF.getText()) || !ValidationUtil.isValidEmail(emailF.getText())) {
-                JOptionPane.showMessageDialog(this, "Please enter valid details.");
-                return;
-            }
             self.setFullName(nameF.getText().trim());
             self.setEmail(emailF.getText().trim());
             self.setContact(contactF.getText().trim());
 
             String newPass = new String(passF.getPassword());
-            if (newPass.length() > 0) {
-                if (!ValidationUtil.isValidPassword(newPass)) {
-                    JOptionPane.showMessageDialog(this, ValidationUtil.passwordRequirementsMessage());
-                    return;
-                }
-                self.setPassword(newPass);
+            utils.Result<Void> result = userService.updateUser(self, newPass.length() > 0 ? newPass : null);
+            if (result.isSuccess()) {
+                JOptionPane.showMessageDialog(this, "Profile updated successfully!");
+                refresh();
+            } else {
+                JOptionPane.showMessageDialog(this, result.getError(), "Update Error", JOptionPane.ERROR_MESSAGE);
             }
-
-            userService.updateUser(self);
-            JOptionPane.showMessageDialog(this, "Profile updated successfully!");
-            refresh();
         });
 
         card.add(saveBtn, gbc);
@@ -1042,11 +1044,9 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
                 }
 
                 String paymentStatus = "UNPAID";
-                double remaining = totalPrice;
 
                 if (found != null) {
                     paymentStatus = found.getStatus();
-                    remaining = "PAID".equalsIgnoreCase(paymentStatus) ? 0 : found.getAmount();
                 }
 
                 // FILTER 
@@ -1080,7 +1080,6 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
             }
 
             String appointmentId = table.getValueAt(row, 0).toString();
-            String customerId = table.getValueAt(row, 1).toString();
             String status = table.getValueAt(row, 4).toString();
 
             if ("PAID".equalsIgnoreCase(status)) {
@@ -1182,7 +1181,7 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
 
             writer.close();
 
-            java.awt.Desktop.getDesktop().browse(new java.io.File(fileName).toURI());
+            utils.FileUtil.openFile(new java.io.File(fileName));
 
         } catch (Exception ex) {
             ex.printStackTrace();
