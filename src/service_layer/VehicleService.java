@@ -22,6 +22,10 @@ public class VehicleService {
         return vehicleRepository.getVehiclesByOwner(customerId);
     }
 
+    public void addVehicle(Vehicle v) {
+        vehicleRepository.save(v);
+    }
+
     public Result<Vehicle> addVehicle(String ownerId, String plateNumber, String brand, String model) {
         if (vehicleRepository.getVehiclesByPlate(plateNumber).isPresent()) {
             return Result.failure("Plate number " + plateNumber + " is already registered.");

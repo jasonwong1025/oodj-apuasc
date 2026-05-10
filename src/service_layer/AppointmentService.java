@@ -300,9 +300,42 @@ public class AppointmentService {
             }
         }
     }
+
+    public void updateAppointment(Appointment a) {
+        appointmentRepository.update(a);
+    }
     public java.util.List<model.appointment.Appointment> getAllAppointments() {
-    return appointmentRepository.getAllAppointments();
-}
+        return appointmentRepository.getAllAppointments();
+    }
+
+    public List<Appointment> getAppointmentsByStaff(String staffId) {
+        List<Appointment> filtered = new ArrayList<>();
+        for (Appointment a : getAllAppointments()) {
+            if (staffId.equals(a.getCounterStaffId())) {
+                filtered.add(a);
+            }
+        }
+        return filtered;
+    }
+
+    public double calculateTotalPrice(String serviceIdCsv) {
+        if (serviceIdCsv == null || serviceIdCsv.isBlank() || "NONE".equalsIgnoreCase(serviceIdCsv)) {
+            return 0;
+        }
+        double total = 0;
+        String[] ids = serviceIdCsv.split(",");
+        List<model.service.Service> allServices = serviceRepository.getAll();
+        for (String id : ids) {
+            String trimmed = id.trim();
+            for (model.service.Service s : allServices) {
+                if (s.getServiceId().equals(trimmed)) {
+                    total += s.getPrice();
+                    break;
+                }
+            }
+        }
+        return total;
+    }
 
     public SlotType determineRequestedSlotType(List<String> serviceIds) {
         if (serviceIds == null || serviceIds.isEmpty()) {

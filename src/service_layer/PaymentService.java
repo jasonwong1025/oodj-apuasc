@@ -31,6 +31,13 @@ public class PaymentService {
         paymentRepository.save(payment);
     }
 
+    public Payment findByAppointmentId(String appointmentId) {
+        for (Payment p : paymentRepository.getAllPayments()) {
+            if (p.getAppointmentId().equals(appointmentId)) return p;
+        }
+        return null;
+    }
+
     public void updatePayment(Payment payment) {
         paymentRepository.update(payment);
     }
