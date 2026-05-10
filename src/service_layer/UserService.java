@@ -30,6 +30,13 @@ public class UserService {
         if (user == null) {
             return utils.Result.failure("Invalid email or password, or account is inactive.");
         }
+
+        // Migration: If password is not hashed, hash it now
+        if (!utils.PasswordHasher.isHashed(user.getPassword())) {
+            user.setPassword(utils.PasswordHasher.hashPassword(password));
+            userRepository.updateUser((User) user);
+        }
+
         return utils.Result.success(user);
     }
 
@@ -78,8 +85,9 @@ public class UserService {
         }
 
         String newId = IdGenerator.generateNextIdForRole(role);
+        String hashedPassword = utils.PasswordHasher.hashPassword(password);
         User created = instantiateUser(newId, fullName.trim(), email.trim(),
-                contact.trim(), password, role, technicianServiceType);
+                contact.trim(), hashedPassword, role, technicianServiceType);
         created.setActive(true);
 
         all.add(created);
@@ -146,7 +154,12 @@ public class UserService {
         existing.setEmail(updated.getEmail().trim());
         existing.setContact(updated.getContact().trim());
         if (ValidationUtil.isNotEmpty(updated.getPassword())) {
-            existing.setPassword(updated.getPassword());
+            // If the incoming password is not already hashed (it's new plaintext), hash it
+            if (!utils.PasswordHasher.isHashed(updated.getPassword())) {
+                existing.setPassword(utils.PasswordHasher.hashPassword(updated.getPassword()));
+            } else {
+                existing.setPassword(updated.getPassword());
+            }
         }
         if ("Technician".equals(existing.getRole())) {
             String serviceType = updated.getTechnicianServiceType();
