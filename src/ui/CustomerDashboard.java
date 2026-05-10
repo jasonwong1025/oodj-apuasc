@@ -1,53 +1,24 @@
 package ui;
+
 import ui.auth.LoginFrame;
 import ui.shared.SharedStyles;
+import ui.core.BaseFrame;
 import ui.core.Refreshable;
 
 import abstracts.AbstractUser;
-import java.awt.BorderLayout;
-import java.awt.CardLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import javax.swing.DefaultListCellRenderer;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.ListSelectionModel;
-import javax.swing.border.EmptyBorder;
 import model.users.User;
-import service_layer.AppointmentService;
-import service_layer.PaymentService;
-import service_layer.ReviewService;
-import service_layer.ServiceService;
-import service_layer.UserService;
-import service_layer.VehicleService;
-import ui.CustomerPortal.AppointmentsTabPanel;
-import ui.CustomerPortal.BookingTabPanel;
-import ui.CustomerPortal.CustomerContext;
-import ui.CustomerPortal.CustomerNavigator;
-import ui.CustomerPortal.DashboardTabPanel;
-import ui.CustomerPortal.MyProfileTabPanel;
-import ui.CustomerPortal.ReviewsTabPanel;
-import ui.CustomerPortal.ServiceHistoryTabPanel;
-import ui.CustomerPortal.VehiclesTabPanel;
+import service_layer.*;
+import ui.CustomerPortal.*;
+import ui.shared.ProfileTabPanel;
 
-public class CustomerDashboard extends JFrame implements Refreshable, CustomerNavigator {
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+
+public class CustomerDashboard extends BaseFrame implements Refreshable, CustomerNavigator {
 
     private static final String[] NAV_ITEMS = {
-            "Dashboard",
-            "Manage Vehicles",
-            "Book Appointment",
-            "My Appointments",
-            "Service History",
-            "Reviews",
-            "My Profile"
+            "Dashboard", "Manage Vehicles", "Book Appointment", "My Appointments", "Service History", "Reviews", "My Profile"
     };
 
     private final AbstractUser currentUser;
@@ -65,7 +36,7 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
     private final AppointmentsTabPanel appointmentsTab;
     private final ServiceHistoryTabPanel historyTab;
     private final ReviewsTabPanel reviewsTab;
-    private final MyProfileTabPanel profileTab;
+    private final ProfileTabPanel profileTab;
 
     private CardLayout cardLayout;
     private JPanel cardPanel;
@@ -74,6 +45,7 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
     private JLabel headerWho;
 
     public CustomerDashboard(AbstractUser user) {
+        super("APU-ASC | Customer - " + user.getFullName());
         this.currentUser = user;
         this.vehicleService = new VehicleService();
         this.appointmentService = new AppointmentService();
@@ -83,34 +55,26 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
         this.userService = new UserService();
 
         this.context = new CustomerContext(
-            this,
-            currentUser,
-            vehicleService,
-            appointmentService,
-            paymentService,
-            reviewService,
-            serviceLookup,
-            userService,
-            this::refresh,
-            this
+            this, currentUser, vehicleService, appointmentService, paymentService,
+            reviewService, serviceLookup, userService, this::refresh, this
         );
+
         this.dashboardTab = new DashboardTabPanel(context);
         this.vehiclesTab = new VehiclesTabPanel(context);
         this.bookingTab = new BookingTabPanel(context);
         this.appointmentsTab = new AppointmentsTabPanel(context);
         this.historyTab = new ServiceHistoryTabPanel(context);
         this.reviewsTab = new ReviewsTabPanel(context);
-        this.profileTab = new MyProfileTabPanel(context);
-
-        setTitle("APU-ASC | Customer - " + currentUser.getFullName());
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1280, 820);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(SharedStyles.MAIN_BG);
-        setLayout(new BorderLayout());
+        this.profileTab = new ProfileTabPanel(context);
 
         add(buildHeader(), BorderLayout.NORTH);
         add(buildSidebarAndContent(), BorderLayout.CENTER);
+        refresh();
+    }
+
+    @Override
+    protected void initContent() {
+        setLayout(new BorderLayout());
     }
 
     private JPanel buildHeader() {
@@ -118,23 +82,21 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
         header.setBackground(SharedStyles.HEADER_BG);
         header.setBorder(new EmptyBorder(12, 20, 12, 20));
 
-        JLabel brand = new JLabel("APU Automotive Service Centre");
-        brand.setFont(new Font("SansSerif", Font.BOLD, 18));
-        header.add(brand, BorderLayout.WEST);
+        header.add(new JLabel("APU Automotive Service Centre") {{
+            setFont(new Font("SansSerif", Font.BOLD, 18));
+        }}, BorderLayout.WEST);
 
-        headerWho = new JLabel(currentUser.getFullName() + "  |  Customer");
+        headerWho = new JLabel("", SwingConstants.RIGHT);
         headerWho.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        
         JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
-        logout.addActionListener(e -> {
-            new LoginFrame().setVisible(true);
-            dispose();
-        });
+        logout.addActionListener(e -> { new LoginFrame().setVisible(true); dispose(); });
+
         JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         east.setOpaque(false);
         east.add(headerWho);
         east.add(logout);
         header.add(east, BorderLayout.EAST);
-
         return header;
     }
 
@@ -154,8 +116,7 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
         navList.setBorder(new EmptyBorder(12, 0, 12, 0));
         navList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                            boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 l.setOpaque(true);
                 l.setBorder(new EmptyBorder(12, 20, 12, 16));
@@ -181,7 +142,6 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
         cardLayout = new CardLayout();
         cardPanel = new JPanel(cardLayout);
         cardPanel.setOpaque(false);
-
         cardPanel.add(dashboardTab, "Dashboard");
         cardPanel.add(vehiclesTab, "Manage Vehicles");
         cardPanel.add(bookingTab, "Book Appointment");
@@ -190,11 +150,7 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
         cardPanel.add(reviewsTab, "Reviews");
         cardPanel.add(profileTab, "My Profile");
 
-        // Pre-initialization will be handled by selection listener
-        navList.addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
-            refresh();
-        });
+        navList.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) refresh(); });
         navList.setSelectedIndex(0);
 
         wrap.add(side, BorderLayout.WEST);
@@ -208,12 +164,9 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
         if (selected == null) return;
 
         JPanel panel = getPanelForNav(selected);
-        if (panel instanceof Refreshable refreshable) {
-            refreshable.refresh();
-        }
+        if (panel instanceof Refreshable refreshable) refreshable.refresh();
         cardLayout.show(cardPanel, selected);
 
-        // Update header just in case name changed
         User current = userService.findByUserId(currentUser.getUserId());
         if (current != null) {
             headerWho.setText(current.getFullName() + "  |  Customer");
@@ -236,7 +189,6 @@ public class CustomerDashboard extends JFrame implements Refreshable, CustomerNa
 
     @Override
     public void navigateTo(String navItem) {
-        if (navList == null) return;
-        navList.setSelectedValue(navItem, true);
+        if (navList != null) navList.setSelectedValue(navItem, true);
     }
 }

@@ -1,25 +1,14 @@
 package ui;
+
 import ui.auth.LoginFrame;
 import ui.shared.SharedStyles;
+import ui.core.BaseFrame;
 import ui.core.Refreshable;
 
 import abstracts.AbstractUser;
 import model.users.User;
-import service_layer.AppointmentService;
-import service_layer.CategoryService;
-import service_layer.FeedbackService;
-import service_layer.PaymentService;
-import service_layer.ReviewService;
-import service_layer.ServiceService;
-import service_layer.UserService;
-import ui.ManagerPortal.AllFeedbackTabPanel;
-import ui.ManagerPortal.CategoriesTabPanel;
-import ui.ManagerPortal.DashboardTabPanel;
-import ui.ManagerPortal.MyProfileTabPanel;
-import ui.ManagerPortal.ReportsTabPanel;
-import ui.ManagerPortal.ServiceCatalogTabPanel;
-import ui.ManagerPortal.SystemMaintenanceTabPanel;
-import ui.ManagerPortal.UserManagementTabPanel;
+import service_layer.*;
+import ui.ManagerPortal.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -27,7 +16,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-public class ManagerDashboard extends JFrame implements Refreshable {
+public class ManagerDashboard extends BaseFrame implements Refreshable {
     private static final String[] NAV_ITEMS = {"Dashboard", "User Management", "Service Management", "All Feedback", "Reports", "System Maintenance", "My Profile"};
     private static final String SVC_HEADER = "Service Management";
     private static final String SVC_CATALOG = "Manage Service Catalog";
@@ -56,9 +45,10 @@ public class ManagerDashboard extends JFrame implements Refreshable {
     private final AllFeedbackTabPanel feedbackTab;
     private final ReportsTabPanel reportsTab;
     private final SystemMaintenanceTabPanel maintenanceTab;
-    private final MyProfileTabPanel profileTab;
+    private final ui.shared.ProfileTabPanel profileTab;
 
     public ManagerDashboard(AbstractUser user) {
+        super("APU-ASC | Manager - " + user.getFullName());
         this.currentUser = user;
         this.userService = new UserService();
         this.serviceService = new ServiceService();
@@ -68,6 +58,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         this.reviewService = new ReviewService();
         this.paymentService = new PaymentService();
 
+        // Standard PortalContext implementation would be better here, but maintaining current logic
         this.dashboardTab = new DashboardTabPanel(userService, appointmentService, this::refresh);
         this.userManagementTab = new UserManagementTabPanel(this, currentUser, userService);
         this.serviceCatalogTab = new ServiceCatalogTabPanel(this, serviceService, categoryService);
@@ -78,17 +69,32 @@ public class ManagerDashboard extends JFrame implements Refreshable {
             new LoginFrame().setVisible(true);
             dispose();
         });
-        this.profileTab = new MyProfileTabPanel(this, currentUser, userService);
+        
+        // Use the centralized ProfileTabPanel with an anonymous PortalContext implementation for now
+        this.profileTab = new ui.shared.ProfileTabPanel(new ui.core.PortalContext() {
+            @Override public JFrame owner() { return ManagerDashboard.this; }
+            @Override public AbstractUser currentUser() { return currentUser; }
+            @Override public UserService userService() { return userService; }
+            @Override public AppointmentService appointmentService() { return appointmentService; }
+            @Override public PaymentService paymentService() { return paymentService; }
+            @Override public ReviewService reviewService() { return reviewService; }
+            @Override public VehicleService vehicleService() { return new VehicleService(); }
+            @Override public ServiceService serviceService() { return serviceService; }
+            @Override public RegistrationService registrationService() { return new RegistrationService(); }
+            @Override public FeedbackService feedbackService() { return feedbackService; }
+            @Override public Runnable refreshAction() { return ManagerDashboard.this::refresh; }
+        });
 
-        setTitle("APU-ASC | Manager - " + currentUser.getFullName());
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1280, 820);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(SharedStyles.MAIN_BG);
-        setLayout(new BorderLayout());
-
+        // Frame configuration already handled by BaseFrame
         add(buildHeader(), BorderLayout.NORTH);
         add(buildSidebarAndContent(), BorderLayout.CENTER);
+        
+        refresh(); // Initial draw
+    }
+
+    @Override
+    protected void initContent() {
+        setLayout(new BorderLayout());
     }
 
     private JPanel buildHeader() {
@@ -100,7 +106,7 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         brand.setFont(new Font("SansSerif", Font.BOLD, 18));
         header.add(brand, BorderLayout.WEST);
 
-        JLabel who = new JLabel(currentUser.getFullName() + "  |  " + roleDisplay(currentUser.getRole()));
+        JLabel who = new JLabel(currentUser.getFullName() + "  |  Manager");
         who.setFont(new Font("SansSerif", Font.PLAIN, 14));
         JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
         logout.addActionListener(e -> {
@@ -171,7 +177,6 @@ public class ManagerDashboard extends JFrame implements Refreshable {
 
         JScrollPane navScroll = new JScrollPane(navList);
         navScroll.setBorder(null);
-        navScroll.getVerticalScrollBar().setUnitIncrement(16);
         JPanel side = new JPanel(new BorderLayout());
         side.setBackground(SharedStyles.SIDEBAR_BG);
         side.setPreferredSize(new Dimension(240, 0));
@@ -201,44 +206,18 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         if (i < 0) return;
         String selected = navModel.get(i);
         if (SVC_HEADER.equals(selected)) return;
+        
         switch (selected) {
-            case "Dashboard":
-                dashboardTab.refresh();
-                cardLayout.show(cardPanel, "DASHBOARD");
-                break;
-            case "User Management":
-                userManagementTab.refresh();
-                cardLayout.show(cardPanel, "USER");
-                break;
-            case SVC_CATALOG:
-                serviceCatalogTab.refresh();
-                cardLayout.show(cardPanel, "SVC_CATALOG");
-                break;
-            case SVC_CATEGORIES:
-                categoriesTab.refresh();
-                cardLayout.show(cardPanel, "SVC_CATEGORIES");
-                break;
-            case "All Feedback":
-                feedbackTab.refresh();
-                cardLayout.show(cardPanel, "FEED");
-                break;
-            case "Reports":
-                reportsTab.refresh();
-                cardLayout.show(cardPanel, "REPORT");
-                break;
-            case "System Maintenance":
-                maintenanceTab.refresh();
-                cardLayout.show(cardPanel, "MAINTENANCE");
-                break;
-            case "My Profile":
-                profileTab.refresh();
-                cardLayout.show(cardPanel, "PROFILE");
-                break;
-            default:
-                break;
+            case "Dashboard": cardLayout.show(cardPanel, "DASHBOARD"); dashboardTab.refresh(); break;
+            case "User Management": cardLayout.show(cardPanel, "USER"); userManagementTab.refresh(); break;
+            case SVC_CATALOG: cardLayout.show(cardPanel, "SVC_CATALOG"); serviceCatalogTab.refresh(); break;
+            case SVC_CATEGORIES: cardLayout.show(cardPanel, "SVC_CATEGORIES"); categoriesTab.refresh(); break;
+            case "All Feedback": cardLayout.show(cardPanel, "FEED"); feedbackTab.refresh(); break;
+            case "Reports": cardLayout.show(cardPanel, "REPORT"); reportsTab.refresh(); break;
+            case "System Maintenance": cardLayout.show(cardPanel, "MAINTENANCE"); maintenanceTab.refresh(); break;
+            case "My Profile": cardLayout.show(cardPanel, "PROFILE"); profileTab.refresh(); break;
         }
-        cardPanel.revalidate();
-        cardPanel.repaint();
+        
         User self = userService.findByUserId(currentUser.getUserId());
         if (self != null) setTitle("APU-ASC | Manager - " + self.getFullName());
     }
@@ -247,37 +226,25 @@ public class ManagerDashboard extends JFrame implements Refreshable {
         updatingNav = true;
         int svcIdx = -1;
         for (int i = 0; i < navModel.size(); i++) {
-            if (SVC_HEADER.equals(navModel.get(i))) {
-                svcIdx = i;
-                break;
-            }
+            if (SVC_HEADER.equals(navModel.get(i))) { svcIdx = i; break; }
         }
-        if (svcIdx < 0) {
-            updatingNav = false;
-            return;
-        }
+        if (svcIdx < 0) { updatingNav = false; return; }
+        
         if (serviceExpanded) {
             navModel.removeElement(SVC_CATALOG);
             navModel.removeElement(SVC_CATEGORIES);
             serviceExpanded = false;
-            navList.repaint();
-            updatingNav = false;
         } else {
             navModel.insertElementAt(SVC_CATALOG, svcIdx + 1);
             navModel.insertElementAt(SVC_CATEGORIES, svcIdx + 2);
             serviceExpanded = true;
-            navList.repaint();
-            updatingNav = false;
             navList.setSelectedIndex(svcIdx + 1);
         }
+        updatingNav = false;
+        navList.repaint();
     }
 
     private boolean isServiceSubItem(String text) {
         return SVC_CATALOG.equals(text) || SVC_CATEGORIES.equals(text);
-    }
-
-    private static String roleDisplay(String role) {
-        if ("CounterStaff".equals(role)) return "Counter Staff";
-        return role;
     }
 }

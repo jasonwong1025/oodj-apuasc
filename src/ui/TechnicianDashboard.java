@@ -1,20 +1,23 @@
 package ui;
+
 import ui.auth.LoginFrame;
+import ui.shared.SharedStyles;
+import ui.core.BaseFrame;
+import ui.core.Refreshable;
 
 import abstracts.AbstractUser;
-import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import model.users.User;
 import service_layer.*;
 import ui.TechnicianPortal.*;
-import ui.core.Refreshable;
 import ui.shared.ProfileTabPanel;
-import ui.shared.SharedStyles;
 
-public class TechnicianDashboard extends JFrame implements Refreshable {
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.util.HashMap;
+import java.util.Map;
+
+public class TechnicianDashboard extends BaseFrame implements Refreshable {
 
     private final AbstractUser currentUser;
     private final UserService userService;
@@ -35,15 +38,11 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
     private final Map<String, JPanel> tabs = new HashMap<>();
 
     private static final String[] NAV_ITEMS = {
-            "Dashboard",
-            "My Tasks",
-            "Task History",
-            "Provide Feedback",
-            "Customer Reviews",
-            "My Profile"
+            "Dashboard", "My Tasks", "Task History", "Provide Feedback", "Customer Reviews", "My Profile"
     };
 
     public TechnicianDashboard(AbstractUser user) {
+        super("APU-ASC | Technician - " + user.getFullName());
         this.currentUser = user;
         this.userService = new UserService();
         this.appointmentService = new AppointmentService();
@@ -55,30 +54,20 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         FeedbackService feedbackService = new FeedbackService();
 
         this.context = new TechnicianContext(
-            this,
-            currentUser,
-            userService,
-            appointmentService,
-            reviewService,
-            vehicleService,
-            serviceService,
-            paymentService,
-            registrationService,
-            feedbackService,
-            this::refresh
+            this, currentUser, userService, appointmentService, reviewService,
+            vehicleService, serviceService, paymentService, registrationService,
+            feedbackService, this::refresh
         );
 
         initializeTabs();
-
-        setTitle("APU-ASC | Technician - " + currentUser.getFullName());
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1280, 820);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(SharedStyles.MAIN_BG);
-        setLayout(new BorderLayout());
-
         add(buildHeader(), BorderLayout.NORTH);
         add(buildSidebarAndContent(), BorderLayout.CENTER);
+        refresh();
+    }
+
+    @Override
+    protected void initContent() {
+        setLayout(new BorderLayout());
     }
 
     private void initializeTabs() {
@@ -95,28 +84,21 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         header.setBackground(SharedStyles.HEADER_BG);
         header.setBorder(new EmptyBorder(12, 20, 12, 20));
 
-        JLabel brand = new JLabel("APU Automotive Service Centre");
-        brand.setFont(new Font("SansSerif", Font.BOLD, 18));
-        header.add(brand, BorderLayout.WEST);
+        header.add(new JLabel("APU Automotive Service Centre", SwingConstants.LEFT) {{
+            setFont(new Font("SansSerif", Font.BOLD, 18));
+        }}, BorderLayout.WEST);
 
-        String serviceType = currentUser.getTechnicianServiceType();
-        String displayRole = "Technician";
-        if (serviceType != null && !serviceType.trim().isEmpty() && !serviceType.equals("-")) {
-            displayRole += " (" + serviceType + ")";
-        }
-        headerWho = new JLabel(currentUser.getFullName() + "  |  " + displayRole);
+        headerWho = new JLabel("", SwingConstants.RIGHT);
         headerWho.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        
         JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
-        logout.addActionListener(e -> {
-            new LoginFrame().setVisible(true);
-            dispose();
-        });
+        logout.addActionListener(e -> { new LoginFrame().setVisible(true); dispose(); });
+
         JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         east.setOpaque(false);
         east.add(headerWho);
         east.add(logout);
         header.add(east, BorderLayout.EAST);
-
         return header;
     }
 
@@ -136,8 +118,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         navList.setFont(new Font("SansSerif", Font.PLAIN, 14));
         navList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                            boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 l.setOpaque(true);
                 l.setBorder(new EmptyBorder(12, 20, 12, 16));
@@ -166,15 +147,10 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
 
         for (String item : NAV_ITEMS) {
             JPanel panel = tabs.get(item);
-            if (panel != null) {
-                cardPanel.add(panel, item);
-            }
+            if (panel != null) cardPanel.add(panel, item);
         }
 
-        navList.addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
-            refresh();
-        });
+        navList.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) refresh(); });
         navList.setSelectedIndex(0);
 
         wrap.add(side, BorderLayout.WEST);
@@ -188,18 +164,13 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         if (selected == null) return;
 
         JPanel panel = tabs.get(selected);
-        if (panel instanceof Refreshable) {
-            ((Refreshable) panel).refresh();
-        }
+        if (panel instanceof Refreshable) ((Refreshable) panel).refresh();
         cardLayout.show(cardPanel, selected);
 
         User current = userService.findByUserId(currentUser.getUserId());
         if (current != null) {
             String serviceType = current.getTechnicianServiceType();
-            String displayRole = "Technician";
-            if (serviceType != null && !serviceType.trim().isEmpty() && !serviceType.equals("-")) {
-                displayRole += " (" + serviceType + ")";
-            }
+            String displayRole = "Technician" + (serviceType != null && !serviceType.isBlank() && !serviceType.equals("-") ? " (" + serviceType + ")" : "");
             headerWho.setText(current.getFullName() + "  |  " + displayRole);
             setTitle("APU-ASC | Technician - " + current.getFullName());
         }

@@ -1,19 +1,22 @@
 package ui;
+
 import ui.auth.LoginFrame;
+import ui.shared.SharedStyles;
+import ui.core.BaseFrame;
+import ui.core.Refreshable;
 
 import abstracts.AbstractUser;
+import service_layer.*;
+import ui.CounterStaffPortal.*;
+import ui.shared.ProfileTabPanel;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.util.HashMap;
 import java.util.Map;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import service_layer.*;
-import ui.CounterStaffPortal.*;
-import ui.core.Refreshable;
-import ui.shared.ProfileTabPanel;
-import ui.shared.SharedStyles;
 
-public class CounterStaffDashboard extends JFrame implements Refreshable {
+public class CounterStaffDashboard extends BaseFrame implements Refreshable {
 
     private final AbstractUser currentUser;
     private final UserService userService;
@@ -33,15 +36,11 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
     private final Map<String, JPanel> tabs = new HashMap<>();
 
     private static final String[] NAV_ITEMS = {
-            "Dashboard",
-            "Manage Customers",
-            "Manage Appointments",
-            "Process Payment",
-            "Customer Reviews",
-            "My Profile"
+            "Dashboard", "Manage Customers", "Manage Appointments", "Process Payment", "Customer Reviews", "My Profile"
     };
 
     public CounterStaffDashboard(AbstractUser user) {
+        super("APU-ASC | Counter Staff - " + user.getFullName());
         this.currentUser = user;
         this.userService = new UserService();
         this.appointmentService = new AppointmentService();
@@ -53,30 +52,20 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         FeedbackService feedbackService = new FeedbackService();
 
         this.context = new CounterStaffContext(
-            this,
-            currentUser,
-            userService,
-            appointmentService,
-            paymentService,
-            reviewService,
-            vehicleService,
-            serviceService,
-            registrationService,
-            feedbackService,
-            this::refresh
+            this, currentUser, userService, appointmentService, paymentService,
+            reviewService, vehicleService, serviceService, registrationService,
+            feedbackService, this::refresh
         );
 
         initializeTabs();
-
-        setTitle("APU-ASC | Counter Staff - " + currentUser.getFullName());
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1280, 820);
-        setLocationRelativeTo(null);
-        getContentPane().setBackground(SharedStyles.MAIN_BG);
-        setLayout(new BorderLayout());
-
         add(buildHeader(), BorderLayout.NORTH);
         add(buildSidebarAndContent(), BorderLayout.CENTER);
+        refresh();
+    }
+
+    @Override
+    protected void initContent() {
+        setLayout(new BorderLayout());
     }
 
     private void initializeTabs() {
@@ -93,23 +82,21 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         header.setBackground(SharedStyles.HEADER_BG);
         header.setBorder(new EmptyBorder(12, 20, 12, 20));
 
-        JLabel brand = new JLabel("APU Automotive Service Centre");
-        brand.setFont(new Font("SansSerif", Font.BOLD, 18));
-        header.add(brand, BorderLayout.WEST);
+        header.add(new JLabel("APU Automotive Service Centre") {{
+            setFont(new Font("SansSerif", Font.BOLD, 18));
+        }}, BorderLayout.WEST);
 
         JLabel who = new JLabel(currentUser.getFullName() + "  |  Counter Staff");
         who.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        
         JButton logout = SharedStyles.createActionButton("Logout", SharedStyles.BTN_LOGOUT);
-        logout.addActionListener(e -> {
-            new LoginFrame().setVisible(true);
-            dispose();
-        });
+        logout.addActionListener(e -> { new LoginFrame().setVisible(true); dispose(); });
+
         JPanel east = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         east.setOpaque(false);
         east.add(who);
         east.add(logout);
         header.add(east, BorderLayout.EAST);
-
         return header;
     }
 
@@ -129,8 +116,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         navList.setFont(new Font("SansSerif", Font.PLAIN, 14));
         navList.setCellRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-                                                            boolean isSelected, boolean cellHasFocus) {
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel l = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 l.setOpaque(true);
                 l.setBorder(new EmptyBorder(12, 20, 12, 16));
@@ -159,15 +145,10 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
 
         for (String item : NAV_ITEMS) {
             JPanel panel = tabs.get(item);
-            if (panel != null) {
-                cardPanel.add(panel, item);
-            }
+            if (panel != null) cardPanel.add(panel, item);
         }
 
-        navList.addListSelectionListener(e -> {
-            if (e.getValueIsAdjusting()) return;
-            refresh();
-        });
+        navList.addListSelectionListener(e -> { if (!e.getValueIsAdjusting()) refresh(); });
         navList.setSelectedIndex(0);
 
         wrap.add(side, BorderLayout.WEST);
@@ -181,9 +162,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         if (selected == null) return;
 
         JPanel panel = tabs.get(selected);
-        if (panel instanceof Refreshable) {
-            ((Refreshable) panel).refresh();
-        }
+        if (panel instanceof Refreshable) ((Refreshable) panel).refresh();
         cardLayout.show(cardPanel, selected);
     }
 }
