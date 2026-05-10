@@ -8,8 +8,8 @@ import service_layer.FeedbackService;
 import service_layer.ReviewService;
 import service_layer.ServiceService;
 import service_layer.UserService;
-import ui.Refreshable;
-import ui.SharedStyles;
+import ui.core.Refreshable;
+import ui.shared.SharedStyles;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;

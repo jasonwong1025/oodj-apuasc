@@ -1,7 +1,7 @@
 package ui.ManagerPortal;
 
-import ui.Refreshable;
-import ui.SharedStyles;
+import ui.core.Refreshable;
+import ui.shared.SharedStyles;
 
 import javax.swing.*;
 import java.awt.*;

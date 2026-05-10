@@ -3,8 +3,8 @@ package ui.ManagerPortal;
 import abstracts.AbstractUser;
 import model.users.User;
 import service_layer.UserService;
-import ui.Refreshable;
-import ui.SharedStyles;
+import ui.core.Refreshable;
+import ui.shared.SharedStyles;
 import utils.ValidationUtil;
 
 import javax.swing.*;
