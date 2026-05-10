@@ -204,8 +204,18 @@ public class UserService {
 
     public utils.Result<Void> updateUser(model.users.User user) {
         if (user == null) return utils.Result.failure("User cannot be null.");
-        String violations = utils.ValidationUtil.getViolations(user);
-        if (violations != null) return utils.Result.failure(violations);
+        
+        // Manual validation to bypass hashed password regex issues
+        if (!ValidationUtil.isNotEmpty(user.getFullName())) return utils.Result.failure("Full name is required.");
+        if (!ValidationUtil.isValidEmail(user.getEmail())) return utils.Result.failure(ValidationUtil.invalidEmailMessage());
+        if (!ValidationUtil.isValidContact(user.getContact())) return utils.Result.failure(ValidationUtil.invalidContactMessage());
+        
+        // Password validation: only if NOT hashed
+        if (user.getPassword() != null && !utils.PasswordHasher.isHashed(user.getPassword())) {
+            if (!ValidationUtil.isValidPassword(user.getPassword())) {
+                return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
+            }
+        }
         
         userRepository.updateUser(user);
         return utils.Result.success(null);

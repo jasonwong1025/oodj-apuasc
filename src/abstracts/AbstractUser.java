@@ -17,8 +17,6 @@ public abstract class AbstractUser {
     private String contact;
 
     @NotBlank(message = "is required")
-    @utils.validation.Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).{6,}$", 
-             message = "must have at least 6 characters, including uppercase, lowercase, number, and special character")
     private String password;
 
     private String role;
