@@ -26,11 +26,27 @@ public final class Result<T> {
         return error == null;
     }
 
+    public boolean isFailure() {
+        return error != null;
+    }
+
     public T getValue() {
         return value;
     }
 
     public String getError() {
         return error;
+    }
+
+    public void ifSuccess(java.util.function.Consumer<? super T> action) {
+        if (isSuccess()) {
+            action.accept(value);
+        }
+    }
+
+    public void ifFailure(java.util.function.Consumer<String> action) {
+        if (isFailure()) {
+            action.accept(error);
+        }
     }
 }
