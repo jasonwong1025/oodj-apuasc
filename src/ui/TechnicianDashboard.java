@@ -12,7 +12,6 @@ import model.feedback.Review;
 import model.appointment.Appointment;
 import service_layer.ReviewService;
 import service_layer.AppointmentService;
-import service_layer.VehicleService;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
