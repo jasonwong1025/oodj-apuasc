@@ -25,9 +25,10 @@ public class RegistrationService {
             return utils.Result.failure("Passwords do not match or are empty.");
         }
 
-        // 2. Generate ID temporarily to create object for validation
-        String tempId = "TEMP";
-        Customer newCustomer = new Customer(tempId, fullName, email, contact, password);
+        // 2. Hash password and generate real ID
+        String hashedPassword = utils.PasswordHasher.hashPassword(password);
+        String newId = IdGenerator.generateNextCustomerId();
+        Customer newCustomer = new Customer(newId, fullName, email, contact, hashedPassword);
 
         // 3. Use annotation-based validation
         String violations = ValidationUtil.getViolations(newCustomer);
@@ -47,10 +48,6 @@ public class RegistrationService {
                 return utils.Result.failure("Email is already registered.");
             }
         }
-
-        // 6. Generate real ID and update object
-        String newId = IdGenerator.generateNextCustomerId();
-        newCustomer.setUserId(newId);
 
         // 7. Save
         userRepository.saveUser(newCustomer);
