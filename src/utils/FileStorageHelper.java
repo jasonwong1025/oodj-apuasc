@@ -63,31 +63,26 @@ public class FileStorageHelper {
 
     /**
      * Escapes characters that would break the pipe-delimited storage format.
-     * Order is CRITICAL for 100% collision-safety:
-     * 1. Escape the escape character itself (\ -> \\)
-     * 2. Escape other control characters
+     * To be 100% collision-safe, we use unique tokens that are processed 
+     * AFTER the escape character (\) is itself escaped.
      */
     public static String escape(Object input) {
         if (input == null) return "";
         String str = String.valueOf(input);
-        return str.replace("\\", "\\\\") // Escape backslash FIRST
-                  .replace("|", "\\p")   // Escape pipe
-                  .replace("\n", "\\n")  // Escape newline
+        return str.replace("\\", "\\\\")  // 1. Escape literal backslashes
+                  .replace("|", "{P}")    // 2. Escape pipe with unique token
+                  .replace("\n", "{N}")   // 3. Escape newline with unique token
                   .replace("\r", "");
     }
 
     /**
      * Unescapes characters from the storage format.
-     * Order is CRITICAL for 100% collision-safety:
-     * 1. Unescape control characters
-     * 2. Unescape the escape character itself (\\ -> \) LAST
+     * Order is CRITICAL: Tokens are restored FIRST, then escaped backslashes LAST.
      */
     public static String unescape(String input) {
         if (input == null) return "";
-        // Unescape control chars first
-        String res = input.replace("\\n", "\n")
-                          .replace("\\p", "|");
-        // Unescape backslash LAST
+        String res = input.replace("{N}", "\n")
+                          .replace("{P}", "|");
         return res.replace("\\\\", "\\");
     }
 
