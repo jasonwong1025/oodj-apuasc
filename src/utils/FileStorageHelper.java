@@ -11,8 +11,6 @@ import java.util.List;
 public class FileStorageHelper {
 
     private static final String DELIMITER = "|";
-    private static final String ESCAPED_DELIMITER = "\\\\p"; // pipe
-    private static final String ESCAPED_NEWLINE = "\\\\n";   // newline
 
     private FileStorageHelper() {}
 
@@ -59,23 +57,25 @@ public class FileStorageHelper {
 
     /**
      * Escapes characters that would break the pipe-delimited storage format.
+     * Order of replacement is critical: backslash must be escaped first.
      */
     public static String escape(Object input) {
         if (input == null) return "";
         String str = String.valueOf(input);
-        return str.replace("\\", "\\\\")
-                  .replace("|", ESCAPED_DELIMITER)
-                  .replace("\n", ESCAPED_NEWLINE)
+        return str.replace("\\", "\\\\") // Escape backslash first
+                  .replace("|", "\\p")   // Escape pipe
+                  .replace("\n", "\\n")  // Escape newline
                   .replace("\r", "");
     }
 
     /**
      * Unescapes characters from the storage format.
+     * Order of replacement is critical: backslash must be unescaped last.
      */
     public static String unescape(String input) {
         if (input == null) return "";
-        return input.replace(ESCAPED_NEWLINE, "\n")
-                    .replace(ESCAPED_DELIMITER, "|")
+        return input.replace("\\n", "\n")
+                    .replace("\\p", "|")
                     .replace("\\\\", "\\");
     }
 
