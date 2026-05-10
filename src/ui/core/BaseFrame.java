@@ -2,6 +2,7 @@ package ui.core;
 
 import javax.swing.*;
 import ui.shared.SharedStyles;
+import java.awt.BorderLayout;
 
 /**
  * Base frame class that centralizes window configuration.
@@ -14,9 +15,17 @@ public abstract class BaseFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setBackground(SharedStyles.MAIN_BG);
-        
-        // Initialize specific content
+        setLayout(new BorderLayout());
+    }
+
+    /**
+     * Subclasses must call this at the end of their constructor
+     * or after initializing their local fields.
+     */
+    public void init() {
         initContent();
+        revalidate();
+        repaint();
     }
 
     /**
