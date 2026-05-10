@@ -8,9 +8,7 @@ import model.appointment.Appointment;
 import model.service.Service;
 import model.users.User;
 import model.vehicle.Vehicle;
-import service_layer.AppointmentService;
-import service_layer.ServiceService;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,8 +46,7 @@ public class DashboardTabPanel extends TechnicianTabPanel {
         topContainer.add(headerPanel, BorderLayout.NORTH);
 
         // Compute Statistics
-        AppointmentService service = context.appointmentService();
-        List<Appointment> allAppointments = service.getAllAppointments();
+        List<Appointment> allAppointments = context.appointmentService().getAllAppointments();
         int total = 0, inProgress = 0, completed = 0, pendingConfirmed = 0;
         
         List<Appointment> myUpcoming = new ArrayList<>();
@@ -154,9 +151,8 @@ public class DashboardTabPanel extends TechnicianTabPanel {
         if (serviceIds == null || serviceIds.trim().isEmpty()) return "N/A";
         String[] parts = serviceIds.split(",");
         List<String> names = new ArrayList<>();
-        ServiceService serviceSvc = new ServiceService();
         for (String p : parts) {
-            Service svc = serviceSvc.findById(p.trim());
+            Service svc = context.serviceService().findById(p.trim());
             names.add(svc != null ? svc.getServiceName() : p.trim());
         }
         return String.join(", ", names);

@@ -10,9 +10,7 @@ import model.appointment.Appointment;
 import model.service.Service;
 import model.users.User;
 import model.vehicle.Vehicle;
-import repository.AppointmentRepository;
-import service_layer.ServiceService;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class MyTasksTabPanel extends TechnicianTabPanel {
 
@@ -129,7 +127,7 @@ public class MyTasksTabPanel extends TechnicianTabPanel {
         updateStatusBtn.addActionListener(e -> {
             int selectedRow = table.getSelectedRow();
             if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(this, "Please select an appointment to update.");
+                SharedStyles.showSelectionError(this);
                 return;
             }
 
@@ -163,8 +161,8 @@ public class MyTasksTabPanel extends TechnicianTabPanel {
                 for (Appointment a : myTasks) {
                     if (a.getAppointmentId().equals(id)) {
                         a.setStatus(newStatus);
-                        new AppointmentRepository().update(a);
-                        JOptionPane.showMessageDialog(this, "Status successfully updated to " + newStatus);
+                        context.appointmentService().updateAppointment(a);
+                        SharedStyles.showMessage(this, "Status successfully updated to " + newStatus);
                         context.refreshAction().run();
                         break;
                     }
@@ -183,9 +181,8 @@ public class MyTasksTabPanel extends TechnicianTabPanel {
         if (serviceIds == null || serviceIds.trim().isEmpty()) return "N/A";
         String[] parts = serviceIds.split(",");
         List<String> names = new ArrayList<>();
-        ServiceService serviceSvc = new ServiceService();
         for (String p : parts) {
-            Service svc = serviceSvc.findById(p.trim());
+            Service svc = context.serviceService().findById(p.trim());
             names.add(svc != null ? svc.getServiceName() : p.trim());
         }
         return String.join(", ", names);

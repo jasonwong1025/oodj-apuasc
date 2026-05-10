@@ -10,8 +10,7 @@ import model.appointment.Appointment;
 import model.service.Service;
 import model.users.User;
 import model.vehicle.Vehicle;
-import service_layer.ServiceService;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class TaskHistoryTabPanel extends TechnicianTabPanel {
 
@@ -111,9 +110,8 @@ public class TaskHistoryTabPanel extends TechnicianTabPanel {
         if (serviceIds == null || serviceIds.trim().isEmpty()) return "N/A";
         String[] parts = serviceIds.split(",");
         List<String> names = new ArrayList<>();
-        ServiceService serviceSvc = new ServiceService();
         for (String p : parts) {
-            Service svc = serviceSvc.findById(p.trim());
+            Service svc = context.serviceService().findById(p.trim());
             names.add(svc != null ? svc.getServiceName() : p.trim());
         }
         return String.join(", ", names);

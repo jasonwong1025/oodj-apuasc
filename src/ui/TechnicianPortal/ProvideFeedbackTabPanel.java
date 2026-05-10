@@ -13,7 +13,7 @@ import model.feedback.Feedback;
 import model.service.Service;
 import model.vehicle.Vehicle;
 import repository.FeedbackRepository;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 
 public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
 
