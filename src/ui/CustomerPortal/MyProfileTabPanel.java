@@ -7,7 +7,7 @@ import javax.swing.JButton;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import model.users.User;
-import ui.SharedStyles;
+import ui.shared.SharedStyles;
 import utils.ValidationUtil;
 
 public class MyProfileTabPanel extends CustomerTabPanel {

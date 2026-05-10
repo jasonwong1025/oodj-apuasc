@@ -1,20 +1,25 @@
-package ui.CounterStaffPortal;
+package ui.shared;
 
-import java.awt.*;
-import javax.swing.*;
+import abstracts.AbstractUser;
 import model.users.User;
-import ui.SharedStyles;
+import ui.core.PortalContext;
 import utils.Result;
+import javax.swing.*;
+import java.awt.*;
 
-public class MyProfileTabPanel extends CounterStaffTabPanel {
+/**
+ * Consolidated Profile management panel used across all portals.
+ */
+public class ProfileTabPanel extends JPanel {
 
-    public MyProfileTabPanel(CounterStaffContext context) {
-        super(context);
+    private final PortalContext context;
+
+    public ProfileTabPanel(PortalContext context) {
+        this.context = context;
         setLayout(new GridBagLayout());
         refresh();
     }
 
-    @Override
     public void refresh() {
         removeAll();
         
@@ -24,7 +29,8 @@ public class MyProfileTabPanel extends CounterStaffTabPanel {
         gbc.insets = new Insets(8, 8, 8, 8);
         gbc.anchor = GridBagConstraints.WEST;
 
-        User self = context.userService().findByUserId(currentUser().getUserId());
+        AbstractUser currentUser = context.currentUser();
+        User self = context.userService().findByUserId(currentUser.getUserId());
         if (self == null) return;
 
         int y = 0;

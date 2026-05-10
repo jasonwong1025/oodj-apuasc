@@ -161,6 +161,11 @@ public final class SharedStyles {
         return res == JOptionPane.YES_OPTION;
     }
 
+    public static boolean showConfirm(Component parent, Object message, String title) {
+        int res = JOptionPane.showConfirmDialog(getWrapperWindow(parent), message, title, JOptionPane.OK_CANCEL_OPTION);
+        return res == JOptionPane.OK_OPTION;
+    }
+
     public static void showSelectionError(Component parent) {
         showWarning(parent, "Please select a row from the table first to proceed.");
     }
