@@ -57,6 +57,17 @@ public class LoginFrame extends BaseFrame {
         gbc.gridx = 1;
         loginPanel.add(emailField, gbc);
 
+        // Add Enter key trigger
+        java.awt.event.KeyAdapter enterKeyHandler = new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    performLogin();
+                }
+            }
+        };
+        emailField.addKeyListener(enterKeyHandler);
+
         // Password
         JLabel passwordLabel = new JLabel("Password:");
         passwordLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
@@ -64,6 +75,7 @@ public class LoginFrame extends BaseFrame {
         loginPanel.add(passwordLabel, gbc);
 
         passwordField = SharedStyles.createPasswordField();
+        passwordField.addKeyListener(enterKeyHandler);
         JButton toggleBtn = SharedStyles.createPasswordToggleButton();
         SharedStyles.setupPasswordToggle(passwordField, toggleBtn);
         JPanel passWrap = SharedStyles.createPasswordContainer(passwordField, toggleBtn);

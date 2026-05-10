@@ -59,6 +59,21 @@ public class RegisterFrame extends BaseFrame {
         SharedStyles.setupPasswordToggle(confirmPasswordField, toggleConfirm);
         addPasswordFormField(registerPanel, "Confirm Password:", confirmPasswordField, toggleConfirm, 5, gbc);
 
+        // Enter key trigger
+        java.awt.event.KeyAdapter enterKeyHandler = new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                if (e.getKeyCode() == java.awt.event.KeyEvent.VK_ENTER) {
+                    performRegistration();
+                }
+            }
+        };
+        fullNameField.addKeyListener(enterKeyHandler);
+        emailField.addKeyListener(enterKeyHandler);
+        contactField.addKeyListener(enterKeyHandler);
+        passwordField.addKeyListener(enterKeyHandler);
+        confirmPasswordField.addKeyListener(enterKeyHandler);
+
         // Register Button
         JButton registerButton = SharedStyles.createActionButton("Register", SharedStyles.BTN_BLUE);
         registerButton.setFont(new Font("SansSerif", Font.BOLD, 16));
