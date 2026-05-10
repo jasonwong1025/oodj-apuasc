@@ -26,7 +26,13 @@ public class VehicleRepository {
                 if (line.trim().isEmpty()) continue;
                 String[] parts = line.split("\\|", -1);
                 if (parts.length == 5) {
-                    vehicles.add(new Vehicle(parts[0], parts[1], parts[2], parts[3], parts[4]));
+                    vehicles.add(new Vehicle(
+                        utils.FileStorageHelper.unescape(parts[0]),
+                        utils.FileStorageHelper.unescape(parts[1]),
+                        utils.FileStorageHelper.unescape(parts[2]),
+                        utils.FileStorageHelper.unescape(parts[3]),
+                        utils.FileStorageHelper.unescape(parts[4])
+                    ));
                 }
             }
         } catch (IOException e) {
@@ -47,9 +53,8 @@ public class VehicleRepository {
     }
 
     public void save(Vehicle vehicle) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH, true))) {
-            bw.write(vehicle.toString());
-            bw.newLine();
+        try {
+            utils.FileStorageHelper.appendLine(FILE_PATH, vehicle.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -57,15 +62,16 @@ public class VehicleRepository {
 
     public void update(Vehicle updatedVehicle) {
         List<Vehicle> vehicles = getAllVehicles();
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
-            for (Vehicle v : vehicles) {
-                if (v.getVehicleId().equals(updatedVehicle.getVehicleId())) {
-                    bw.write(updatedVehicle.toString());
-                } else {
-                    bw.write(v.toString());
-                }
-                bw.newLine();
+        List<String> lines = new ArrayList<>();
+        for (Vehicle v : vehicles) {
+            if (v.getVehicleId().equals(updatedVehicle.getVehicleId())) {
+                lines.add(updatedVehicle.toString());
+            } else {
+                lines.add(v.toString());
             }
+        }
+        try {
+            utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -73,13 +79,14 @@ public class VehicleRepository {
 
     public void delete(String vehicleId) {
         List<Vehicle> vehicles = getAllVehicles();
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
-            for (Vehicle v : vehicles) {
-                if (!v.getVehicleId().equals(vehicleId)) {
-                    bw.write(v.toString());
-                    bw.newLine();
-                }
+        List<String> lines = new ArrayList<>();
+        for (Vehicle v : vehicles) {
+            if (!v.getVehicleId().equals(vehicleId)) {
+                lines.add(v.toString());
             }
+        }
+        try {
+            utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
             e.printStackTrace();
         }

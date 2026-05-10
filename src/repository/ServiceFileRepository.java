@@ -32,22 +32,23 @@ public class ServiceFileRepository {
         if (parts.length < 4) return null;
         try {
             double price = Double.parseDouble(parts[3].trim());
-            return new Service(parts[0].trim(), parts[1].trim(), parts[2].trim(), price, false);
+            return new Service(
+                utils.FileStorageHelper.unescape(parts[0].trim()),
+                utils.FileStorageHelper.unescape(parts[1].trim()),
+                utils.FileStorageHelper.unescape(parts[2].trim()),
+                price,
+                false
+            );
         } catch (NumberFormatException e) {
             return null;
         }
     }
 
     public void writeAll(List<Service> services) throws IOException {
-        File file = new File(FILE_PATH);
-        if (file.getParentFile() != null && !file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
+        List<String> lines = new ArrayList<>();
+        for (Service s : services) {
+            lines.add(s.toString());
         }
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, false))) {
-            for (Service s : services) {
-                bw.write(s.toString());
-                bw.newLine();
-            }
-        }
+        utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
     }
 }

@@ -18,5 +18,6 @@ public record TechnicianContext(
     ServiceService serviceService,
     PaymentService paymentService,
     RegistrationService registrationService,
+    FeedbackService feedbackService,
     Runnable refreshAction
 ) implements PortalContext {}

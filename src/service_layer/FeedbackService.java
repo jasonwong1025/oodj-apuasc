@@ -2,8 +2,7 @@ package service_layer;
 
 import model.feedback.Feedback;
 import repository.FeedbackRepository;
-
-import java.util.ArrayList;
+import utils.Result;
 import java.util.List;
 
 public class FeedbackService {
@@ -17,17 +16,39 @@ public class FeedbackService {
         return feedbackRepository.getAll();
     }
 
-    /**
-     * Row order: feedbackId, appointmentId, description, dateTime (for UI callers that avoid {@link Feedback}).
-     */
+    public Feedback findByAppointmentId(String apptId) {
+        if (apptId == null || apptId.trim().isEmpty()) return null;
+        return feedbackRepository.findByAppointmentId(apptId.trim());
+    }
+
+    public Result<Void> saveFeedback(String apptId, String description, String dateTime) {
+        if (apptId == null || apptId.trim().isEmpty()) {
+            return Result.failure("Appointment ID is required.");
+        }
+        if (description == null || description.trim().isEmpty()) {
+            return Result.failure("Feedback description cannot be empty.");
+        }
+
+        Feedback fb = feedbackRepository.findByAppointmentId(apptId);
+        if (fb == null) {
+            fb = new Feedback(feedbackRepository.generateNextId(), apptId, description, dateTime);
+        } else {
+            fb.setDescription(description);
+            fb.setDateTime(dateTime);
+        }
+
+        feedbackRepository.addOrUpdate(fb);
+        return Result.success(null);
+    }
+
     public List<String[]> getAllFeedbackRows() {
-        List<String[]> rows = new ArrayList<>();
-        for (Feedback f : feedbackRepository.getAll()) {
+        List<String[]> rows = new java.util.ArrayList<>();
+        for (Feedback fb : feedbackRepository.getAll()) {
             rows.add(new String[]{
-                    f.getFeedbackId(),
-                    f.getAppointmentId(),
-                    f.getDescription() == null ? "" : f.getDescription(),
-                    f.getDateTime() == null ? "" : f.getDateTime()
+                fb.getFeedbackId(),
+                fb.getAppointmentId(),
+                fb.getDescription(),
+                fb.getDateTime()
             });
         }
         return rows;

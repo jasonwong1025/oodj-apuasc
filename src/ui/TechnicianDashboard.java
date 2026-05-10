@@ -52,6 +52,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         this.serviceService = new ServiceService();
         this.paymentService = new PaymentService();
         this.registrationService = new RegistrationService();
+        FeedbackService feedbackService = new FeedbackService();
 
         this.context = new TechnicianContext(
             this,
@@ -63,6 +64,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
             serviceService,
             paymentService,
             registrationService,
+            feedbackService,
             this::refresh
         );
 

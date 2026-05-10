@@ -23,11 +23,11 @@ public class PaymentRepository {
 
                 if (parts.length >= 5) {
                     payments.add(new Payment(
-                            parts[0],
-                            parts[1],
+                            utils.FileStorageHelper.unescape(parts[0]),
+                            utils.FileStorageHelper.unescape(parts[1]),
                             Double.parseDouble(parts[2]),
-                            parts[3],
-                            parts[4]
+                            utils.FileStorageHelper.unescape(parts[3]),
+                            utils.FileStorageHelper.unescape(parts[4])
                     ));
                 }
             }
@@ -57,9 +57,8 @@ public class PaymentRepository {
     }
 
     public void save(Payment payment) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH, true))) {
-            bw.write(payment.toString());
-            bw.newLine();
+        try {
+            utils.FileStorageHelper.appendLine(FILE_PATH, payment.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -67,15 +66,16 @@ public class PaymentRepository {
 
     public void update(Payment payment) {
         List<Payment> all = getAllPayments();
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
-            for (Payment p : all) {
-                if (p.getPaymentId().equals(payment.getPaymentId())) {
-                    bw.write(payment.toString());
-                } else {
-                    bw.write(p.toString());
-                }
-                bw.newLine();
+        List<String> lines = new ArrayList<>();
+        for (Payment p : all) {
+            if (p.getPaymentId().equals(payment.getPaymentId())) {
+                lines.add(payment.toString());
+            } else {
+                lines.add(p.toString());
             }
+        }
+        try {
+            utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
             e.printStackTrace();
         }

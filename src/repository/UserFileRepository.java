@@ -41,48 +41,32 @@ public class UserFileRepository {
 
         if (len < 6) return null;
 
-        String id = parts[0].trim();
+        String id = utils.FileStorageHelper.unescape(parts[0].trim());
         String name, email, contact, pass, role, svc;
         boolean active;
 
         if (len == 8) {
-            // Check if parts[1] is username (legacy) or fullName (current)
-            // Current: id|name|email|contact|pass|role|svc|status
-            // Legacy: id|user|name|email|contact|pass|role|status
-            if ("ACTIVE".equalsIgnoreCase(parts[7].trim()) || "INACTIVE".equalsIgnoreCase(parts[7].trim())) {
-                name = parts[1].trim();
-                email = parts[2].trim();
-                contact = parts[3].trim();
-                pass = parts[4].trim();
-                role = parts[5].trim();
-                svc = parts[6].trim();
-                active = "ACTIVE".equalsIgnoreCase(parts[7].trim());
-            } else {
-                // Legacy with 8 parts but last is not status? Unlikely based on docs, but let's be safe.
-                name = parts[2].trim();
-                email = parts[3].trim();
-                contact = parts[4].trim();
-                pass = parts[5].trim();
-                role = parts[6].trim();
-                svc = "-";
-                active = "ACTIVE".equalsIgnoreCase(parts[7].trim());
-            }
+            name = utils.FileStorageHelper.unescape(parts[1].trim());
+            email = utils.FileStorageHelper.unescape(parts[2].trim());
+            contact = utils.FileStorageHelper.unescape(parts[3].trim());
+            pass = parts[4].trim(); // Passwords are Base64 encoded or raw, no need to unescape normally but safe if we do
+            role = utils.FileStorageHelper.unescape(parts[5].trim());
+            svc = utils.FileStorageHelper.unescape(parts[6].trim());
+            active = "ACTIVE".equalsIgnoreCase(parts[7].trim());
         } else if (len == 7) {
-            // Legacy: id|name|email|contact|pass|role|status
-            name = parts[1].trim();
-            email = parts[2].trim();
-            contact = parts[3].trim();
+            name = utils.FileStorageHelper.unescape(parts[1].trim());
+            email = utils.FileStorageHelper.unescape(parts[2].trim());
+            contact = utils.FileStorageHelper.unescape(parts[3].trim());
             pass = parts[4].trim();
-            role = parts[5].trim();
+            role = utils.FileStorageHelper.unescape(parts[5].trim());
             svc = "-";
             active = "ACTIVE".equalsIgnoreCase(parts[6].trim());
         } else { // len == 6
-            // Legacy: id|name|email|contact|pass|role
-            name = parts[1].trim();
-            email = parts[2].trim();
-            contact = parts[3].trim();
+            name = utils.FileStorageHelper.unescape(parts[1].trim());
+            email = utils.FileStorageHelper.unescape(parts[2].trim());
+            contact = utils.FileStorageHelper.unescape(parts[3].trim());
             pass = parts[4].trim();
-            role = parts[5].trim();
+            role = utils.FileStorageHelper.unescape(parts[5].trim());
             svc = "-";
             active = true;
         }
@@ -127,82 +111,61 @@ public class UserFileRepository {
     }
 
     public abstracts.AbstractUser authenticateUser(String email, String password) {
-        File file = new File(FILE_PATH);
-        if (!file.exists()) return null;
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (line.trim().isEmpty()) continue;
-                User candidate = parseUserLine(line);
-                if (candidate == null || !candidate.isActive()) continue;
-
-                if (candidate.getEmail().equalsIgnoreCase(email) && candidate.getPassword().equals(password)) {
-                    return candidate;
-                }
+        for (User candidate : getAllUsers()) {
+            if (!candidate.isActive()) continue;
+            if (candidate.getEmail().equalsIgnoreCase(email.trim()) &&
+                utils.PasswordHasher.verifyPassword(password, candidate.getPassword())) {
+                return candidate;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
         return null;
     }
 
     public void saveUser(User user) {
-        File file = new File(FILE_PATH);
-        if (file.getParentFile() != null && !file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
-        }
-
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, true))) {
-            bw.write(user.toString());
-            bw.newLine();
+        try {
+            utils.FileStorageHelper.appendLine(FILE_PATH, user.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    //Sang Yew Changes - Edit Profile
-    public void updateUser(User updatedUser) {
-    List<User> users = getAllUsers();
 
-    try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
+    public void updateUser(User updatedUser) {
+        List<User> users = getAllUsers();
+        List<String> lines = new ArrayList<>();
         for (User user : users) {
             if (user.getUserId().equals(updatedUser.getUserId())) {
-                bw.write(updatedUser.toString());
+                lines.add(updatedUser.toString());
             } else {
-                bw.write(user.toString());
+                lines.add(user.toString());
             }
-            bw.newLine();
         }
-    } catch (IOException e) {
-        e.printStackTrace();
+        try {
+            utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-}
-    //Sang Yew Changes - Manage Customer
-    public void deleteUser(String userId) {
-    List<User> users = getAllUsers();
 
-    try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
+    public void deleteUser(String userId) {
+        List<User> users = getAllUsers();
+        List<String> lines = new ArrayList<>();
         for (User user : users) {
             if (!user.getUserId().equals(userId)) {
-                bw.write(user.toString());
-                bw.newLine();
+                lines.add(user.toString());
             }
         }
-    } catch (IOException e) {
-        e.printStackTrace();
+        try {
+            utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-}
 
     public void writeAllUsers(List<User> users) throws IOException {
-        File file = new File(FILE_PATH);
-        if (file.getParentFile() != null && !file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
+        List<String> lines = new ArrayList<>();
+        for (User u : users) {
+            lines.add(u.toString());
         }
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(file, false))) {
-            for (User u : users) {
-                bw.write(u.toString());
-                bw.newLine();
-            }
-        }
+        utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
     }
 }

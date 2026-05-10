@@ -54,14 +54,15 @@ public class DashboardTabPanel extends TechnicianTabPanel {
         for (Appointment a : allAppointments) {
             if (currentUser().getUserId().equals(a.getTechnicianId())) {
                 total++;
-                if ("IN PROGRESS".equalsIgnoreCase(a.getStatus())) {
+                String status = a.getStatus();
+                if ("IN PROGRESS".equalsIgnoreCase(status)) {
                     inProgress++;
                     myUpcoming.add(a);
                 }
-                else if ("COMPLETED".equalsIgnoreCase(a.getStatus())) {
+                else if ("COMPLETED".equalsIgnoreCase(status)) {
                     completed++;
                 }
-                else {
+                else if ("CONFIRMED".equalsIgnoreCase(status)) {
                     pendingConfirmed++;
                     myUpcoming.add(a);
                 }

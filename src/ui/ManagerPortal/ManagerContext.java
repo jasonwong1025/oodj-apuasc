@@ -1,4 +1,4 @@
-package ui.CounterStaffPortal;
+package ui.ManagerPortal;
 
 import abstracts.AbstractUser;
 import service_layer.*;
@@ -6,9 +6,9 @@ import javax.swing.JFrame;
 import ui.core.PortalContext;
 
 /**
- * Context object to share state and services among Counter Staff portal components.
+ * Context object for Manager portal components.
  */
-public record CounterStaffContext(
+public record ManagerContext(
     JFrame owner,
     AbstractUser currentUser,
     UserService userService,

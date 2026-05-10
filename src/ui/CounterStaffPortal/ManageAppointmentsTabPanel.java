@@ -300,10 +300,14 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
 
         if (selectedTech != null) {
             String techId = selectedTech.split(" - ")[0];
-            target.setTechnicianId(techId);
-            context.appointmentService().updateAppointment(target);
-            SharedStyles.showMessage(this, "Technician assigned!");
-            context.refreshAction().run();
+            try {
+                target.confirm(techId);
+                context.appointmentService().updateAppointment(target);
+                SharedStyles.showMessage(this, "Technician assigned and appointment CONFIRMED!");
+                context.refreshAction().run();
+            } catch (Exception ex) {
+                SharedStyles.showError(this, ex.getMessage());
+            }
         }
     }
 

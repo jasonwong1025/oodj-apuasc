@@ -50,6 +50,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
         this.vehicleService = new VehicleService();
         this.serviceService = new ServiceService();
         this.registrationService = new RegistrationService();
+        FeedbackService feedbackService = new FeedbackService();
 
         this.context = new CounterStaffContext(
             this,
@@ -61,6 +62,7 @@ public class CounterStaffDashboard extends JFrame implements Refreshable {
             vehicleService,
             serviceService,
             registrationService,
+            feedbackService,
             this::refresh
         );
 

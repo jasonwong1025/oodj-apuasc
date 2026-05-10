@@ -29,7 +29,12 @@ public class FeedbackRepository {
     private Feedback parseLine(String line) {
         String[] parts = line.split("\\|", -1);
         if (parts.length < 4) return null;
-        return new Feedback(parts[0].trim(), parts[1].trim(), parts[2].trim(), parts[3].trim());
+        return new Feedback(
+            utils.FileStorageHelper.unescape(parts[0].trim()),
+            utils.FileStorageHelper.unescape(parts[1].trim()),
+            utils.FileStorageHelper.unescape(parts[2].trim()),
+            utils.FileStorageHelper.unescape(parts[3].trim())
+        );
     }
 
     public void addOrUpdate(Feedback feedback) {
@@ -57,11 +62,12 @@ public class FeedbackRepository {
     }
 
     private void writeAll(List<Feedback> list) {
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(FILE_PATH))) {
-            for (Feedback f : list) {
-                bw.write(f.toString());
-                bw.newLine();
-            }
+        List<String> lines = new ArrayList<>();
+        for (Feedback f : list) {
+            lines.add(f.toString());
+        }
+        try {
+            utils.FileStorageHelper.writeAtomic(FILE_PATH, lines);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -17,5 +17,6 @@ public interface PortalContext {
     VehicleService vehicleService();
     ServiceService serviceService();
     RegistrationService registrationService();
+    FeedbackService feedbackService();
     Runnable refreshAction();
 }
