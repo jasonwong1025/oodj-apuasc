@@ -7,9 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import model.appointment.Appointment;
 import model.users.User;
 import model.vehicle.Vehicle;
@@ -87,7 +85,6 @@ public class AppointmentService {
     }
 
     public SlotCapacity getSlotCapacity(String date, String time) {
-        Set<String> majorServiceIds = getMajorServiceIds();
         int majorCount = 0;
         int normalCount = 0;
 
@@ -95,7 +92,7 @@ public class AppointmentService {
             if (!"PENDING".equalsIgnoreCase(a.getStatus())) continue;
             if (!date.equals(a.getDate())) continue;
 
-            SlotType type = classifyAppointmentType(a.getServiceId(), majorServiceIds);
+            SlotType type = classifyAppointmentType(a.getServiceId());
             if (type == SlotType.MAJOR) {
                 if (isMajorAppointmentCoveringSlot(a.getTime(), time)) {
                     majorCount++;
@@ -167,7 +164,7 @@ public class AppointmentService {
         List<User> users = userRepository.getAllUsers();
         int count = 0;
         for (User u : users) {
-            if (u == null || !"Technician".equalsIgnoreCase(u.getRole()) || !u.isActive()) continue;
+            if (u == null || u.getRole() != model.users.Role.TECHNICIAN || !u.isActive()) continue;
             String svc = u.getTechnicianServiceType();
             if (svc == null) continue;
             String norm = svc.trim().toLowerCase();
@@ -184,7 +181,7 @@ public class AppointmentService {
         List<User> users = userRepository.getAllUsers();
         int count = 0;
         for (User u : users) {
-            if (u != null && "Technician".equalsIgnoreCase(u.getRole()) && u.isActive()) {
+            if (u != null && u.getRole() == model.users.Role.TECHNICIAN && u.isActive()) {
                 count++;
             }
         }
@@ -340,39 +337,19 @@ public class AppointmentService {
     }
 
     public SlotType determineRequestedSlotType(List<String> serviceIds) {
-        if (serviceIds == null || serviceIds.isEmpty()) {
-            return SlotType.NORMAL;
-        }
-        if (serviceIds.size() > 3) {
-            return SlotType.MAJOR;
-        }
-        return SlotType.NORMAL;
+        if (serviceIds == null || serviceIds.isEmpty()) return SlotType.NORMAL;
+        String csv = String.join(",", serviceIds);
+        return classifyAppointmentType(csv);
     }
 
-    private SlotType classifyAppointmentType(String serviceIdCsv, Set<String> majorServiceIds) {
-        if (serviceIdCsv == null || serviceIdCsv.isBlank() || "NONE".equalsIgnoreCase(serviceIdCsv)) {
+    private SlotType classifyAppointmentType(String serviceIdCsv) {
+        if (serviceIdCsv == null || serviceIdCsv.trim().isEmpty()) {
             return SlotType.NORMAL;
         }
         String[] ids = serviceIdCsv.split(",");
         if (ids.length > 3) {
             return SlotType.MAJOR;
         }
-        for (String rawId : ids) {
-            String id = rawId.trim();
-            if (majorServiceIds.contains(id)) {
-                return SlotType.MAJOR;
-            }
-        }
         return SlotType.NORMAL;
-    }
-
-    private Set<String> getMajorServiceIds() {
-        Set<String> major = new HashSet<>();
-        serviceRepository.getAll().stream()
-                .filter(s -> !s.isIncludedInNormalService())
-                .forEach(s -> major.add(s.getServiceId()));
-        // Safety: If no services are explicitly marked as major, treat all as potential major
-        // or ensure at least one exists. For this system, we rely on the flag.
-        return major;
     }
 }

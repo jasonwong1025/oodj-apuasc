@@ -61,7 +61,7 @@ public class ServiceService {
         if (serviceNameExists(all, trimmedName, null)) return "Service name already exists.";
 
         String newId = generateNextId(all);
-        all.add(new Service(newId, trimmedName, categoryId, price, false));
+        all.add(new Service(newId, trimmedName, categoryId, price));
         try {
             repo.writeAll(all);
         } catch (IOException e) {
@@ -100,7 +100,6 @@ public class ServiceService {
         target.setServiceName(trimmedName);
         target.setCategoryId(categoryId);
         target.setPrice(price);
-        target.setIncludedInNormalService(false);
         try {
             repo.writeAll(all);
         } catch (IOException e) {

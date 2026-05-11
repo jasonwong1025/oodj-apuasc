@@ -5,16 +5,14 @@ public class Service {
     private String serviceName;
     private String categoryId;
     private double price;
-    private boolean includedInNormalService;
 
     public Service() {}
 
-    public Service(String serviceId, String serviceName, String categoryId, double price, boolean includedInNormalService) {
+    public Service(String serviceId, String serviceName, String categoryId, double price) {
         this.serviceId = serviceId;
         this.serviceName = serviceName;
         this.categoryId = categoryId;
         this.price = price;
-        this.includedInNormalService = includedInNormalService;
     }
 
     public String getServiceId() { return serviceId; }
@@ -32,8 +30,6 @@ public class Service {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
-    public boolean isIncludedInNormalService() { return includedInNormalService; }
-    public void setIncludedInNormalService(boolean includedInNormalService) { this.includedInNormalService = includedInNormalService; }
 
     @Override
     public String toString() {
