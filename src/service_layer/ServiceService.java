@@ -6,6 +6,7 @@ import utils.ValidationUtil;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class ServiceService {
@@ -52,8 +53,11 @@ public class ServiceService {
         }
 
         List<Service> all = listAll();
+        String trimmedName = serviceName.trim();
+        if (serviceNameExists(all, trimmedName, null)) return "Service name already exists.";
+
         String newId = generateNextId(all);
-        all.add(new Service(newId, serviceName.trim(), categoryId, price, false));
+        all.add(new Service(newId, trimmedName, categoryId, price, false));
         try {
             repo.writeAll(all);
         } catch (IOException e) {
@@ -86,7 +90,10 @@ public class ServiceService {
         }
         if (target == null) return "Service not found.";
 
-        target.setServiceName(serviceName.trim());
+        String trimmedName = serviceName.trim();
+        if (serviceNameExists(all, trimmedName, serviceId)) return "Service name already exists.";
+
+        target.setServiceName(trimmedName);
         target.setCategoryId(categoryId);
         target.setPrice(price);
         target.setIncludedInNormalService(false);
@@ -124,5 +131,23 @@ public class ServiceService {
             }
         }
         return String.format("SV%03d", max + 1);
+    }
+
+    private boolean serviceNameExists(List<Service> services, String serviceName, String excludedServiceId) {
+        String normalizedName = normalizeServiceName(serviceName);
+        for (Service service : services) {
+            if (excludedServiceId != null && excludedServiceId.equals(service.getServiceId())) {
+                continue;
+            }
+            if (normalizeServiceName(service.getServiceName()).equals(normalizedName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String normalizeServiceName(String serviceName) {
+        if (serviceName == null) return "";
+        return serviceName.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 }
