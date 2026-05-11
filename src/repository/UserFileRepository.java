@@ -71,7 +71,7 @@ public class UserFileRepository {
             active = true;
         }
 
-        return buildUser(id, name, email, contact, pass, role, svc, active);
+        return buildUser(id, name, email, contact, pass, model.users.Role.fromString(role), svc, active);
     }
 
     public User findById(String userId) {
@@ -82,27 +82,26 @@ public class UserFileRepository {
         return null;
     }
 
-    private User buildUser(String userId, String fullName, String email,
-                           String contact, String password, String role, String technicianServiceType, boolean active) {
+    private User buildUser(String userId, String fullName, String email, String contact, String password, model.users.Role role, String technicianServiceType, boolean active) {
+        if (role == null) role = model.users.Role.CUSTOMER;
         User user;
         switch (role) {
-            case "Customer":
-                user = new Customer(userId, fullName, email, contact, password);
-                break;
-            case "Manager":
+            case MANAGER:
                 user = new Manager(userId, fullName, email, contact, password);
                 break;
-            case "Technician":
-                user = new Technician(userId, fullName, email, contact, password);
-                break;
-            case "CounterStaff":
+            case COUNTERSTAFF:
                 user = new CounterStaff(userId, fullName, email, contact, password);
                 break;
+            case TECHNICIAN:
+                user = new Technician(userId, fullName, email, contact, password);
+                user.setTechnicianServiceType(technicianServiceType);
+                break;
+            case CUSTOMER:
             default:
-                user = new User(userId, fullName, email, contact, password, role);
+                user = new Customer(userId, fullName, email, contact, password);
                 break;
         }
-        String normalizedServiceType = "Technician".equals(role)
+        String normalizedServiceType = (role == model.users.Role.TECHNICIAN)
                 ? (technicianServiceType == null || technicianServiceType.trim().isEmpty() ? "-" : technicianServiceType.trim())
                 : "-";
         user.setTechnicianServiceType(normalizedServiceType);
