@@ -116,7 +116,7 @@ public class PasswordResetService {
         boolean found = false;
         for (User u : all) {
             if (u.getEmail().equalsIgnoreCase(email.trim())) {
-                u.setPassword(newPassword);
+                u.setPassword(utils.PasswordHasher.hashPassword(newPassword));
                 found = true;
                 break;
             }
