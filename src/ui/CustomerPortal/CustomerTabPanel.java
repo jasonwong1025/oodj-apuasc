@@ -96,23 +96,7 @@ public abstract class CustomerTabPanel extends JPanel implements Refreshable {
         if (serviceIds == null || serviceIds.isEmpty() || serviceIds.equals("NONE")) return "NORMAL";
         
         String[] ids = serviceIds.split(",");
-        // If more than 3 services, it's MAJOR
         if (ids.length > 3) return "MAJOR";
-        
-        for (String id : ids) {
-            String rawId = id.trim();
-            Service s = serviceLookup().findById(rawId);
-            if (s == null) {
-                String normalizedId = normalizeLegacyServiceId(rawId);
-                if (!normalizedId.equals(rawId)) {
-                    s = serviceLookup().findById(normalizedId);
-                }
-            }
-            // If any service is NOT included in normal service, the whole appointment is MAJOR
-            if (s != null && !s.isIncludedInNormalService()) return "MAJOR";
-            // If service not found, default to MAJOR for safety (or handle as unknown)
-            if (s == null) return "MAJOR";
-        }
         return "NORMAL";
     }
 

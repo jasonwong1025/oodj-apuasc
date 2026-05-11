@@ -78,7 +78,7 @@ public class BookingTabPanel extends CustomerTabPanel {
         );
 
         List<Service> allServices = serviceLookup().listAll();
-        final int NORMAL_LIMIT = 3;
+
         final int MAJOR_LIMIT = 8;
 
         List<JCheckBox> allChecks = new ArrayList<>();
@@ -89,20 +89,7 @@ public class BookingTabPanel extends CustomerTabPanel {
             allChecks.add(cb);
         }
 
-        javax.swing.JRadioButton normalCategoryBtn = new javax.swing.JRadioButton("Normal");
-        javax.swing.JRadioButton majorCategoryBtn = new javax.swing.JRadioButton("Major");
-        normalCategoryBtn.setSelected(true);
-        normalCategoryBtn.setOpaque(false);
-        majorCategoryBtn.setOpaque(false);
-        javax.swing.ButtonGroup categoryGroup = new javax.swing.ButtonGroup();
-        categoryGroup.add(normalCategoryBtn);
-        categoryGroup.add(majorCategoryBtn);
 
-        JPanel categoryPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        categoryPanel.setOpaque(false);
-        categoryPanel.add(new JLabel("Category:"));
-        categoryPanel.add(normalCategoryBtn);
-        categoryPanel.add(majorCategoryBtn);
 
         JPanel serviceListPanel = new JPanel();
         serviceListPanel.setLayout(new BoxLayout(serviceListPanel, BoxLayout.Y_AXIS));
@@ -110,7 +97,7 @@ public class BookingTabPanel extends CustomerTabPanel {
 
         JScrollPane serviceScroll = new JScrollPane(serviceListPanel);
         serviceScroll.setPreferredSize(new Dimension(320, 220));
-        serviceScroll.setBorder(BorderFactory.createTitledBorder("Normal Services (max 3)"));
+        serviceScroll.setBorder(BorderFactory.createTitledBorder("Services (max 8)"));
         serviceScroll.setOpaque(false);
         serviceScroll.getViewport().setOpaque(false);
 
@@ -160,10 +147,14 @@ public class BookingTabPanel extends CustomerTabPanel {
             }
         });
 
+        java.util.function.Supplier<List<JCheckBox>> activeChecks = () -> allChecks;
+        java.util.function.Supplier<Integer> maxSelection = () -> MAJOR_LIMIT;
+
         Runnable refreshSlots = () -> {
             slotCombo.removeAllItems();
             String dateValue = selectedDate[0].format(AppointmentService.DATE_FORMATTER);
-            SlotType requestedType = majorCategoryBtn.isSelected() ? SlotType.MAJOR : SlotType.NORMAL;
+            int selectedCount = (int) activeChecks.get().stream().filter(JCheckBox::isSelected).count();
+            SlotType requestedType = selectedCount > 3 ? SlotType.MAJOR : SlotType.NORMAL;
             for (String slotTime : AppointmentService.getAllowedSlotTimes()) {
                 SlotCapacity cap = appointmentService().getSlotCapacity(dateValue, slotTime);
                 boolean available = appointmentService().isSlotAvailable(dateValue, slotTime, requestedType);
@@ -173,14 +164,10 @@ public class BookingTabPanel extends CustomerTabPanel {
                     available = false;
                 }
 
-                int majorLimit = appointmentService().getCapacityLimitForSlotType(SlotType.MAJOR);
-                int normalLimit = appointmentService().getCapacityLimitForSlotType(SlotType.NORMAL);
                 int totalLimit = appointmentService().getTotalCapacityLimit();
-                String label = String.format("%s  [Major: %d/%d | Normal: %d/%d | Total: %d/%d]%s",
+                String label = String.format("%s  [Available: %d/%d]%s",
                         slotTime,
-                        cap.getMajorCount(), majorLimit,
-                        cap.getNormalCount(), normalLimit,
-                        cap.getTotalCount(), totalLimit,
+                        totalLimit - cap.getTotalCount(), totalLimit,
                         available ? "" : " (FULL)");
                 if (available) {
                     slotCombo.addItem(new SlotOption(slotTime, label, available));
@@ -191,18 +178,11 @@ public class BookingTabPanel extends CustomerTabPanel {
             }
         };
 
-        java.util.function.Supplier<List<JCheckBox>> activeChecks = () -> allChecks;
-        java.util.function.Supplier<Integer> maxSelection = () ->
-                majorCategoryBtn.isSelected() ? MAJOR_LIMIT : NORMAL_LIMIT;
-
         Runnable refreshServiceList = () -> {
-            if (normalCategoryBtn.isSelected()) {
-                serviceScroll.setBorder(BorderFactory.createTitledBorder("Normal Services (max 3)"));
-                // Clear all selections when switching back to Normal to avoid exceeding limit
-                for (JCheckBox cb : allChecks) cb.setSelected(false);
-            } else {
-                serviceScroll.setBorder(BorderFactory.createTitledBorder("Major Services (max 8)"));
-            }
+            int currentCount = (int) activeChecks.get().stream().filter(JCheckBox::isSelected).count();
+            String cat = currentCount > 3 ? "Major" : "Normal";
+            serviceScroll.setBorder(BorderFactory.createTitledBorder("Services (max 8) - " + cat));
+            
             serviceListPanel.removeAll();
             for (JCheckBox cb : activeChecks.get()) {
                 serviceListPanel.add(cb);
@@ -288,7 +268,6 @@ public class BookingTabPanel extends CustomerTabPanel {
 
         JPanel serviceSelectionPanel = new JPanel(new BorderLayout(0, 6));
         serviceSelectionPanel.setOpaque(false);
-        serviceSelectionPanel.add(categoryPanel, BorderLayout.NORTH);
         serviceSelectionPanel.add(serviceScroll, BorderLayout.CENTER);
         serviceSelectionPanel.add(selectionStatusLabel, BorderLayout.SOUTH);
 
@@ -303,13 +282,13 @@ public class BookingTabPanel extends CustomerTabPanel {
 
         Runnable updateSummary = () -> {
             StringBuilder sb = new StringBuilder();
-            boolean isMajorCategory = majorCategoryBtn.isSelected();
             List<Service> selectedServices = activeChecks.get().stream()
                     .filter(JCheckBox::isSelected)
                     .map(cb -> (Service) cb.getClientProperty("service"))
                     .collect(Collectors.toList());
 
             int totalCount = selectedServices.size();
+            boolean isMajorCategory = totalCount > 3;
             double totalPrice = 0.0;
             for (Service s : selectedServices) totalPrice += s.getPrice();
 
@@ -346,16 +325,7 @@ public class BookingTabPanel extends CustomerTabPanel {
             });
         }
 
-        normalCategoryBtn.addActionListener(e -> {
-            refreshServiceList.run();
-            refreshSlots.run();
-            updateSummaryRef[0].run();
-        });
-        majorCategoryBtn.addActionListener(e -> {
-            refreshServiceList.run();
-            refreshSlots.run();
-            updateSummaryRef[0].run();
-        });
+
 
         slotCombo.addActionListener(e -> {
             SlotOption selected = (SlotOption) slotCombo.getSelectedItem();
@@ -425,12 +395,12 @@ public class BookingTabPanel extends CustomerTabPanel {
                 return;
             }
 
-            boolean isMajorCategory = majorCategoryBtn.isSelected();
             List<Service> selected = activeChecks.get().stream()
                     .filter(JCheckBox::isSelected)
                     .map(cb -> (Service) cb.getClientProperty("service"))
                     .collect(Collectors.toList());
             int totalCount = selected.size();
+            boolean isMajorCategory = totalCount > 3;
 
             if (totalCount < 1) {
                 SharedStyles.showWarning(context.getOwner(), "Please select at least 1 service.");

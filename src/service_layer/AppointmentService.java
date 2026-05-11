@@ -346,12 +346,6 @@ public class AppointmentService {
         if (serviceIds.size() > 3) {
             return SlotType.MAJOR;
         }
-        Set<String> majorServiceIds = getMajorServiceIds();
-        for (String id : serviceIds) {
-            if (majorServiceIds.contains(id)) {
-                return SlotType.MAJOR;
-            }
-        }
         return SlotType.NORMAL;
     }
 
