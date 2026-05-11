@@ -42,7 +42,6 @@ public class ServiceHistoryTabPanel extends CustomerTabPanel {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
         java.util.List<Appointment> list = appointmentService().getCustomerAppointments(currentUser().getUserId());
-        repository.FeedbackRepository fbRepo = new repository.FeedbackRepository();
 
         JTable table = new JTable(model);
         table.setFont(new java.awt.Font("SansSerif", java.awt.Font.PLAIN, 13));
@@ -117,7 +116,7 @@ public class ServiceHistoryTabPanel extends CustomerTabPanel {
                 boolean isPaid = paymentService().isPaid(a.getAppointmentId());
                 String paymentValue = isPaid ? "PAID" : "UNPAID";
                 if (!"ALL".equals(payment) && !payment.equalsIgnoreCase(paymentValue)) continue;
-                model.feedback.Feedback fbObj = fbRepo.findByAppointmentId(a.getAppointmentId());
+                model.feedback.Feedback fbObj = context.feedbackService().findByAppointmentId(a.getAppointmentId());
                 String existingFb = (fbObj == null || fbObj.getDescription().trim().isEmpty() || "NONE".equalsIgnoreCase(fbObj.getDescription())) ? "-" : fbObj.getDescription();
                 String rowText = (a.getAppointmentId()
                         + resolveVehicleInfo(a.getVehicleId())
