@@ -19,21 +19,21 @@ public abstract class AbstractUser {
     @NotBlank(message = "is required")
     private String password;
 
-    private String role;
+    private model.users.Role role;
     private String technicianServiceType = "-";
     private boolean active = true;
 
     public AbstractUser() {
     }
 
-    public AbstractUser(String userId, String fullName, String email, String contact, String password, String role) {
+    public AbstractUser(String userId, String fullName, String email, String contact, String password, model.users.Role role) {
         this.userId = userId;
         this.fullName = fullName;
         this.email = email;
         this.contact = contact;
         this.password = password;
         this.role = role;
-        this.technicianServiceType = "Technician".equals(role) ? "" : "-";
+        this.technicianServiceType = (role == model.users.Role.TECHNICIAN) ? "" : "-";
         this.active = true;
     }
 
@@ -77,11 +77,11 @@ public abstract class AbstractUser {
         this.password = password;
     }
 
-    public String getRole() {
+    public model.users.Role getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(model.users.Role role) {
         this.role = role;
     }
 
@@ -107,7 +107,7 @@ public abstract class AbstractUser {
                 ? "-"
                 : technicianServiceType.trim();
         return utils.FileStorageHelper.join(
-                userId, fullName, email, contact, password, role, serviceType, active ? "ACTIVE" : "INACTIVE"
+                userId, fullName, email, contact, password, role != null ? role.getLabel() : "", serviceType, active ? "ACTIVE" : "INACTIVE"
         );
     }
 }
