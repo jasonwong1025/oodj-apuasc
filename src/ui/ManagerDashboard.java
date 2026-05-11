@@ -233,13 +233,14 @@ public class ManagerDashboard extends BaseFrame implements Refreshable {
             navModel.removeElement(SVC_CATALOG);
             navModel.removeElement(SVC_CATEGORIES);
             serviceExpanded = false;
+            updatingNav = false;
         } else {
             navModel.insertElementAt(SVC_CATALOG, svcIdx + 1);
             navModel.insertElementAt(SVC_CATEGORIES, svcIdx + 2);
             serviceExpanded = true;
+            updatingNav = false;
             navList.setSelectedIndex(svcIdx + 1);
         }
-        updatingNav = false;
         navList.repaint();
     }
 
