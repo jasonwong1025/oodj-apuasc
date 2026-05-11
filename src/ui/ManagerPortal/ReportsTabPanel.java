@@ -5,6 +5,7 @@ import model.feedback.Review;
 import model.payment.Payment;
 import model.service.Category;
 import model.service.Service;
+import model.users.Role;
 import model.users.User;
 import service_layer.AppointmentService;
 import service_layer.CategoryService;
@@ -573,7 +574,7 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
             }
         }
         for (User user : allUsers) {
-            if ("Technician".equalsIgnoreCase(user.getRole())) {
+            if (user.getRole() == Role.TECHNICIAN) {
                 completedByTechnician.put(user.getUserId(), 0);
             }
         }
@@ -768,7 +769,7 @@ public class ReportsTabPanel extends JPanel implements Refreshable {
         List<String> customerIds = new ArrayList<>(usersById.keySet());
         customerIds.removeIf(id -> {
             User user = usersById.get(id);
-            return user == null || !"Customer".equalsIgnoreCase(user.getRole());
+            return user == null || user.getRole() != Role.CUSTOMER;
         });
 
         customerIds.sort((a, b) -> {

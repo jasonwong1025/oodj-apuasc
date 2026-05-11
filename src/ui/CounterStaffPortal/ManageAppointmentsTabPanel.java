@@ -8,6 +8,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import model.appointment.Appointment;
 import model.service.Service;
+import model.users.Role;
 import model.users.User;
 import ui.shared.SharedStyles;
 import utils.Result;
@@ -396,7 +397,7 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         List<User> techs = context.userService().listAllUsers();
         List<String> techIds = new ArrayList<>();
         for (User u : techs) {
-            if ("Technician".equalsIgnoreCase(u.getRole()) && u.isActive()) {
+            if (u.getRole() == Role.TECHNICIAN && u.isActive()) {
                 techIds.add(u.getUserId() + " - " + u.getFullName());
             }
         }

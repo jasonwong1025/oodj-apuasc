@@ -1,6 +1,7 @@
 package ui.ManagerPortal;
 
 import abstracts.AbstractUser;
+import model.users.Role;
 import model.users.User;
 import service_layer.UserService;
 import ui.core.Refreshable;
@@ -113,8 +114,8 @@ public class UserManagementTabPanel extends JPanel implements Refreshable {
         userTableModel.setRowCount(0);
         for (User u : rows) {
             userTableModel.addRow(new Object[]{
-                    u.getUserId(), u.getFullName(), u.getEmail(), u.getContact(), roleDisplay(u.getRole()),
-                    "Technician".equals(u.getRole()) ? u.getTechnicianServiceType() : "-",
+                    u.getUserId(), u.getFullName(), u.getEmail(), u.getContact(), roleDisplay(u.getRole() != null ? u.getRole().getLabel() : ""),
+                    u.getRole() == Role.TECHNICIAN ? u.getTechnicianServiceType() : "-",
                     u.isActive() ? "ACTIVE" : "INACTIVE"
             });
         }
@@ -211,7 +212,7 @@ public class UserManagementTabPanel extends JPanel implements Refreshable {
         JComboBox<String> status = SharedStyles.createFilterCombo(new String[]{"ACTIVE", "INACTIVE"});
         status.setSelectedItem(u.isActive() ? "ACTIVE" : "INACTIVE");
         JComboBox<String> technicianServiceType = SharedStyles.createFilterCombo(new String[]{"Normal Service", "Major Service"});
-        boolean isTechnician = "Technician".equals(u.getRole());
+        boolean isTechnician = u.getRole() == Role.TECHNICIAN;
         technicianServiceType.setEnabled(isTechnician);
         String currentServiceType = u.getTechnicianServiceType();
         if (!"Normal Service".equals(currentServiceType) && !"Major Service".equals(currentServiceType)) currentServiceType = "Normal Service";
@@ -236,7 +237,7 @@ public class UserManagementTabPanel extends JPanel implements Refreshable {
             copy.setEmail(email.getText().trim());
             copy.setContact(contact.getText().trim());
             copy.setActive("ACTIVE".equals(status.getSelectedItem()));
-            if ("Technician".equals(copy.getRole())) copy.setTechnicianServiceType(String.valueOf(technicianServiceType.getSelectedItem()));
+            if (copy.getRole() == Role.TECHNICIAN) copy.setTechnicianServiceType(String.valueOf(technicianServiceType.getSelectedItem()));
             else copy.setTechnicianServiceType("-");
             String np = new String(password.getPassword());
             if (ValidationUtil.isNotEmpty(np)) copy.setPassword(np); else copy.setPassword(u.getPassword());

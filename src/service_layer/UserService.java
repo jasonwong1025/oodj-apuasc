@@ -87,7 +87,7 @@ public class UserService {
         String newId = IdGenerator.generateNextIdForRole(role);
         String hashedPassword = utils.PasswordHasher.hashPassword(password);
         User created = instantiateUser(newId, fullName.trim(), email.trim(),
-                contact.trim(), hashedPassword, role, technicianServiceType);
+                contact.trim(), hashedPassword, model.users.Role.fromString(role), technicianServiceType);
         created.setActive(true);
 
         all.add(created);
@@ -138,7 +138,7 @@ public class UserService {
 
         // Maintain status and technician service type if provided
         existing.setActive(user.isActive());
-        if ("Technician".equals(existing.getRole())) {
+        if (existing.getRole() == model.users.Role.TECHNICIAN) {
             existing.setTechnicianServiceType(user.getTechnicianServiceType());
         }
 
@@ -205,7 +205,7 @@ public class UserService {
     public List<User> filterUsers(String searchText, String roleFilter) {
         String q = searchText == null ? "" : searchText.trim().toLowerCase();
         return listAllUsers().stream()
-                .filter(u -> roleFilter == null || "ALL".equals(roleFilter) || roleFilter.equals(u.getRole()))
+                .filter(u -> roleFilter == null || "ALL".equals(roleFilter) || roleFilter.equals(u.getRole().getLabel()))
                 .filter(u -> q.isEmpty()
                         || u.getUserId().toLowerCase().contains(q)
                         || u.getFullName().toLowerCase().contains(q)
@@ -266,7 +266,12 @@ public class UserService {
             if (!isAllowedManagedRole(role)) {
                 return "Invalid row " + (i + 1) + ": unknown role.";
             }
-            User u = instantiateUser(userId, fullName, email, contact, password, role, "-");
+            User u;
+            if ("Customer".equals(role)) {
+                u = instantiateUser(userId, fullName, email, contact, password, model.users.Role.CUSTOMER, "-");
+            } else {
+                u = instantiateUser(userId, fullName, email, contact, password, model.users.Role.fromString(role), "-");
+            }
             u.setActive(active);
             imported.add(u);
         }
@@ -297,8 +302,8 @@ public class UserService {
                     escapeCsv(u.getEmail()),
                     escapeCsv(u.getContact()),
                     escapeCsv(u.getPassword()),
-                    escapeCsv(u.getRole()),
-                    escapeCsv("Technician".equals(u.getRole()) ? u.getTechnicianServiceType() : "-"),
+                    escapeCsv(u.getRole() != null ? u.getRole().getLabel() : ""),
+                    escapeCsv(u.getRole() == model.users.Role.TECHNICIAN ? u.getTechnicianServiceType() : "-"),
                     u.isActive() ? "ACTIVE" : "INACTIVE"));
         }
         return lines;
@@ -346,43 +351,35 @@ public class UserService {
     }
 
     private static boolean isAllowedManagedRole(String role) {
-        return "Manager".equals(role) || "CounterStaff".equals(role) || "Technician".equals(role)
-                || "Customer".equals(role);
+        return model.users.Role.MANAGER.getLabel().equals(role)
+                || model.users.Role.COUNTERSTAFF.getLabel().equals(role)
+                || model.users.Role.TECHNICIAN.getLabel().equals(role)
+                || model.users.Role.CUSTOMER.getLabel().equals(role);
     }
 
-    private static User instantiateUser(String userId, String fullName, String email,
-                                        String contact, String password, String role, String technicianServiceType) {
-        User user;
+    private static User instantiateUser(String userId, String fullName, String email, String contact, String password, model.users.Role role, String technicianServiceType) {
+        if (role == null) return new User(userId, fullName, email, contact, password, null);
+        
         switch (role) {
-            case "Customer":
-                user = new Customer(userId, fullName, email, contact, password);
-                break;
-            case "Manager":
-                user = new Manager(userId, fullName, email, contact, password);
-                break;
-            case "Technician":
-                user = new Technician(userId, fullName, email, contact, password);
-                break;
-            case "CounterStaff":
-                user = new CounterStaff(userId, fullName, email, contact, password);
-                break;
+            case MANAGER:
+                return new Manager(userId, fullName, email, contact, password);
+            case COUNTERSTAFF:
+                return new CounterStaff(userId, fullName, email, contact, password);
+            case TECHNICIAN:
+                Technician t = new Technician(userId, fullName, email, contact, password);
+                t.setTechnicianServiceType(technicianServiceType);
+                return t;
+            case CUSTOMER:
             default:
-                user = new User(userId, fullName, email, contact, password, role);
-                break;
+                return new Customer(userId, fullName, email, contact, password);
         }
-        if ("Technician".equals(role)) {
-            user.setTechnicianServiceType(technicianServiceType);
-        } else {
-            user.setTechnicianServiceType("-");
-        }
-        return user;
     }
     public java.util.List<model.users.User> getAllCustomers() {
         java.util.List<model.users.User> all = userRepository.getAllUsers();
         java.util.List<model.users.User> customers = new java.util.ArrayList<>();
 
         for (model.users.User u : all) {
-            if ("Customer".equals(u.getRole())) {
+            if (u.getRole() == model.users.Role.CUSTOMER) {
                 customers.add(u);
             }
         }

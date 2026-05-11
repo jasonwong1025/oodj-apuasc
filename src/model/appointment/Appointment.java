@@ -1,6 +1,6 @@
 package model.appointment;
 
-import model.users.User;
+
 
 public class Appointment {
     private String appointmentId;
@@ -112,8 +112,8 @@ public class Appointment {
         return status == AppointmentStatus.IN_PROGRESS || status == AppointmentStatus.COMPLETED;
     }
 
-    public boolean canBeAssignedTo(User technician) {
-        if (technician == null || !"Technician".equalsIgnoreCase(technician.getRole())) {
+    public boolean canBeAssignedTo(model.users.User technician) {
+        if (technician == null || technician.getRole() != model.users.Role.TECHNICIAN) {
             return false;
         }
         String techSvc = technician.getTechnicianServiceType() == null ? "" : technician.getTechnicianServiceType().toLowerCase();

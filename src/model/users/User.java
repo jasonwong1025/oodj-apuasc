@@ -7,7 +7,7 @@ public class User extends AbstractUser {
         super();
     }
 
-    public User(String userId, String fullName, String email, String contact, String password, String role) {
+    public User(String userId, String fullName, String email, String contact, String password, model.users.Role role) {
         super(userId, fullName, email, contact, password, role);
     }
 }
