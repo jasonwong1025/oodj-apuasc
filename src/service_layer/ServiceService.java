@@ -1,6 +1,8 @@
 package service_layer;
 
+import model.appointment.Appointment;
 import model.service.Service;
+import repository.AppointmentRepository;
 import repository.ServiceFileRepository;
 import utils.ValidationUtil;
 
@@ -11,9 +13,11 @@ import java.util.stream.Collectors;
 
 public class ServiceService {
     private final ServiceFileRepository repo;
+    private final AppointmentRepository appointmentRepo;
 
     public ServiceService() {
         this.repo = new ServiceFileRepository();
+        this.appointmentRepo = new AppointmentRepository();
     }
 
     public List<Service> listAll() {
@@ -110,6 +114,19 @@ public class ServiceService {
      */
     public String deleteService(String serviceId) {
         List<Service> all = listAll();
+        Service target = null;
+        for (Service service : all) {
+            if (service.getServiceId().equals(serviceId)) {
+                target = service;
+                break;
+            }
+        }
+        if (target == null) return "Service not found.";
+
+        if (hasOngoingAppointment(serviceId)) {
+            return "Cannot delete service: it is used by an ongoing appointment.";
+        }
+
         boolean removed = all.removeIf(s -> s.getServiceId().equals(serviceId));
         if (!removed) return "Service not found.";
         try {
@@ -140,6 +157,32 @@ public class ServiceService {
                 continue;
             }
             if (normalizeServiceName(service.getServiceName()).equals(normalizedName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasOngoingAppointment(String serviceId) {
+        for (Appointment appointment : appointmentRepo.getAllAppointments()) {
+            if (isOngoingStatus(appointment.getStatus()) && appointmentIncludesService(appointment, serviceId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isOngoingStatus(String status) {
+        return "PENDING".equalsIgnoreCase(status)
+                || "CONFIRMED".equalsIgnoreCase(status)
+                || "IN PROGRESS".equalsIgnoreCase(status);
+    }
+
+    private boolean appointmentIncludesService(Appointment appointment, String serviceId) {
+        if (appointment == null || appointment.getServiceId() == null || serviceId == null) return false;
+        String[] serviceIds = appointment.getServiceId().split(",");
+        for (String appointmentServiceId : serviceIds) {
+            if (serviceId.equalsIgnoreCase(appointmentServiceId.trim())) {
                 return true;
             }
         }
