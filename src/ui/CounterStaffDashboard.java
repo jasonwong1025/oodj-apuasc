@@ -810,47 +810,50 @@ private void openAssignTechnicianDialog(model.appointment.Appointment a, List<mo
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.setOpaque(false);
 
-        JLabel searchLbl = new JLabel("Search Customer ID:");
-
+        JLabel searchLbl = new JLabel("Search:");
+        searchLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
         JTextField searchField = SharedStyles.createFilterField(20);
+
+        JLabel ratingLbl = new JLabel("Rating:");
+        ratingLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JComboBox<String> ratingFilter = new JComboBox<>(new String[]{"All", "1", "2", "3", "4", "5"});
+        ratingFilter.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
         topPanel.add(searchLbl);
         topPanel.add(searchField);
-
+        topPanel.add(Box.createHorizontalStrut(20));
+        topPanel.add(ratingLbl);
+        topPanel.add(ratingFilter);
         root.add(topPanel, BorderLayout.NORTH);
 
-        searchField.getDocument().addDocumentListener(
-                new javax.swing.event.DocumentListener() {
+        java.awt.event.ActionListener filterAction = ev -> {
+            String text = searchField.getText().trim();
+            String rating = ratingFilter.getSelectedItem().toString();
 
-            private void filter() {
-
-                String text = searchField.getText().trim();
-
-                if (text.isEmpty()) {
-                    sorter.setRowFilter(null);
-                } else {
-
-                    sorter.setRowFilter(
-                            javax.swing.RowFilter.regexFilter(
-                                    "(?i)" + text,
-                                    2
-                            )
-                    );
-                }
+            java.util.List<RowFilter<Object, Object>> filters = new java.util.ArrayList<>();
+            
+            if (!text.isEmpty()) {
+                filters.add(RowFilter.regexFilter("(?i)" + text));
+            }
+            
+            if (!"All".equals(rating)) {
+                // Rating is in column index 3, format is "X / 5"
+                filters.add(RowFilter.regexFilter("^" + rating + " / 5$", 3));
             }
 
-            public void insertUpdate(javax.swing.event.DocumentEvent e) {
-                filter();
+            if (filters.isEmpty()) {
+                sorter.setRowFilter(null);
+            } else {
+                sorter.setRowFilter(RowFilter.andFilter(filters));
             }
+        };
 
-            public void removeUpdate(javax.swing.event.DocumentEvent e) {
-                filter();
-            }
-
-            public void changedUpdate(javax.swing.event.DocumentEvent e) {
-                filter();
-            }
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filterAction.actionPerformed(null); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filterAction.actionPerformed(null); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filterAction.actionPerformed(null); }
         });
+        ratingFilter.addActionListener(filterAction);
 
         repository.ReviewRepository reviewRepo =
                 new repository.ReviewRepository();

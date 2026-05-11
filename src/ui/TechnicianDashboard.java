@@ -581,7 +581,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
             }
         }
 
-        String[] columns = {"ID", "Vehicle", "Service", "Appt Date", "Appt Time", "Status", "Feedback", "Feedback Date & Time"};
+        String[] columns = {"ID", "Vehicle", "Service", "Appointment", "Status", "Feedback", "Feedback Date & Time"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -623,8 +623,7 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
                     a.getAppointmentId(),
                     vehicleDisplay,
                     serviceDisplay,
-                    a.getDate(),
-                    a.getTime(),
+                    a.getDate() + " " + a.getTime(),
                     status,
                     existingFb,
                     fbTime
@@ -633,16 +632,40 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
 
         JTable table = new JTable(model);
         SharedStyles.applyTableStyle(table);
+        
+        // Setup Sorting and Filtering
+        javax.swing.table.TableRowSorter<DefaultTableModel> sorter = new javax.swing.table.TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+        
         table.getTableHeader().setResizingAllowed(false);
         table.getTableHeader().setReorderingAllowed(false);
 
-        // Button bar
+        // Button and Filter bar
         JButton writeFeedbackBtn = SharedStyles.createActionButton("Write Feedback", SharedStyles.BTN_BLUE);
         writeFeedbackBtn.setEnabled(false);
 
-        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        JLabel filterLabel = new JLabel("Status Filter:");
+        filterLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JComboBox<String> statusFilter = new JComboBox<>(new String[]{"All", "Pending Feedback", "Submitted"});
+        statusFilter.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        statusFilter.setPreferredSize(new Dimension(150, 32));
+
+        statusFilter.addActionListener(e -> {
+            String selected = (String) statusFilter.getSelectedItem();
+            if ("All".equals(selected)) {
+                sorter.setRowFilter(null);
+            } else {
+                // Filter by the 'Status' column (index 4)
+                sorter.setRowFilter(RowFilter.regexFilter("^" + selected + "$", 4));
+            }
+        });
+
+        JPanel topBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
         topBar.setOpaque(false);
         topBar.add(writeFeedbackBtn);
+        topBar.add(Box.createHorizontalStrut(20));
+        topBar.add(filterLabel);
+        topBar.add(statusFilter);
 
         root.add(topBar, BorderLayout.NORTH);
         root.add(new JScrollPane(table), BorderLayout.CENTER);
@@ -650,7 +673,13 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         // Enable button only when a row is selected
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                writeFeedbackBtn.setEnabled(table.getSelectedRow() != -1);
+                int row = table.getSelectedRow();
+                if (row != -1) {
+                    String status = table.getValueAt(row, 4).toString();
+                    writeFeedbackBtn.setEnabled("Pending Feedback".equalsIgnoreCase(status));
+                } else {
+                    writeFeedbackBtn.setEnabled(false);
+                }
             }
         });
 
@@ -658,9 +687,17 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         writeFeedbackBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) return;
+            
+            // Double-check status before opening
+            String status = table.getValueAt(row, 4).toString();
+            if ("Submitted".equalsIgnoreCase(status)) {
+                JOptionPane.showMessageDialog(this, "Feedback has already been submitted for this task.");
+                return;
+            }
+
             String id = table.getValueAt(row, 0).toString();
             String svcName = table.getValueAt(row, 2).toString();
-            String existingFb = table.getValueAt(row, 6).toString();
+            String existingFb = table.getValueAt(row, 5).toString();
             openFeedbackDialog(id, svcName, "-".equals(existingFb) ? "" : existingFb);
         });
 
@@ -812,26 +849,50 @@ public class TechnicianDashboard extends JFrame implements Refreshable {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.setOpaque(false);
 
-        JLabel searchLbl = new JLabel("Search Customer:");
+        JLabel searchLbl = new JLabel("Search:");
+        searchLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
         JTextField searchField = SharedStyles.createFilterField(20);
+
+        JLabel ratingLbl = new JLabel("Rating:");
+        ratingLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        JComboBox<String> ratingFilter = new JComboBox<>(new String[]{"All", "1", "2", "3", "4", "5"});
+        ratingFilter.setFont(new Font("SansSerif", Font.PLAIN, 13));
 
         topPanel.add(searchLbl);
         topPanel.add(searchField);
+        topPanel.add(Box.createHorizontalStrut(20));
+        topPanel.add(ratingLbl);
+        topPanel.add(ratingFilter);
         root.add(topPanel, BorderLayout.NORTH);
 
-        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
-            private void filter() {
-                String text = searchField.getText().trim();
-                if (text.isEmpty()) {
-                    sorter.setRowFilter(null);
-                } else {
-                    sorter.setRowFilter(javax.swing.RowFilter.regexFilter("(?i)" + text, 2));
-                }
+        java.awt.event.ActionListener filterAction = ev -> {
+            String text = searchField.getText().trim();
+            String rating = ratingFilter.getSelectedItem().toString();
+
+            java.util.List<RowFilter<Object, Object>> filters = new java.util.ArrayList<>();
+            
+            if (!text.isEmpty()) {
+                filters.add(RowFilter.regexFilter("(?i)" + text));
             }
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { filter(); }
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { filter(); }
+            
+            if (!"All".equals(rating)) {
+                // Rating is in column index 3, format is "X / 5"
+                filters.add(RowFilter.regexFilter("^" + rating + " / 5$", 3));
+            }
+
+            if (filters.isEmpty()) {
+                sorter.setRowFilter(null);
+            } else {
+                sorter.setRowFilter(RowFilter.andFilter(filters));
+            }
+        };
+
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filterAction.actionPerformed(null); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filterAction.actionPerformed(null); }
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filterAction.actionPerformed(null); }
         });
+        ratingFilter.addActionListener(filterAction);
 
         ReviewService reviewService = new ReviewService();
         AppointmentService appointmentService = new AppointmentService();
