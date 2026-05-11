@@ -179,9 +179,7 @@ public class BookingTabPanel extends CustomerTabPanel {
         };
 
         Runnable refreshServiceList = () -> {
-            int currentCount = (int) activeChecks.get().stream().filter(JCheckBox::isSelected).count();
-            String cat = currentCount > 3 ? "Major" : "Normal";
-            serviceScroll.setBorder(BorderFactory.createTitledBorder("Services (max 8) - " + cat));
+            serviceScroll.setBorder(BorderFactory.createTitledBorder("Services (max 8)"));
             
             serviceListPanel.removeAll();
             for (JCheckBox cb : activeChecks.get()) {
@@ -288,11 +286,9 @@ public class BookingTabPanel extends CustomerTabPanel {
                     .collect(Collectors.toList());
 
             int totalCount = selectedServices.size();
-            boolean isMajorCategory = totalCount > 3;
             double totalPrice = 0.0;
             for (Service s : selectedServices) totalPrice += s.getPrice();
 
-            sb.append("Category: ").append(isMajorCategory ? "Major" : "Normal").append("\n");
             sb.append("Selected services (").append(totalCount).append(")\n");
             for (Service s : selectedServices) {
                 sb.append("- ").append(s.getServiceName()).append(" (RM ").append(String.format("%.2f", s.getPrice())).append(")\n");
@@ -423,9 +419,6 @@ public class BookingTabPanel extends CustomerTabPanel {
             StringBuilder summary = new StringBuilder("<html><body style='width: 300px;'>");
             summary.append("<h2>Booking Summary</h2>");
             summary.append("<hr>");
-            summary.append("<b>Category</b>: ")
-                    .append(isMajorCategory ? "Major" : "Normal")
-                    .append("<br><br>");
             summary.append("<b>Selected Services</b>:<br>");
             for (Service s : selected) {
                 summary.append("* ").append(s.getServiceName()).append(": RM ")
