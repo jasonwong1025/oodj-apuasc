@@ -117,13 +117,13 @@ public class LoginFrame extends BaseFrame {
         
         if (result.isSuccess()) {
             abstracts.AbstractUser user = result.getValue();
-            if ("Customer".equals(user.getRole())) {
+            if (user.getRole() == model.users.Role.CUSTOMER) {
                 new CustomerDashboard(user).setVisible(true);
-            } else if ("Manager".equals(user.getRole())) {
+            } else if (user.getRole() == model.users.Role.MANAGER) {
                 new ManagerDashboard(user).setVisible(true);
-            } else if ("Technician".equals(user.getRole())) {
+            } else if (user.getRole() == model.users.Role.TECHNICIAN) {
                 new TechnicianDashboard(user).setVisible(true);
-            } else if ("CounterStaff".equals(user.getRole())) {
+            } else if (user.getRole() == model.users.Role.COUNTERSTAFF) {
                 new CounterStaffDashboard(user).setVisible(true);
             }
             this.dispose();
