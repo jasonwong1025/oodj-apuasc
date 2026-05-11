@@ -34,7 +34,7 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             "PENDING", "All", "CONFIRMED", "IN PROGRESS", "COMPLETED", "CANCELLED"
         });
         sortBox = new JComboBox<>(new String[]{
-            "Newest Date", "Oldest Date"
+            "Further Date", "Near Date"
         });
 
         sortBox.setPreferredSize(new Dimension(110, 26));
@@ -85,11 +85,16 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         model.setRowCount(0);
         
         list.sort((a1, a2) -> {
+
             String d1 = a1.getDate() + " " + a1.getTime();
             String d2 = a2.getDate() + " " + a2.getTime();
-            if ("Newest Date".equals(sortBox.getSelectedItem())) {
+
+            if ("Further Date".equals(sortBox.getSelectedItem())) {
+
                 return d2.compareTo(d1);
+
             } else {
+
                 return d1.compareTo(d2);
             }
         });
@@ -135,16 +140,103 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             }
         });
 
-        DefaultListModel<String> serviceModel = new DefaultListModel<>();
-        List<Service> services = context.serviceService().listAll();
+        List<Service> services =
+                context.serviceService().listAll();
+
+        JPanel servicePanel = new JPanel();
+        servicePanel.setLayout(new BoxLayout(servicePanel, BoxLayout.Y_AXIS));
+
+        List<JCheckBox> serviceChecks =
+                new ArrayList<>();
+
         for (Service s : services) {
-            serviceModel.addElement(s.getServiceId() + " - " + s.getServiceName() + " (RM " + s.getPrice() + ")");
+
+            JCheckBox cb = new JCheckBox(
+                    s.getServiceId()
+                    + " - "
+                    + s.getServiceName()
+                    + " (RM "
+                    + s.getPrice()
+                    + ")"
+            );
+
+            cb.setOpaque(false);
+
+            serviceChecks.add(cb);
+
+            servicePanel.add(cb);
         }
 
-        JList<String> serviceList = new JList<>(serviceModel);
-        serviceList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        JScrollPane serviceScroll = new JScrollPane(serviceList);
-        serviceScroll.setPreferredSize(new Dimension(250, 100));
+        JScrollPane serviceScroll =
+                new JScrollPane(servicePanel);
+
+        serviceScroll.setPreferredSize(
+                new Dimension(320, 150));
+        JRadioButton normalBtn =
+        new JRadioButton("Normal Service", true);
+
+        JRadioButton majorBtn =
+                new JRadioButton("Major Service");
+
+        normalBtn.setOpaque(false);
+        majorBtn.setOpaque(false);
+
+        ButtonGroup serviceTypeGroup =
+                new ButtonGroup();
+
+        serviceTypeGroup.add(normalBtn);
+        serviceTypeGroup.add(majorBtn);
+
+        JPanel typePanel = new JPanel(
+                new FlowLayout(FlowLayout.LEFT));
+
+        typePanel.setOpaque(false);
+
+        typePanel.add(normalBtn);
+        typePanel.add(majorBtn);
+        
+        Runnable enforceLimit = () -> {
+
+            int limit = normalBtn.isSelected() ? 3 : 8;
+
+            int count = 0;
+
+            for (JCheckBox cb : serviceChecks) {
+                if (cb.isSelected()) {
+                    count++;
+                }
+            }
+
+            if (count > limit) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Maximum "
+                                + limit
+                                + " services allowed for "
+                                + (normalBtn.isSelected()
+                                ? "Normal"
+                                : "Major")
+                                + " Service."
+                );
+
+                for (int i = serviceChecks.size() - 1;
+                    i >= 0;
+                    i--) {
+
+                    JCheckBox cb = serviceChecks.get(i);
+
+                    if (cb.isSelected()) {
+                        cb.setSelected(false);
+                        break;
+                    }
+                }
+            }
+        };
+
+        for (JCheckBox cb : serviceChecks) {
+            cb.addActionListener(ev -> enforceLimit.run());
+        }
 
         JComboBox<String> dayBox = new JComboBox<>();
         JComboBox<String> monthBox = new JComboBox<>();
@@ -176,15 +268,24 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         Object[] fields = {
             "Customer ID:", customerIdField,
             "Vehicle:", vehicleBox,
+            "Service Type:", typePanel,
             "Select Services:", serviceScroll,
             "Date:", new JPanel(new FlowLayout(FlowLayout.LEFT)) {{ add(dayBox); add(monthBox); add(yearBox); }},
             "Time Slot:", timeBox
         };
 
         if (SharedStyles.showConfirm(this, fields, "Add Appointment")) {
-            List<String> selectedServices = new ArrayList<>();
-            for (String selected : serviceList.getSelectedValuesList()) {
-                selectedServices.add(selected.split(" - ")[0]);
+            List<String> selectedServices =
+                    new ArrayList<>();
+
+            for (JCheckBox cb : serviceChecks) {
+
+                if (cb.isSelected()) {
+
+                    selectedServices.add(
+                            cb.getText().split(" - ")[0]
+                    );
+                }
             }
 
             if (selectedServices.isEmpty()) {
