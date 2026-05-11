@@ -102,4 +102,8 @@ public class VehicleService {
                 .findFirst()
                 .orElse(null);
     }
+
+    public java.util.List<model.vehicle.Vehicle> getVehiclesByOwner(String ownerId) {
+    return vehicleRepository.getVehiclesByOwner(ownerId);
+}
 }

@@ -5,8 +5,7 @@ T001|Technician 1|2|0177896541|10000:rhG91YqxaMcDHhIRKD0hBg==:w/SpqVKGszMPb9OyZ9
 T002|Technician 2|22|0177896542|22|Technician|Major Service|ACTIVE
 C001|Ong Zi Ming|4|0177896541|10000:aRLwsVgJ9qbmuNTol6WCGg==:x4EozzNev5Jq5CcPfHw8Ks2zN8zJlyux6WlwieGWbn4=|Customer|-|ACTIVE
 C002|Lee Zii Qing|12|0129783813|12|Customer|-|ACTIVE
-C003|Ong Jia Sen|13|0129182000|13|Customer|-|ACTIVE
+C003|Ong Jia Sen|ongjs@gmail.com|0129182000|13|Customer|-|ACTIVE
 T003|qwe|qweqwe@qweqwe.com|0123456789|Qwe123.|Technician|Normal Service|ACTIVE
 C004|Lee Sang Yew|sangyewlee@gmail.com|0126388765|Lsy@050915|Customer|-|ACTIVE
 C005|Muhammad Ali|muhdali@gmail.com|01298271281|1|Customer|-|ACTIVE
-C006|apunene|zimingong0211@gmail.com|0123654987|Qwerty123.|Customer|-|ACTIVE
