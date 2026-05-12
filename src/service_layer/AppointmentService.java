@@ -352,4 +352,19 @@ public class AppointmentService {
         }
         return SlotType.NORMAL;
     }
+
+    public List<Appointment> getAppointmentsByDate(String date) {
+
+        List<Appointment> result =
+                new ArrayList<>();
+
+        for (Appointment a : appointmentRepository.getAllAppointments()) {
+
+            if (a.getDate().equals(date)) {
+                result.add(a);
+            }
+        }
+
+        return result;
+    }
 }

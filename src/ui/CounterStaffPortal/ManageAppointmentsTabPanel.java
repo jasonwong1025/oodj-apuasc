@@ -253,9 +253,33 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             String date = yearBox.getSelectedItem() + "-" + monthBox.getSelectedItem() + "-" + dayBox.getSelectedItem();
             timeBox.removeAllItems();
             for (String slot : service_layer.AppointmentService.getAllowedSlotTimes()) {
-                if (context.appointmentService().isSlotAvailable(date, slot)) {
-                    timeBox.addItem(slot + " ✅");
+                boolean isMajor =
+                        majorBtn.isSelected();
+
+                boolean available;
+
+                if (isMajor) {
+
+                    available =
+                            context.appointmentService()
+                                    .getAppointmentsByDate(date)
+                                    .stream()
+                                    .noneMatch(a ->
+                                            a.getTime().equals(slot));
+
                 } else {
+
+                    available =
+                            context.appointmentService()
+                                    .isSlotAvailable(date, slot);
+                }
+
+                if (available) {
+
+                    timeBox.addItem(slot + " ✅");
+
+                } else {
+
                     timeBox.addItem(slot + " ❌ FULL");
                 }
             }
@@ -265,6 +289,8 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         monthBox.addActionListener(ev -> updateSlots.run());
         yearBox.addActionListener(ev -> updateSlots.run());
         updateSlots.run();
+        normalBtn.addActionListener(ev -> updateSlots.run());
+        majorBtn.addActionListener(ev -> updateSlots.run());
 
         Object[] fields = {
             "Customer ID:", customerIdField,
