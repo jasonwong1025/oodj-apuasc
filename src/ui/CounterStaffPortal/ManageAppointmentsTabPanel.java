@@ -414,6 +414,30 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             }
         }
         if (target == null) return;
+        String staffId = target.getCounterStaffId();
+
+        if ("NONE".equalsIgnoreCase(staffId)
+                || "CUSTOMER".equalsIgnoreCase(staffId)) {
+
+            target.setCounterStaffId(
+                    currentUser().getUserId());
+
+            context.appointmentService()
+                    .updateAppointment(target);
+
+            staffId = currentUser().getUserId();
+        }
+
+        if (!staffId.equals(currentUser().getUserId())) {
+
+            SharedStyles.showWarning(
+                    this,
+                    "You can only manage appointments handled by yourself."
+            );
+
+            return;
+        }
+        
 
         if ("CANCELLED".equalsIgnoreCase(target.getStatus())) {
             SharedStyles.showWarning(this, "Cannot assign technician to cancelled appointment.");
