@@ -22,7 +22,7 @@ public class IdGenerator {
 
         int maxId = 0;
         for (User user : users) {
-            if (!role.equals(user.getRole())) continue;
+            if (user == null) continue;
             String id = user.getUserId();
             if (id == null || id.length() < 2) continue;
             if (!id.startsWith(prefix)) continue;
