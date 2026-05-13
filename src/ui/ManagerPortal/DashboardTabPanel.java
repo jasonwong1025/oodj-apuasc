@@ -2,6 +2,7 @@ package ui.ManagerPortal;
 
 import model.appointment.Appointment;
 import model.payment.Payment;
+import model.users.Role;
 import model.users.User;
 import service_layer.AppointmentService;
 import service_layer.PaymentService;
@@ -45,14 +46,8 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         JPanel content = new JPanel(new BorderLayout(0, 18));
         content.setOpaque(false);
         List<User> allUsers = userService.listAllUsers();
-        long normalServiceTechs = allUsers.stream()
-                .filter(u -> "Technician".equals(u.getRole()))
-                .filter(u -> "Normal Service".equals(u.getTechnicianServiceType()))
-                .count();
-        long majorServiceTechs = allUsers.stream()
-                .filter(u -> "Technician".equals(u.getRole()))
-                .filter(u -> "Major Service".equals(u.getTechnicianServiceType()))
-                .count();
+        long normalServiceTechs = countTechniciansByServiceType(allUsers, "Normal Service");
+        long majorServiceTechs = countTechniciansByServiceType(allUsers, "Major Service");
         List<Appointment> appointments = appointmentService.getAllAppointments();
 
         JPanel topRow = new JPanel(new BorderLayout());
@@ -100,6 +95,18 @@ public class DashboardTabPanel extends JPanel implements Refreshable {
         add(rightPanelScroll, BorderLayout.CENTER);
         revalidate();
         repaint();
+    }
+
+    private long countTechniciansByServiceType(List<User> users, String serviceType) {
+        return users.stream()
+                .filter(u -> u != null && u.getRole() == Role.TECHNICIAN)
+                .filter(u -> serviceTypeEquals(u.getTechnicianServiceType(), serviceType))
+                .count();
+    }
+
+    private boolean serviceTypeEquals(String actual, String expected) {
+        if (actual == null || expected == null) return false;
+        return actual.trim().equalsIgnoreCase(expected.trim());
     }
 
     private JPanel buildTechnicianServiceTypeCard(long normalServiceTechs, long majorServiceTechs) {
