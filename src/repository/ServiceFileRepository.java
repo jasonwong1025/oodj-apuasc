@@ -31,11 +31,14 @@ public class ServiceFileRepository {
         String[] parts = line.split("\\|", -1);
         if (parts.length < 4) return null;
         try {
+            double price = Double.parseDouble(parts[3].trim());
+            boolean inNormalService = parts.length >= 5 && "YES".equalsIgnoreCase(parts[4].trim());
             return new Service(
-                    parts[0],
-                    parts[1],
-                    parts[2],
-                    Double.parseDouble(parts[3])
+                    utils.FileStorageHelper.unescape(parts[0].trim()),
+                    utils.FileStorageHelper.unescape(parts[1].trim()),
+                    utils.FileStorageHelper.unescape(parts[2].trim()),
+                    price,
+                    inNormalService
             );
         } catch (NumberFormatException e) {
             return null;
