@@ -1,7 +1,6 @@
 package ui.auth;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import ui.core.BaseFrame;
 import ui.shared.SharedStyles;
@@ -21,45 +20,48 @@ public class RegisterFrame extends BaseFrame {
 
     @Override
     protected void initContent() {
-        setLayout(new GridBagLayout());
-        GridBagConstraints frameGbc = new GridBagConstraints();
-        frameGbc.gridx = 0;
-        frameGbc.insets = new Insets(20, 20, 20, 20);
-        frameGbc.anchor = GridBagConstraints.CENTER;
+        setSize(960, 680);
+        setMinimumSize(new Dimension(820, 600));
+        setLocationRelativeTo(null);
 
-        JLabel headingLabel = SharedStyles.createHeadingLabel("APU Automotive Service Centre (APU – ASC)");
-        frameGbc.gridy = 0;
-        frameGbc.insets = new Insets(0, 0, 20, 0);
-        add(headingLabel, frameGbc);
+        JPanel root = AuthUiKit.createRootPanel();
+        root.add(AuthUiKit.createBrandPanel(
+                "Join\nAPU ASC",
+                "Create your customer account to book services, manage vehicles, and leave reviews.",
+                "Already have staff access? Sign in from the login page."), BorderLayout.WEST);
 
-        JPanel registerPanel = new JPanel(new GridBagLayout());
-        registerPanel.setBackground(Color.WHITE);
-        registerPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
-                new EmptyBorder(30, 60, 30, 60)
-        ));
+        JPanel formShell = AuthUiKit.createFormShell(
+                "Create account",
+                "Register as a customer in a few quick steps.");
+        JPanel authCard = AuthUiKit.extractFormCard(formShell);
+        JPanel form = AuthUiKit.getCardContent(authCard);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Form Fields
-        addFormField(registerPanel, "Full Name:", fullNameField = SharedStyles.createFilterField(20), 1, gbc);
-        addFormField(registerPanel, "Email:", emailField = SharedStyles.createFilterField(20), 2, gbc);
-        addFormField(registerPanel, "Contact:", contactField = SharedStyles.createFilterField(20), 3, gbc);
-        
-        // Password fields
-        passwordField = SharedStyles.createPasswordField();
-        JButton togglePass = SharedStyles.createPasswordToggleButton();
-        SharedStyles.setupPasswordToggle(passwordField, togglePass);
-        addPasswordFormField(registerPanel, "Password:", passwordField, togglePass, 4, gbc);
+        fullNameField = AuthUiKit.createTextField(20);
+        AuthUiKit.addFormRow(form, gbc, 0, "Full name", fullNameField);
 
-        confirmPasswordField = SharedStyles.createPasswordField();
-        JButton toggleConfirm = SharedStyles.createPasswordToggleButton();
-        SharedStyles.setupPasswordToggle(confirmPasswordField, toggleConfirm);
-        addPasswordFormField(registerPanel, "Confirm Password:", confirmPasswordField, toggleConfirm, 5, gbc);
+        emailField = AuthUiKit.createTextField(20);
+        AuthUiKit.addFormRow(form, gbc, 2, "Email address", emailField);
 
-        // Enter key trigger
+        contactField = AuthUiKit.createTextField(20);
+        AuthUiKit.addFormRow(form, gbc, 4, "Contact number", contactField);
+
+        passwordField = AuthUiKit.createPasswordField();
+        JButton togglePass = new JButton();
+        AuthUiKit.setupPasswordToggle(passwordField, togglePass);
+        JPanel passwordRow = AuthUiKit.createPasswordRow(passwordField, togglePass);
+        AuthUiKit.addFormRow(form, gbc, 6, "Password", passwordRow);
+
+        confirmPasswordField = AuthUiKit.createPasswordField();
+        JButton toggleConfirm = new JButton();
+        AuthUiKit.setupPasswordToggle(confirmPasswordField, toggleConfirm);
+        JPanel confirmRow = AuthUiKit.createPasswordRow(confirmPasswordField, toggleConfirm);
+        AuthUiKit.addFormRow(form, gbc, 8, "Confirm password", confirmRow);
+
         java.awt.event.KeyAdapter enterKeyHandler = new java.awt.event.KeyAdapter() {
             @Override
             public void keyPressed(java.awt.event.KeyEvent e) {
@@ -74,52 +76,38 @@ public class RegisterFrame extends BaseFrame {
         passwordField.addKeyListener(enterKeyHandler);
         confirmPasswordField.addKeyListener(enterKeyHandler);
 
-        // Register Button
-        JButton registerButton = SharedStyles.createActionButton("Register", SharedStyles.BTN_BLUE);
-        registerButton.setFont(new Font("SansSerif", Font.BOLD, 16));
-        registerButton.setPreferredSize(new Dimension(300, 45));
+        JButton registerButton = AuthUiKit.createPrimaryButton("Create account");
         registerButton.addActionListener(e -> performRegistration());
-        
-        gbc.gridx = 0; gbc.gridy = 6; gbc.gridwidth = 2;
-        gbc.insets = new Insets(20, 5, 10, 5);
-        registerPanel.add(registerButton, gbc);
+        gbc.gridx = 0;
+        gbc.gridy = 10;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(22, 0, 12, 0);
+        form.add(registerButton, gbc);
 
-        // Back link
-        JButton backToLoginLink = SharedStyles.createLinkButton("Back to Login");
+        JButton backToLoginLink = AuthUiKit.createSecondaryLink("Back to sign in");
         backToLoginLink.addActionListener(e -> {
             new LoginFrame().setVisible(true);
-            this.dispose();
+            dispose();
         });
-        gbc.gridy = 7; gbc.insets = new Insets(10, 5, 5, 5);
-        registerPanel.add(backToLoginLink, gbc);
+        JPanel linkRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        linkRow.setOpaque(false);
+        linkRow.add(backToLoginLink);
+        gbc.gridx = 0;
+        gbc.gridy = 11;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        form.add(linkRow, gbc);
 
-        frameGbc.gridy = 1;
-        frameGbc.insets = new Insets(0, 0, 0, 0);
-        add(registerPanel, frameGbc);
-    }
-
-    private void addFormField(JPanel panel, String labelText, JTextField field, int gridy, GridBagConstraints gbc) {
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        gbc.gridx = 0; gbc.gridy = gridy; gbc.gridwidth = 1;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        panel.add(label, gbc);
-
-        field.setPreferredSize(new Dimension(300, 35));
-        gbc.gridx = 1;
-        panel.add(field, gbc);
-    }
-
-    private void addPasswordFormField(JPanel panel, String labelText, JPasswordField field, JButton toggleBtn, int gridy, GridBagConstraints gbc) {
-        JLabel label = new JLabel(labelText);
-        label.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        gbc.gridx = 0; gbc.gridy = gridy; gbc.gridwidth = 1;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        panel.add(label, gbc);
-
-        JPanel container = SharedStyles.createPasswordContainer(field, toggleBtn);
-        gbc.gridx = 1;
-        panel.add(container, gbc);
+        root.add(formShell, BorderLayout.CENTER);
+        add(root, BorderLayout.CENTER);
     }
 
     private void performRegistration() {
@@ -135,7 +123,7 @@ public class RegisterFrame extends BaseFrame {
         if (result.isSuccess()) {
             SharedStyles.showMessage(this, "Registration successful! You can now login.");
             new LoginFrame().setVisible(true);
-            this.dispose();
+            dispose();
         } else {
             SharedStyles.showError(this, result.getError());
         }
