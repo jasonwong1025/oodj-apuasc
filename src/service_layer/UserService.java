@@ -115,24 +115,42 @@ public class UserService {
         User existing = userRepository.findById(user.getUserId());
         if (existing == null) return utils.Result.failure("User not found.");
 
+        String fullName = user.getFullName().trim();
+        String email = user.getEmail().trim();
+        String contact = user.getContact().trim();
+
         // Check email uniqueness if email changed
-        if (!existing.getEmail().equalsIgnoreCase(user.getEmail())) {
+        if (!existing.getEmail().equalsIgnoreCase(email)) {
             for (User u : listAllUsers()) {
-                if (u.getEmail().equalsIgnoreCase(user.getEmail())) {
+                if (!u.getUserId().equals(existing.getUserId()) && u.getEmail().equalsIgnoreCase(email)) {
                     return utils.Result.failure("Email is already in use.");
                 }
             }
         }
 
-        // Update fields
-        existing.setFullName(user.getFullName().trim());
-        existing.setEmail(user.getEmail().trim());
-        existing.setContact(user.getContact().trim());
+        User draft = new User(existing.getUserId(), fullName, email, contact,
+                existing.getPassword(), existing.getRole());
+        if (existing.getRole() == model.users.Role.TECHNICIAN) {
+            draft.setTechnicianServiceType(user.getTechnicianServiceType());
+        }
+        draft.setActive(user.isActive());
+
+        String violations = ValidationUtil.getViolations(draft);
+        if (violations != null) {
+            return utils.Result.failure(violations);
+        }
 
         if (newPassword != null && !newPassword.trim().isEmpty()) {
             if (!ValidationUtil.isValidPassword(newPassword)) {
                 return utils.Result.failure(ValidationUtil.passwordRequirementsMessage());
             }
+        }
+
+        existing.setFullName(fullName);
+        existing.setEmail(email);
+        existing.setContact(contact);
+
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
             existing.setPassword(utils.PasswordHasher.hashPassword(newPassword));
         }
 

@@ -193,6 +193,34 @@ public final class AuthUiKit {
         return (JPanel) formShell.getComponent(2);
     }
 
+    public static JTextField createResponsiveTextField(int columns) {
+        JTextField field = createTextField(columns);
+        field.setPreferredSize(new Dimension(0, 42));
+        field.setMinimumSize(new Dimension(160, 42));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        return field;
+    }
+
+    public static JPasswordField createResponsivePasswordField() {
+        JPasswordField field = createPasswordField();
+        field.setPreferredSize(new Dimension(0, 42));
+        field.setMinimumSize(new Dimension(160, 42));
+        field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        return field;
+    }
+
+    public static JPanel createResponsivePasswordRow(JPasswordField field, JButton toggleBtn) {
+        JPanel row = createPasswordRow(field, toggleBtn);
+        row.setPreferredSize(new Dimension(0, 42));
+        row.setMinimumSize(new Dimension(160, 42));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        return row;
+    }
+
+    public static JTextArea createWrappingText(String text, Font font, Color color) {
+        return createWrappingTextArea(text, font, color);
+    }
+
     public static JTextField createTextField(int columns) {
         JTextField field = new JTextField(columns) {
             @Override
