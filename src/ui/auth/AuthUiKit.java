@@ -243,11 +243,13 @@ public final class AuthUiKit {
         JPasswordField field = new JPasswordField() {
             @Override
             protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(getBackground());
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
+                if (!Boolean.TRUE.equals(getClientProperty("auth.passwordRowField"))) {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(getBackground());
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                    g2.dispose();
+                }
                 super.paintComponent(g);
             }
         };
@@ -280,44 +282,15 @@ public final class AuthUiKit {
     }
 
     public static JPanel createPasswordRow(JPasswordField field, JButton toggleBtn) {
-        JPanel row = new JPanel(new BorderLayout(0, 0));
-        row.setOpaque(false);
-        row.setPreferredSize(FIELD_SIZE);
-        row.setMinimumSize(new Dimension(220, 42));
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-
-        JPanel shell = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(250, 251, 253));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.setColor(field.hasFocus() ? FIELD_FOCUS : FIELD_BORDER);
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
-                g2.dispose();
-            }
-        };
-        shell.setOpaque(false);
-        shell.setBorder(new EmptyBorder(0, 4, 0, 4));
-
-        field.setBorder(new EmptyBorder(10, 10, 10, 4));
-        field.setBackground(new Color(250, 251, 253));
-        field.setPreferredSize(new Dimension(0, 42));
-        field.setMinimumSize(new Dimension(80, 42));
-        field.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                field.setBorder(new EmptyBorder(10, 10, 10, 4));
-                shell.repaint();
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                field.setBorder(new EmptyBorder(10, 10, 10, 4));
-                shell.repaint();
-            }
-        });
+        field.putClientProperty("auth.passwordRowField", Boolean.TRUE);
+        field.setOpaque(false);
+        for (java.awt.event.FocusListener listener : field.getFocusListeners()) {
+            field.removeFocusListener(listener);
+        }
+        field.setBorder(new EmptyBorder(0, 0, 0, 0));
+        field.setBackground(new Color(0, 0, 0, 0));
+        field.setPreferredSize(new Dimension(0, 24));
+        field.setMinimumSize(new Dimension(60, 24));
 
         toggleBtn.setPreferredSize(PASSWORD_TOGGLE_SIZE);
         toggleBtn.setMinimumSize(PASSWORD_TOGGLE_SIZE);
@@ -329,10 +302,49 @@ public final class AuthUiKit {
         toggleBtn.setOpaque(false);
         toggleBtn.setMargin(new Insets(0, 8, 0, 8));
         toggleBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        toggleBtn.setBorder(new EmptyBorder(0, 6, 0, 6));
 
-        shell.add(field, BorderLayout.CENTER);
-        shell.add(toggleBtn, BorderLayout.EAST);
-        row.add(shell, BorderLayout.CENTER);
+        JPanel row = new JPanel(new BorderLayout(0, 0)) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(250, 251, 253));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        row.setOpaque(false);
+        row.setPreferredSize(FIELD_SIZE);
+        row.setMinimumSize(new Dimension(220, 42));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
+        row.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(FIELD_BORDER, 1, true),
+                new EmptyBorder(9, 13, 9, 4)));
+        row.add(field, BorderLayout.CENTER);
+        row.add(toggleBtn, BorderLayout.EAST);
+
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                row.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(FIELD_FOCUS, 2, true),
+                        new EmptyBorder(8, 12, 8, 3)));
+                row.revalidate();
+                row.repaint();
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                row.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(FIELD_BORDER, 1, true),
+                        new EmptyBorder(9, 13, 9, 4)));
+                row.revalidate();
+                row.repaint();
+            }
+        });
+
         return row;
     }
 
