@@ -41,25 +41,25 @@ public class RegisterFrame extends BaseFrame {
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        fullNameField = AuthUiKit.createTextField(20);
+        fullNameField = AuthUiKit.createResponsiveTextField(20);
         AuthUiKit.addFormRow(form, gbc, 0, "Full name", fullNameField);
 
-        emailField = AuthUiKit.createTextField(20);
+        emailField = AuthUiKit.createResponsiveTextField(20);
         AuthUiKit.addFormRow(form, gbc, 2, "Email address", emailField);
 
-        contactField = AuthUiKit.createTextField(20);
+        contactField = AuthUiKit.createResponsiveTextField(20);
         AuthUiKit.addFormRow(form, gbc, 4, "Contact number", contactField);
 
-        passwordField = AuthUiKit.createPasswordField();
+        passwordField = AuthUiKit.createResponsivePasswordField();
         JButton togglePass = new JButton();
         AuthUiKit.setupPasswordToggle(passwordField, togglePass);
-        JPanel passwordRow = AuthUiKit.createPasswordRow(passwordField, togglePass);
+        JPanel passwordRow = AuthUiKit.createResponsivePasswordRow(passwordField, togglePass);
         AuthUiKit.addFormRow(form, gbc, 6, "Password", passwordRow);
 
-        confirmPasswordField = AuthUiKit.createPasswordField();
+        confirmPasswordField = AuthUiKit.createResponsivePasswordField();
         JButton toggleConfirm = new JButton();
         AuthUiKit.setupPasswordToggle(confirmPasswordField, toggleConfirm);
-        JPanel confirmRow = AuthUiKit.createPasswordRow(confirmPasswordField, toggleConfirm);
+        JPanel confirmRow = AuthUiKit.createResponsivePasswordRow(confirmPasswordField, toggleConfirm);
         AuthUiKit.addFormRow(form, gbc, 8, "Confirm password", confirmRow);
 
         java.awt.event.KeyAdapter enterKeyHandler = new java.awt.event.KeyAdapter() {
