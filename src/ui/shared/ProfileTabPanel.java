@@ -8,6 +8,7 @@ import utils.Result;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.Dialog;
 
 /**
  * Profile management panel shared across all portals.
@@ -18,8 +19,6 @@ public class ProfileTabPanel extends JPanel {
     private JTextField nameField;
     private JTextField emailField;
     private JTextField contactField;
-    private JPasswordField passwordField;
-    private JPasswordField confirmPasswordField;
     private User loadedUser;
 
     public ProfileTabPanel(PortalContext context) {
@@ -56,9 +55,6 @@ public class ProfileTabPanel extends JPanel {
 
         bgbc.gridy = row++;
         body.add(buildDetailsCard(), bgbc);
-
-        bgbc.gridy = row++;
-        body.add(buildSecurityCard(), bgbc);
 
         bgbc.gridy = row;
         bgbc.insets = new Insets(4, 0, 0, 0);
@@ -179,10 +175,25 @@ public class ProfileTabPanel extends JPanel {
 
         nameField = AuthUiKit.createResponsiveTextField(20);
         nameField.setText(loadedUser.getFullName());
+        nameField.setEditable(false);
+        nameField.setFocusable(false);
+        nameField.setBackground(new Color(245, 246, 248));
+        nameField.setForeground(new Color(60, 70, 85));
+
         emailField = AuthUiKit.createResponsiveTextField(20);
         emailField.setText(loadedUser.getEmail());
+        emailField.setEditable(false);
+        emailField.setFocusable(false);
+        emailField.setBackground(new Color(245, 246, 248));
+        emailField.setForeground(new Color(60, 70, 85));
+        emailField.setToolTipText("Email address cannot be changed.");
+
         contactField = AuthUiKit.createResponsiveTextField(20);
         contactField.setText(loadedUser.getContact());
+        contactField.setEditable(false);
+        contactField.setFocusable(false);
+        contactField.setBackground(new Color(245, 246, 248));
+        contactField.setForeground(new Color(60, 70, 85));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -195,52 +206,22 @@ public class ProfileTabPanel extends JPanel {
         return section;
     }
 
-    private JPanel buildSecurityCard() {
-        JPanel section = createSection("Security");
-        JPanel card = sectionCard(section);
-        card.setLayout(new GridBagLayout());
 
-        passwordField = AuthUiKit.createResponsivePasswordField();
-        confirmPasswordField = AuthUiKit.createResponsivePasswordField();
-        JButton togglePass = new JButton();
-        JButton toggleConfirm = new JButton();
-        AuthUiKit.setupPasswordToggle(passwordField, togglePass);
-        AuthUiKit.setupPasswordToggle(confirmPasswordField, toggleConfirm);
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-
-        AuthUiKit.addFormRow(card, gbc, 0, "New password",
-                AuthUiKit.createResponsivePasswordRow(passwordField, togglePass));
-        AuthUiKit.addFormRow(card, gbc, 2, "Confirm new password",
-                AuthUiKit.createResponsivePasswordRow(confirmPasswordField, toggleConfirm));
-
-        gbc.gridy = 4;
-        gbc.insets = new Insets(4, 0, 0, 0);
-        JTextArea hint = AuthUiKit.createWrappingText(
-                "Leave blank to keep your current password. New passwords must meet the system requirements.",
-                new Font("SansSerif", Font.PLAIN, 12),
-                AuthUiKit.TEXT_MUTED);
-        card.add(hint, gbc);
-        return section;
-    }
 
     private JPanel buildActions() {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         actions.setOpaque(false);
 
-        JButton saveBtn = SharedStyles.createActionButton("Save changes", SharedStyles.BTN_GREEN);
-        saveBtn.setPreferredSize(new Dimension(150, 40));
-        saveBtn.addActionListener(e -> saveProfile());
+        JButton updateInfoBtn = SharedStyles.createActionButton("Update Information", SharedStyles.BTN_GREEN);
+        updateInfoBtn.setPreferredSize(new Dimension(190, 40));
+        updateInfoBtn.addActionListener(e -> showUpdateInfoDialog());
 
-        JButton resetBtn = SharedStyles.createActionButton("Reset", SharedStyles.BTN_BLUE);
-        resetBtn.setPreferredSize(new Dimension(110, 40));
-        resetBtn.addActionListener(e -> refresh());
+        JButton changePassBtn = SharedStyles.createActionButton("Change Password", SharedStyles.BTN_BLUE);
+        changePassBtn.setPreferredSize(new Dimension(180, 40));
+        changePassBtn.addActionListener(e -> showChangePasswordDialog());
 
-        actions.add(saveBtn);
-        actions.add(resetBtn);
+        actions.add(updateInfoBtn);
+        actions.add(changePassBtn);
         return actions;
     }
 
@@ -262,36 +243,190 @@ public class ProfileTabPanel extends JPanel {
         return (JPanel) section.getComponent(1);
     }
 
-    private void saveProfile() {
-        if (loadedUser == null) {
-            return;
-        }
+    private void showUpdateInfoDialog() {
+        if (loadedUser == null) return;
 
-        loadedUser.setFullName(nameField.getText().trim());
-        loadedUser.setEmail(emailField.getText().trim());
-        loadedUser.setContact(contactField.getText().trim());
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Update Information", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setSize(480, 380);
+        dialog.setLocationRelativeTo(this);
+        dialog.setResizable(false);
 
-        String newPass = new String(passwordField.getPassword());
-        String confirmPass = new String(confirmPasswordField.getPassword());
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(28, 32, 28, 32));
 
-        if (!newPass.isEmpty() || !confirmPass.isEmpty()) {
-            if (!newPass.equals(confirmPass)) {
-                SharedStyles.showError(this, "Passwords do not match.");
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(4, 0, 4, 0);
+
+        gbc.gridy = 0;
+        JLabel titleLbl = new JLabel("Update Information");
+        titleLbl.setFont(new Font("SansSerif", Font.BOLD, 20));
+        titleLbl.setForeground(AuthUiKit.TEXT_PRIMARY);
+        panel.add(titleLbl, gbc);
+
+        gbc.gridy = 1;
+        gbc.insets = new Insets(2, 0, 20, 0);
+        JLabel subLbl = new JLabel("Update your full name and contact number below.");
+        subLbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        subLbl.setForeground(AuthUiKit.TEXT_MUTED);
+        panel.add(subLbl, gbc);
+
+        gbc.insets = new Insets(4, 0, 4, 0);
+        JTextField nameInput = AuthUiKit.createResponsiveTextField(20);
+        nameInput.setText(loadedUser.getFullName());
+        JTextField contactInput = AuthUiKit.createResponsiveTextField(20);
+        contactInput.setText(loadedUser.getContact());
+
+        AuthUiKit.addFormRow(panel, gbc, 2, "Full name", nameInput);
+        AuthUiKit.addFormRow(panel, gbc, 4, "Contact number", contactInput);
+
+        // Action Buttons
+        gbc.gridy = 6;
+        gbc.insets = new Insets(24, 0, 0, 0);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        buttonPanel.setOpaque(false);
+
+        JButton cancelBtn = SharedStyles.createActionButton("Cancel", SharedStyles.BTN_BLUE);
+        cancelBtn.setPreferredSize(new Dimension(110, 40));
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        JButton saveBtn = SharedStyles.createActionButton("Save Changes", SharedStyles.BTN_GREEN);
+        saveBtn.setPreferredSize(new Dimension(150, 40));
+        saveBtn.addActionListener(e -> {
+            String newName = nameInput.getText().trim();
+            String newContact = contactInput.getText().trim();
+
+            if (newName.isEmpty()) {
+                SharedStyles.showError(dialog, "Full name cannot be empty.");
                 return;
             }
-        }
 
-        Result<Void> result = context.userService().updateUser(
-                loadedUser,
-                newPass.isEmpty() ? null : newPass);
+            loadedUser.setFullName(newName);
+            loadedUser.setContact(newContact);
 
-        if (result.isSuccess()) {
-            SharedStyles.showMessage(this, "Profile updated successfully.");
-            context.refreshAction().run();
-            refresh();
-        } else {
-            SharedStyles.showError(this, result.getError());
-        }
+            Result<Void> result = context.userService().updateUser(loadedUser, null);
+            if (result.isSuccess()) {
+                dialog.dispose();
+                SharedStyles.showMessage(this, "Information updated successfully.");
+                context.refreshAction().run();
+                refresh();
+            } else {
+                SharedStyles.showError(dialog, result.getError());
+            }
+        });
+        buttonPanel.add(cancelBtn);
+        buttonPanel.add(saveBtn);
+        panel.add(buttonPanel, gbc);
+
+        dialog.setContentPane(panel);
+        dialog.setVisible(true);
+    }
+
+    private void showChangePasswordDialog() {
+        if (loadedUser == null) return;
+
+        // Build dialog
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Change Password", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setSize(520, 450);
+        dialog.setLocationRelativeTo(this);
+        dialog.setResizable(false);
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(28, 32, 28, 32));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(4, 0, 4, 0);
+
+        // Title
+        gbc.gridy = 0;
+        JLabel titleLbl = new JLabel("Change Password");
+        titleLbl.setFont(new Font("SansSerif", Font.BOLD, 20));
+        titleLbl.setForeground(AuthUiKit.TEXT_PRIMARY);
+        panel.add(titleLbl, gbc);
+
+        gbc.gridy = 1;
+        gbc.insets = new Insets(2, 0, 16, 0);
+        JLabel subLbl = new JLabel("Enter your current password and choose a new one.");
+        subLbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        subLbl.setForeground(AuthUiKit.TEXT_MUTED);
+        panel.add(subLbl, gbc);
+
+        gbc.insets = new Insets(4, 0, 4, 0);
+
+        // Password fields
+        JPasswordField oldPassF = AuthUiKit.createResponsivePasswordField();
+        JPasswordField newPassF = AuthUiKit.createResponsivePasswordField();
+        JPasswordField confirmPassF = AuthUiKit.createResponsivePasswordField();
+        JButton toggleOld = new JButton();
+        JButton toggleNew = new JButton();
+        JButton toggleConfirm = new JButton();
+        AuthUiKit.setupPasswordToggle(oldPassF, toggleOld);
+        AuthUiKit.setupPasswordToggle(newPassF, toggleNew);
+        AuthUiKit.setupPasswordToggle(confirmPassF, toggleConfirm);
+
+        AuthUiKit.addFormRow(panel, gbc, 2, "Current password",
+                AuthUiKit.createResponsivePasswordRow(oldPassF, toggleOld));
+        AuthUiKit.addFormRow(panel, gbc, 4, "New password",
+                AuthUiKit.createResponsivePasswordRow(newPassF, toggleNew));
+        AuthUiKit.addFormRow(panel, gbc, 6, "Confirm new password",
+                AuthUiKit.createResponsivePasswordRow(confirmPassF, toggleConfirm));
+
+        // Action Buttons
+        gbc.gridy = 8;
+        gbc.insets = new Insets(20, 0, 0, 0);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        buttonPanel.setOpaque(false);
+
+        JButton cancelBtn = SharedStyles.createActionButton("Cancel", SharedStyles.BTN_BLUE);
+        cancelBtn.setPreferredSize(new Dimension(110, 40));
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        JButton confirmBtn = SharedStyles.createActionButton("Change Password", SharedStyles.BTN_GREEN);
+        confirmBtn.setPreferredSize(new Dimension(180, 40));
+        confirmBtn.addActionListener(e -> {
+            String oldPass = new String(oldPassF.getPassword());
+            String newPass = new String(newPassF.getPassword());
+            String confirmPass = new String(confirmPassF.getPassword());
+
+            if (oldPass.isEmpty() || newPass.isEmpty() || confirmPass.isEmpty()) {
+                SharedStyles.showError(dialog, "Please fill in all three password fields.");
+                return;
+            }
+            if (!utils.PasswordHasher.verifyPassword(oldPass, loadedUser.getPassword())) {
+                SharedStyles.showError(dialog, "Your current password is incorrect.");
+                return;
+            }
+            if (!newPass.equals(confirmPass)) {
+                SharedStyles.showError(dialog, "New password and confirmation do not match.");
+                return;
+            }
+            if (!utils.ValidationUtil.isValidPassword(newPass)) {
+                SharedStyles.showError(dialog, utils.ValidationUtil.passwordRequirementsMessage());
+                return;
+            }
+
+            Result<Void> result = context.userService().updateUser(loadedUser, newPass);
+            if (result.isSuccess()) {
+                dialog.dispose();
+                SharedStyles.showMessage(this, "Password changed successfully.");
+                refresh();
+            } else {
+                SharedStyles.showError(dialog, result.getError());
+            }
+        });
+        buttonPanel.add(cancelBtn);
+        buttonPanel.add(confirmBtn);
+        panel.add(buttonPanel, gbc);
+
+        dialog.setContentPane(panel);
+        dialog.setVisible(true);
     }
 
     private static JLabel createBadge(Role role) {
