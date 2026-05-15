@@ -24,40 +24,35 @@ public class LoginFrame extends BaseFrame {
 
     @Override
     protected void initContent() {
-        setLayout(new GridBagLayout());
-        GridBagConstraints frameGbc = new GridBagConstraints();
-        frameGbc.gridx = 0;
-        frameGbc.insets = new Insets(20, 20, 20, 20);
-        frameGbc.anchor = GridBagConstraints.CENTER;
+        setSize(960, 620);
+        setMinimumSize(new Dimension(820, 560));
+        setLocationRelativeTo(null);
 
-        JLabel headingLabel = SharedStyles.createHeadingLabel("APU Automotive Service Centre (APU – ASC)");
-        frameGbc.gridy = 0;
-        frameGbc.insets = new Insets(0, 0, 20, 0);
-        add(headingLabel, frameGbc);
+        JPanel root = AuthUiKit.createRootPanel();
+        root.add(AuthUiKit.createBrandPanel(
+                "Automotive\nService Centre",
+                "Book services, track appointments, and manage your vehicle care in one place."), BorderLayout.WEST);
 
-        JPanel loginPanel = new JPanel(new GridBagLayout());
-        loginPanel.setBackground(Color.WHITE);
-        loginPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(230, 230, 230), 1),
-                new EmptyBorder(40, 60, 40, 60)
-        ));
+        JPanel formShell = AuthUiKit.createFormShell(
+                "Welcome back",
+                "Sign in to continue to your dashboard.");
+        JPanel authCard = AuthUiKit.extractFormCard(formShell);
+        JPanel form = AuthUiKit.getCardContent(authCard);
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Email
-        JLabel emailLabel = new JLabel("Email:");
-        emailLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        gbc.gridx = 0; gbc.gridy = 0;
-        loginPanel.add(emailLabel, gbc);
+        emailField = AuthUiKit.createTextField(20);
+        AuthUiKit.addFormRow(form, gbc, 0, "Email address", emailField);
 
-        emailField = SharedStyles.createFilterField(20);
-        emailField.setPreferredSize(new Dimension(300, 35));
-        gbc.gridx = 1;
-        loginPanel.add(emailField, gbc);
+        passwordField = AuthUiKit.createPasswordField();
+        JButton toggleBtn = new JButton();
+        AuthUiKit.setupPasswordToggle(passwordField, toggleBtn);
+        JPanel passwordRow = AuthUiKit.createPasswordRow(passwordField, toggleBtn);
+        AuthUiKit.addFormRow(form, gbc, 2, "Password", passwordRow);
 
-        // Add Enter key trigger
         java.awt.event.KeyAdapter enterKeyHandler = new java.awt.event.KeyAdapter() {
             @Override
             public void keyPressed(java.awt.event.KeyEvent e) {
@@ -67,54 +62,50 @@ public class LoginFrame extends BaseFrame {
             }
         };
         emailField.addKeyListener(enterKeyHandler);
-
-        // Password
-        JLabel passwordLabel = new JLabel("Password:");
-        passwordLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        gbc.gridx = 0; gbc.gridy = 1;
-        loginPanel.add(passwordLabel, gbc);
-
-        passwordField = SharedStyles.createPasswordField();
         passwordField.addKeyListener(enterKeyHandler);
-        JButton toggleBtn = SharedStyles.createPasswordToggleButton();
-        SharedStyles.setupPasswordToggle(passwordField, toggleBtn);
-        JPanel passWrap = SharedStyles.createPasswordContainer(passwordField, toggleBtn);
-        gbc.gridx = 1;
-        loginPanel.add(passWrap, gbc);
 
-        // Login Button
-        JButton loginButton = SharedStyles.createActionButton("Login", SharedStyles.BTN_BLUE);
-        loginButton.setFont(new Font("SansSerif", Font.BOLD, 16));
-        loginButton.setPreferredSize(new Dimension(300, 45));
+        JButton loginButton = AuthUiKit.createPrimaryButton("Sign in");
         loginButton.addActionListener(e -> performLogin());
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(24, 0, 12, 0);
+        form.add(loginButton, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2;
-        gbc.insets = new Insets(20, 5, 10, 5);
-        loginPanel.add(loginButton, gbc);
-
-        // Links
-        JButton registerLink = SharedStyles.createLinkButton("Register as Customer");
+        JPanel links = new JPanel(new FlowLayout(FlowLayout.CENTER, 18, 0));
+        links.setOpaque(false);
+        JButton registerLink = AuthUiKit.createSecondaryLink("Create an account");
         registerLink.addActionListener(e -> {
             new RegisterFrame().setVisible(true);
-            this.dispose();
+            dispose();
         });
-        gbc.gridy = 3; gbc.insets = new Insets(10, 5, 5, 5);
-        loginPanel.add(registerLink, gbc);
-
-        JButton forgotLink = SharedStyles.createLinkButton("Forgot Password?");
+        JButton forgotLink = AuthUiKit.createSecondaryLink("Forgot password?");
         forgotLink.addActionListener(e -> showForgotPasswordStep1());
-        gbc.gridy = 4; gbc.insets = new Insets(5, 5, 5, 5);
-        loginPanel.add(forgotLink, gbc);
+        links.add(registerLink);
+        links.add(forgotLink);
 
-        frameGbc.gridy = 1;
-        frameGbc.insets = new Insets(0, 0, 0, 0);
-        add(loginPanel, frameGbc);
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        gbc.gridwidth = 1;
+        gbc.weightx = 1.0;
+        gbc.weighty = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.anchor = GridBagConstraints.NORTHWEST;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        form.add(links, gbc);
+
+        root.add(formShell, BorderLayout.CENTER);
+        add(root, BorderLayout.CENTER);
     }
 
     private void performLogin() {
         service_layer.UserService userService = new service_layer.UserService();
         utils.Result<abstracts.AbstractUser> result = userService.login(emailField.getText(), new String(passwordField.getPassword()));
-        
+
         if (result.isSuccess()) {
             abstracts.AbstractUser user = result.getValue();
             if (user.getRole() == model.users.Role.CUSTOMER) {
@@ -126,53 +117,64 @@ public class LoginFrame extends BaseFrame {
             } else if (user.getRole() == model.users.Role.COUNTERSTAFF) {
                 new CounterStaffDashboard(user).setVisible(true);
             }
-            this.dispose();
+            dispose();
         } else {
             SharedStyles.showError(this, result.getError());
         }
     }
 
-    private void showForgotPasswordStep1() {
-        JDialog dialog = new JDialog(this, "Forgot Password - Step 1 of 3", true);
-        dialog.setSize(420, 260);
-        dialog.setLocationRelativeTo(this);
-        dialog.setResizable(false);
-
+    private JPanel buildDialogPanel(String title, String subtitle) {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(24, 30, 24, 30));
+        panel.setBorder(new EmptyBorder(28, 32, 28, 32));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(4, 4, 4, 4);
 
-        JLabel title = new JLabel("Forgot Password");
-        title.setFont(new Font("SansSerif", Font.BOLD, 18));
-        panel.add(title, gbc);
+        JLabel titleLbl = new JLabel(title);
+        titleLbl.setFont(new Font("SansSerif", Font.BOLD, 20));
+        titleLbl.setForeground(AuthUiKit.TEXT_PRIMARY);
+        panel.add(titleLbl, gbc);
 
         gbc.gridy++;
-        JLabel sub = new JLabel("Enter your registered email address to receive an OTP.");
-        sub.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        sub.setForeground(new Color(100, 100, 100));
-        panel.add(sub, gbc);
+        JLabel subLbl = new JLabel(subtitle);
+        subLbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        subLbl.setForeground(AuthUiKit.TEXT_MUTED);
+        panel.add(subLbl, gbc);
 
-        gbc.gridy++;
-        gbc.insets = new Insets(12, 4, 4, 4);
-        JLabel emailLbl = new JLabel("Email Address:");
-        emailLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        panel.add(emailLbl, gbc);
+        return panel;
+    }
+
+    private void showForgotPasswordStep1() {
+        JDialog dialog = new JDialog(this, "Forgot Password - Step 1 of 3", true);
+        dialog.setSize(440, 280);
+        dialog.setLocationRelativeTo(this);
+        dialog.setResizable(false);
+
+        JPanel panel = buildDialogPanel("Forgot password", "Enter your registered email to receive a one-time code.");
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(4, 4, 4, 4);
+
+        gbc.gridy = 2;
+        gbc.insets = new Insets(16, 4, 4, 4);
+        panel.add(AuthUiKit.createFieldLabel("Email address"), gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(4, 4, 4, 4);
-        JTextField emailInput = SharedStyles.createFilterField(20);
-        emailInput.setPreferredSize(new Dimension(0, 32));
+        JTextField emailInput = AuthUiKit.createTextField(20);
         panel.add(emailInput, gbc);
 
         gbc.gridy++;
-        gbc.insets = new Insets(16, 4, 4, 4);
-        JButton sendBtn = SharedStyles.createActionButton("Send OTP", SharedStyles.BTN_BLUE);
+        gbc.insets = new Insets(20, 4, 4, 4);
+        JButton sendBtn = AuthUiKit.createPrimaryButton("Send OTP");
         panel.add(sendBtn, gbc);
 
         sendBtn.addActionListener(e -> {
@@ -224,50 +226,35 @@ public class LoginFrame extends BaseFrame {
 
     private void showForgotPasswordStep2(String email, PasswordResetService resetService) {
         JDialog dialog = new JDialog(this, "Forgot Password - Step 2 of 3", true);
-        dialog.setSize(420, 300);
+        dialog.setSize(440, 320);
         dialog.setLocationRelativeTo(this);
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(24, 30, 24, 30));
+        JPanel panel = buildDialogPanel("Verify OTP",
+                "<html>Enter the 6-digit code sent to <b>" + email + "</b>.</html>");
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.gridx = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(4, 4, 4, 4);
 
-        JLabel title = new JLabel("Verify OTP");
-        title.setFont(new Font("SansSerif", Font.BOLD, 18));
-        panel.add(title, gbc);
+        gbc.gridy = 2;
+        gbc.insets = new Insets(16, 4, 4, 4);
+        panel.add(AuthUiKit.createFieldLabel("One-time password"), gbc);
 
         gbc.gridy++;
-        JLabel sub = new JLabel("<html>Enter the 6-digit OTP sent to <b>" + email + "</b>.</html>");
-        sub.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        sub.setForeground(new Color(100, 100, 100));
-        panel.add(sub, gbc);
-
-        gbc.gridy++;
-        gbc.insets = new Insets(14, 4, 4, 4);
-        JLabel otpLbl = new JLabel("One-Time Password (OTP):");
-        otpLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        panel.add(otpLbl, gbc);
-
-        gbc.gridy++;
-        gbc.insets = new Insets(4, 4, 4, 4);
-        JTextField otpInput = SharedStyles.createFilterField(20);
+        JTextField otpInput = AuthUiKit.createTextField(20);
         otpInput.setFont(new Font("SansSerif", Font.BOLD, 18));
         otpInput.setHorizontalAlignment(JTextField.CENTER);
-        otpInput.setPreferredSize(new Dimension(0, 36));
         panel.add(otpInput, gbc);
 
         gbc.gridy++;
-        gbc.insets = new Insets(16, 4, 4, 4);
-        JButton verifyBtn = SharedStyles.createActionButton("Verify OTP", SharedStyles.BTN_BLUE);
+        gbc.insets = new Insets(20, 4, 4, 4);
+        JButton verifyBtn = AuthUiKit.createPrimaryButton("Verify OTP");
         panel.add(verifyBtn, gbc);
 
         gbc.gridy++;
-        JButton backBtn = SharedStyles.createLinkButton("<- Request a new OTP");
+        JButton backBtn = AuthUiKit.createSecondaryLink("Request a new code");
         panel.add(backBtn, gbc);
 
         verifyBtn.addActionListener(e -> {
@@ -292,57 +279,38 @@ public class LoginFrame extends BaseFrame {
 
     private void showForgotPasswordStep3(String email, PasswordResetService resetService) {
         JDialog dialog = new JDialog(this, "Forgot Password - Step 3 of 3", true);
-        dialog.setSize(440, 360);
+        dialog.setSize(460, 380);
         dialog.setLocationRelativeTo(this);
 
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(new EmptyBorder(24, 30, 24, 30));
+        JPanel panel = buildDialogPanel("Set new password",
+                "Use at least 6 characters with upper, lower, number and special character.");
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0; gbc.gridy = 0;
+        gbc.gridx = 0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(4, 4, 4, 4);
 
-        JLabel title = new JLabel("Set New Password");
-        title.setFont(new Font("SansSerif", Font.BOLD, 18));
-        panel.add(title, gbc);
+        gbc.gridy = 2;
+        gbc.insets = new Insets(16, 4, 4, 4);
+        panel.add(AuthUiKit.createFieldLabel("New password"), gbc);
 
         gbc.gridy++;
-        JLabel req = new JLabel("<html><font color='#777777'>Min. 6 characters \u2014 uppercase, lowercase, number and special character.</font></html>");
-        req.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        panel.add(req, gbc);
-
-        gbc.gridy++;
-        gbc.insets = new Insets(12, 4, 4, 4);
-        JLabel newPassLbl = new JLabel("New Password:");
-        newPassLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        panel.add(newPassLbl, gbc);
-
-        gbc.gridy++;
-        gbc.insets = new Insets(4, 4, 4, 4);
-        JPasswordField newPassField = SharedStyles.createPasswordField();
-        newPassField.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        newPassField.setPreferredSize(new Dimension(0, 32));
+        JPasswordField newPassField = AuthUiKit.createPasswordField();
         panel.add(newPassField, gbc);
 
         gbc.gridy++;
-        gbc.insets = new Insets(10, 4, 4, 4);
-        JLabel confirmPassLbl = new JLabel("Confirm New Password:");
-        confirmPassLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
-        panel.add(confirmPassLbl, gbc);
+        gbc.insets = new Insets(12, 4, 4, 4);
+        panel.add(AuthUiKit.createFieldLabel("Confirm password"), gbc);
 
         gbc.gridy++;
         gbc.insets = new Insets(4, 4, 4, 4);
-        JPasswordField confirmPassField = SharedStyles.createPasswordField();
-        confirmPassField.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        confirmPassField.setPreferredSize(new Dimension(0, 32));
+        JPasswordField confirmPassField = AuthUiKit.createPasswordField();
         panel.add(confirmPassField, gbc);
 
         gbc.gridy++;
-        gbc.insets = new Insets(18, 4, 4, 4);
-        JButton resetBtn = SharedStyles.createActionButton("Reset Password", SharedStyles.BTN_GREEN);
+        gbc.insets = new Insets(20, 4, 4, 4);
+        JButton resetBtn = AuthUiKit.createPrimaryButton("Reset password");
         panel.add(resetBtn, gbc);
 
         resetBtn.addActionListener(e -> {
