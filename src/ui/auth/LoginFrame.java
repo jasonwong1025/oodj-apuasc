@@ -44,13 +44,13 @@ public class LoginFrame extends BaseFrame {
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        emailField = AuthUiKit.createTextField(20);
+        emailField = AuthUiKit.createResponsiveTextField(20);
         AuthUiKit.addFormRow(form, gbc, 0, "Email address", emailField);
 
-        passwordField = AuthUiKit.createPasswordField();
+        passwordField = AuthUiKit.createResponsivePasswordField();
         JButton toggleBtn = new JButton();
         AuthUiKit.setupPasswordToggle(passwordField, toggleBtn);
-        JPanel passwordRow = AuthUiKit.createPasswordRow(passwordField, toggleBtn);
+        JPanel passwordRow = AuthUiKit.createResponsivePasswordRow(passwordField, toggleBtn);
         AuthUiKit.addFormRow(form, gbc, 2, "Password", passwordRow);
 
         java.awt.event.KeyAdapter enterKeyHandler = new java.awt.event.KeyAdapter() {

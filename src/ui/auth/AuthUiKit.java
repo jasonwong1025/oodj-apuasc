@@ -23,6 +23,8 @@ public final class AuthUiKit {
     public static final Color TEXT_MUTED = new Color(110, 118, 130);
     public static final Color FIELD_BORDER = new Color(210, 216, 226);
     public static final Color FIELD_FOCUS = SharedStyles.BTN_BLUE;
+    private static final Dimension FIELD_SIZE = new Dimension(320, 42);
+    private static final Dimension PASSWORD_TOGGLE_SIZE = new Dimension(68, 42);
 
     private AuthUiKit() {}
 
@@ -195,7 +197,7 @@ public final class AuthUiKit {
 
     public static JTextField createResponsiveTextField(int columns) {
         JTextField field = createTextField(columns);
-        field.setPreferredSize(new Dimension(0, 42));
+        field.setPreferredSize(FIELD_SIZE);
         field.setMinimumSize(new Dimension(160, 42));
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         return field;
@@ -203,7 +205,7 @@ public final class AuthUiKit {
 
     public static JPasswordField createResponsivePasswordField() {
         JPasswordField field = createPasswordField();
-        field.setPreferredSize(new Dimension(0, 42));
+        field.setPreferredSize(FIELD_SIZE);
         field.setMinimumSize(new Dimension(160, 42));
         field.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         return field;
@@ -211,8 +213,8 @@ public final class AuthUiKit {
 
     public static JPanel createResponsivePasswordRow(JPasswordField field, JButton toggleBtn) {
         JPanel row = createPasswordRow(field, toggleBtn);
-        row.setPreferredSize(new Dimension(0, 42));
-        row.setMinimumSize(new Dimension(160, 42));
+        row.setPreferredSize(FIELD_SIZE);
+        row.setMinimumSize(new Dimension(220, 42));
         row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         return row;
     }
@@ -259,7 +261,7 @@ public final class AuthUiKit {
         field.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(FIELD_BORDER, 1, true),
                 new EmptyBorder(10, 14, 10, 14)));
-        field.setPreferredSize(new Dimension(320, 42));
+        field.setPreferredSize(FIELD_SIZE);
         field.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
@@ -280,7 +282,9 @@ public final class AuthUiKit {
     public static JPanel createPasswordRow(JPasswordField field, JButton toggleBtn) {
         JPanel row = new JPanel(new BorderLayout(0, 0));
         row.setOpaque(false);
-        row.setPreferredSize(new Dimension(320, 42));
+        row.setPreferredSize(FIELD_SIZE);
+        row.setMinimumSize(new Dimension(220, 42));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
 
         JPanel shell = new JPanel(new BorderLayout()) {
             @Override
@@ -299,24 +303,31 @@ public final class AuthUiKit {
 
         field.setBorder(new EmptyBorder(10, 10, 10, 4));
         field.setBackground(new Color(250, 251, 253));
+        field.setPreferredSize(new Dimension(0, 42));
+        field.setMinimumSize(new Dimension(80, 42));
         field.addFocusListener(new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
+                field.setBorder(new EmptyBorder(10, 10, 10, 4));
                 shell.repaint();
             }
 
             @Override
             public void focusLost(FocusEvent e) {
+                field.setBorder(new EmptyBorder(10, 10, 10, 4));
                 shell.repaint();
             }
         });
 
-        toggleBtn.setPreferredSize(new Dimension(42, 42));
-        toggleBtn.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
+        toggleBtn.setPreferredSize(PASSWORD_TOGGLE_SIZE);
+        toggleBtn.setMinimumSize(PASSWORD_TOGGLE_SIZE);
+        toggleBtn.setFont(new Font("SansSerif", Font.BOLD, 12));
+        toggleBtn.setForeground(BRAND_ACCENT);
         toggleBtn.setFocusPainted(false);
         toggleBtn.setBorderPainted(false);
         toggleBtn.setContentAreaFilled(false);
         toggleBtn.setOpaque(false);
+        toggleBtn.setMargin(new Insets(0, 8, 0, 8));
         toggleBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         shell.add(field, BorderLayout.CENTER);
@@ -383,18 +394,20 @@ public final class AuthUiKit {
     }
 
     public static void setupPasswordToggle(JPasswordField field, JButton button) {
+        final char hiddenEchoChar = field.getEchoChar() == (char) 0 ? '\u2022' : field.getEchoChar();
         button.addActionListener(e -> {
             if (field.getEchoChar() == (char) 0) {
-                field.setEchoChar('\u2022');
-                button.setText("\uD83D\uDC41");
+                field.setEchoChar(hiddenEchoChar);
+                button.setText("Show");
             } else {
                 field.setEchoChar((char) 0);
-                button.setText("\uD83D\uDD76");
+                button.setText("Hide");
             }
             field.requestFocus();
         });
-        button.setText("\uD83D\uDC41");
-        button.setToolTipText("Show/Hide Password");
+        field.setEchoChar(hiddenEchoChar);
+        button.setText("Show");
+        button.setToolTipText("Show or hide password");
     }
 
     private static JTextArea createWrappingTextArea(String text, Font font, Color color) {
