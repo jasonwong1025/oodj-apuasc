@@ -1,4 +1,1 @@
-REV001|APT002|4|good service|2026-05-06 23:29
-REV002|APT005|1|rubbish service|2026-05-07 00:36
-REV003|APT001|4|very fast service|2026-05-12 17:35
-REV004|APT006|5|fantastic and cheap|2026-05-12 17:35
+REV001|APT001|5|Friendly counter staff and highly skilled technicians. They handled my transmission flush and oil change perfectly.|2026-05-16 17:36

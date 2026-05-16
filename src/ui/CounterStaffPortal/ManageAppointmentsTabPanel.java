@@ -391,10 +391,14 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
                 JOptionPane.QUESTION_MESSAGE, null, options, targetAppt.getStatus());
 
         if (status != null && !status.equals(targetAppt.getStatus())) {
-            targetAppt.setStatus(status);
-            context.appointmentService().updateAppointment(targetAppt);
-            SharedStyles.showMessage(this, "Status updated to " + status);
-            context.refreshAction().run();
+            if ("CONFIRMED".equalsIgnoreCase(status)) {
+                performAssignment(targetAppt);
+            } else {
+                targetAppt.setStatus(status);
+                context.appointmentService().updateAppointment(targetAppt);
+                SharedStyles.showMessage(this, "Status updated to " + status);
+                context.refreshAction().run();
+            }
         }
     }
 
@@ -414,6 +418,11 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
             }
         }
         if (target == null) return;
+        
+        performAssignment(target);
+    }
+
+    private void performAssignment(Appointment target) {
         String staffId = target.getCounterStaffId();
 
         if ("NONE".equalsIgnoreCase(staffId)
@@ -429,15 +438,12 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         }
 
         if (!staffId.equals(currentUser().getUserId())) {
-
             SharedStyles.showWarning(
                     this,
                     "You can only manage appointments handled by yourself."
             );
-
             return;
         }
-        
 
         if ("CANCELLED".equalsIgnoreCase(target.getStatus())) {
             SharedStyles.showWarning(this, "Cannot assign technician to cancelled appointment.");
@@ -447,12 +453,17 @@ public class ManageAppointmentsTabPanel extends CounterStaffTabPanel {
         List<User> techs = context.userService().listAllUsers();
         List<String> techIds = new ArrayList<>();
         for (User u : techs) {
-            if (u.getRole() == Role.TECHNICIAN && u.isActive()) {
+            if (u.getRole() == Role.TECHNICIAN && u.isActive() && target.canBeAssignedTo(u)) {
                 techIds.add(u.getUserId() + " - " + u.getFullName());
             }
         }
 
-        String selectedTech = (String) JOptionPane.showInputDialog(this, "Assign Technician for " + id,
+        if (techIds.isEmpty()) {
+            SharedStyles.showWarning(this, "No active technicians found for " + target.getAppointmentType() + " service.");
+            return;
+        }
+
+        String selectedTech = (String) JOptionPane.showInputDialog(this, "Assign Technician for " + target.getAppointmentId(),
                 "Select Technician", JOptionPane.QUESTION_MESSAGE, null, techIds.toArray(), null);
 
         if (selectedTech != null) {
