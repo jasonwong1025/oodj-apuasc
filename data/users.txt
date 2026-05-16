@@ -1,6 +1,7 @@
-M001|Ong Jia Sen|ongjs@gmail.com|0129182000|10000:K9e+UML0B7FmlegxjH8sVw==:Rs3bFNLa7nznTGmSTN2vK3vYyD4wQ1bCv5sZub+uZzY=|Manager|-|ACTIVE
+M001|Wong Jia Sen|jswjs051025@gmail.com|0129182000|10000:K9e+UML0B7FmlegxjH8sVw==:Rs3bFNLa7nznTGmSTN2vK3vYyD4wQ1bCv5sZub+uZzY=|Manager|-|ACTIVE
 C001|Ryan Lau|joxac11290@dardr.com|0147853214|10000:UxLQcWaMlfw2aW8i27zVyQ==:xm3SzY5h8Cthc8oEKsTKv1iAhXzzjZ5Sijy5stbf7GQ=|Customer|-|ACTIVE
 T001|Ong Zi Ming|zimingong0211@gmail.com|0177896541|10000:wb5Hft6uaz5rrxu7WE8v8Q==:owaIHToWIEdovuSwCg/jDmIXb+Qk/s6SHKUk1KBkPQY=|Technician|Normal Service|ACTIVE
 T002|John Doe|johndoe@gmail.com|0136874125|10000:HDJAKVBuCTSaufnKiYeqKw==:Rdy8l410vnrVM1jXcZy9JenMxQHtsn8p8bt/dLjB7EM=|Technician|Major Service|ACTIVE
 S001|Lee Sang Yew|sangyewlee@gmail.com|0126388765|10000:TT70ifQ1HsBcIKLo+AkZqQ==:yxSDZkHkWFVw8ZlI0lDBpOafYz5rEfVcL8o4CwqGjyk=|CounterStaff|-|ACTIVE
 C002|Nick|nick@gmail.com|0197896321|10000:adFoDeqrwyfCPuKx6M3ECA==:/sLUjrdMsTGARyiWWCkWdTFtaEdiqwu1bpO2Jkt1K7Y=|Customer|-|ACTIVE
+C003|Jiasen|jiasen27826@gmail.com|0127474828|10000:V3WinyASNuV8tgO3d56Srw==:VStfdHdd9sjJzlrepmgA/2fEGCeLFYEWIt3X6oAzDNU=|Customer|-|ACTIVE
