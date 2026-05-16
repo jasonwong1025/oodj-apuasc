@@ -81,7 +81,6 @@ public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
         table.getTableHeader().setResizingAllowed(false);
         table.getTableHeader().setReorderingAllowed(false);
 
-        // Button bar
         JButton writeFeedbackBtn = SharedStyles.createActionButton("Write Feedback", SharedStyles.BTN_BLUE);
         writeFeedbackBtn.setEnabled(false);
 
@@ -92,14 +91,18 @@ public class ProvideFeedbackTabPanel extends TechnicianTabPanel {
         root.add(topBar, BorderLayout.NORTH);
         root.add(new JScrollPane(table), BorderLayout.CENTER);
 
-        // Enable button only when a row is selected
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                writeFeedbackBtn.setEnabled(table.getSelectedRow() != -1);
+                int row = table.getSelectedRow();
+                if (row != -1) {
+                    String status = table.getValueAt(row, 5).toString();
+                    writeFeedbackBtn.setEnabled(!"Submitted".equalsIgnoreCase(status));
+                } else {
+                    writeFeedbackBtn.setEnabled(false);
+                }
             }
         });
 
-        // Open JDialog modal on button click
         writeFeedbackBtn.addActionListener(e -> {
             int row = table.getSelectedRow();
             if (row == -1) return;

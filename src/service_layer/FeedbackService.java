@@ -30,12 +30,10 @@ public class FeedbackService {
         }
 
         Feedback fb = feedbackRepository.findByAppointmentId(apptId);
-        if (fb == null) {
-            fb = new Feedback(feedbackRepository.generateNextId(), apptId, description, dateTime);
-        } else {
-            fb.setDescription(description);
-            fb.setDateTime(dateTime);
+        if (fb != null) {
+            return Result.failure("Feedback has already been submitted for this appointment.");
         }
+        fb = new Feedback(feedbackRepository.generateNextId(), apptId, description, dateTime);
 
         feedbackRepository.addOrUpdate(fb);
         return Result.success(null);

@@ -26,17 +26,6 @@ public class FeedbackRepository {
         return list;
     }
 
-    private Feedback parseLine(String line) {
-        String[] parts = line.split("\\|", -1);
-        if (parts.length < 4) return null;
-        return new Feedback(
-            utils.FileStorageHelper.unescape(parts[0].trim()),
-            utils.FileStorageHelper.unescape(parts[1].trim()),
-            utils.FileStorageHelper.unescape(parts[2].trim()),
-            utils.FileStorageHelper.unescape(parts[3].trim())
-        );
-    }
-
     public void addOrUpdate(Feedback feedback) {
         List<Feedback> all = getAll();
         boolean found = false;
@@ -85,5 +74,17 @@ public class FeedbackRepository {
             }
         }
         return String.format("FB%03d", max + 1);
+    }
+
+
+        private Feedback parseLine(String line) {
+        String[] parts = line.split("\\|", -1);
+        if (parts.length < 4) return null;
+        return new Feedback(
+            utils.FileStorageHelper.unescape(parts[0].trim()),
+            utils.FileStorageHelper.unescape(parts[1].trim()),
+            utils.FileStorageHelper.unescape(parts[2].trim()),
+            utils.FileStorageHelper.unescape(parts[3].trim())
+        );
     }
 }
