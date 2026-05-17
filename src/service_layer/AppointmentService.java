@@ -87,16 +87,16 @@ public class AppointmentService {
     }
 
     public SlotCapacity getSlotCapacity(String date, String time) {
-        Set<String> majorServiceIds = getMajorServiceIds();
         int majorCount = 0;
         int normalCount = 0;
 
         for (Appointment a : appointmentRepository.getAllAppointments()) {
-            if (!"PENDING".equalsIgnoreCase(a.getStatus())) continue;
+            String status = a.getStatus();
+            if ("CANCELLED".equalsIgnoreCase(status) || "COMPLETED".equalsIgnoreCase(status)) continue;
             if (!date.equals(a.getDate())) continue;
 
-            SlotType type = classifyAppointmentType(a.getServiceId(), majorServiceIds);
-            if (type == SlotType.MAJOR) {
+            boolean isMajor = "MAJOR".equalsIgnoreCase(a.getAppointmentType());
+            if (isMajor) {
                 if (isMajorAppointmentCoveringSlot(a.getTime(), time)) {
                     majorCount++;
                 }
@@ -344,23 +344,6 @@ public class AppointmentService {
         if (serviceIds.size() > 3) return SlotType.MAJOR;
         Set<String> majorServiceIds = getMajorServiceIds();
         for (String id : serviceIds) {
-            if (majorServiceIds.contains(id)) {
-                return SlotType.MAJOR;
-            }
-        }
-        return SlotType.NORMAL;
-    }
-
-    private SlotType classifyAppointmentType(String serviceIdCsv, Set<String> majorServiceIds) {
-        if (serviceIdCsv == null || serviceIdCsv.trim().isEmpty()) {
-            return SlotType.NORMAL;
-        }
-        String[] ids = serviceIdCsv.split(",");
-        if (ids.length > 3) {
-            return SlotType.MAJOR;
-        }
-        for (String rawId : ids) {
-            String id = rawId.trim();
             if (majorServiceIds.contains(id)) {
                 return SlotType.MAJOR;
             }
